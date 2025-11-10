@@ -1,0 +1,5 @@
+{
+  "name": "CRM Dashboard",
+  "description": "A comprehensive CRM dashboard application built with React and Tailwind CSS, based on a detailed proposal. It visualizes key business metrics for sales, support, and customer management in a clean, responsive, and aesthetically pleasing interface.",
+  "requestFramePermissions": []
+}
