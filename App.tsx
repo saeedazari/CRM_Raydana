@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
-import ThemeToggle from './components/ThemeToggle';
 import Customers from './components/pages/Customers';
 import Tickets from './components/pages/Tickets';
 import Tasks from './components/pages/Tasks';
@@ -13,284 +12,122 @@ import Leads from './components/pages/Leads';
 import Products from './components/pages/Products';
 import Quotes from './components/pages/Quotes';
 import Invoices from './components/pages/Invoices';
-import { Ticket, User, Role, ChatChannel, Lead, Opportunity, Product, Quote, Invoice, Customer } from './types';
+import { User, Customer, Ticket, Interaction, Lead, Opportunity, Product, Quote, Invoice, Role, KnowledgeBaseCategory, KnowledgeBaseArticle } from './types';
 import { HamburgerIcon } from './components/icons/HamburgerIcon';
-import LoginAs from './components/LoginAs';
+import CustomerInteractions from './components/pages/CustomerInteractions';
+import UserProfile from './components/UserProfile';
+import ThemeToggle from './components/ThemeToggle';
+import LoginPage from './components/LoginPage';
 import CustomerPortal from './components/portals/CustomerPortal';
+import KnowledgeBase from './components/pages/KnowledgeBase';
 
-// Centralized Mock Data
-const initialUsers: User[] = [
-    { id: 'USER-1', name: 'علی رضایی', email: 'ali.rezaei@example.com', roleId: 'ROLE-2', avatar: 'https://i.pravatar.cc/40?u=USER-1' },
-    { id: 'USER-2', name: 'زهرا محمدی', email: 'zahra.mohammadi@example.com', roleId: 'ROLE-3', avatar: 'https://i.pravatar.cc/40?u=USER-2' },
-    { id: 'USER-3', name: 'مریم احمدی', email: 'maryam.ahmadi@example.com', roleId: 'ROLE-3', avatar: 'https://i.pravatar.cc/40?u=USER-3' },
-    { id: 'USER-4', name: 'مدیر سیستم', email: 'admin@example.com', roleId: 'ROLE-1', avatar: 'https://i.pravatar.cc/40?u=ADMIN' },
+// --- MOCK DATA AGGREGATION ---
+const mockRoles: Role[] = [
+    { id: 'R1', name: 'مدیر کل', permissions: 'view_customers,create_customers,edit_customers,delete_customers,view_tickets,create_tickets,edit_tickets,delete_tickets,view_sales,create_sales,edit_sales,delete_sales,view_reports,manage_users,manage_roles' },
+    { id: 'R2', name: 'کارشناس پشتیبانی', permissions: 'view_customers,view_tickets,create_tickets,edit_tickets' },
+    { id: 'R3', name: 'کارشناس فروش', permissions: 'view_customers,create_customers,view_sales,create_sales,edit_sales' },
 ];
 
-const initialRoles: Role[] = [
-    { id: 'ROLE-1', name: 'مدیر کل', permissions: ['manageUsers', 'manageRoles', 'manageChannels', 'viewReports', 'manageTickets', 'manageSales'] },
-    { id: 'ROLE-2', name: 'مدیر فروش', permissions: ['manageSales', 'viewReports'] },
-    { id: 'ROLE-3', name: 'کارشناس پشتیبانی', permissions: ['manageTickets'] },
+const mockUsers: User[] = [
+  { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
+  { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
+  { id: 'U3', name: 'محمد کریمی', username: 'mohammad', roleId: 'R3', avatar: 'https://i.pravatar.cc/40?u=U3' },
 ];
 
-const initialChannels: ChatChannel[] = [
-    { id: 'C-1', name: 'عمومی', description: 'بحث‌های کلی و عمومی تیم', members: ['USER-1', 'USER-2', 'USER-3', 'USER-4'] },
-    { id: 'C-2', name: 'اعلام باگ‌های سیستم', description: 'برای گزارش و پیگیری باگ‌ها', members: ['USER-2', 'USER-3'] },
-    { id: 'C-3', name: 'درخواست‌های جدید', description: 'ایده‌ها و درخواست‌های فیچر جدید', members: ['USER-1', 'USER-2', 'USER-3'] },
+const mockCustomers: Customer[] = [
+  { id: 'C1', companyName: 'شرکت آلفا', contactPerson: 'آقای الف', username: 'alpha', email: 'alpha@co.com', phone: '021-12345678', status: 'فعال', accountManagerId: 'U1', accountManager: mockUsers[0], portalToken: 'alpha-secret-token-xyz', supportEndDate: '1404/05/01' },
+  { id: 'C2', companyName: 'تجارت بتا', contactPerson: 'خانم ب', username: 'beta', email: 'beta@co.com', phone: '021-87654321', status: 'غیرفعال', accountManagerId: 'U2', accountManager: mockUsers[1], portalToken: 'beta-secret-token-abc', supportEndDate: '1403/10/01' },
+  { id: 'C3', companyName: 'صنایع گاما', contactPerson: 'آقای ج', username: 'gamma', email: 'gamma@co.com', phone: '021-11223344', status: 'فعال', accountManagerId: 'U1', accountManager: mockUsers[0] },
+  { id: 'C4', companyName: 'راهکارهای دلتا', contactPerson: 'خانم د', username: 'delta', email: 'delta@co.com', phone: '021-55667788', status: 'معلق', accountManagerId: 'U2', accountManager: mockUsers[1] },
 ];
 
-const initialCustomers: Customer[] = [
-    { id: 'CUST-001', companyName: 'شرکت ABC', contactPerson: 'رضا احمدی', email: 'reza@abc.com', phone: '09123456789', accountManager: 'علی رضایی', status: 'فعال' },
-    { id: 'CUST-002', companyName: 'فناوران پیشرو', contactPerson: 'مریم حسینی', email: 'maryam@pishro.co', phone: '09121112233', accountManager: 'زهرا محمدی', status: 'فعال' },
-    { id: 'CUST-003', companyName: 'صنایع نوین', contactPerson: 'حسن کریمی', email: 'hasan@novin.ir', phone: '09124445566', accountManager: 'مریم احمدی', status: 'غیرفعال' },
-    { id: 'CUST-004', companyName: 'داده پردازان', contactPerson: 'سارا مطلبی', email: 'sara@dadehpardaz.com', phone: '09127778899', accountManager: 'علی رضایی', status: 'فعال' },
-    { id: 'CUST-005', companyName: 'شرکت XYZ', contactPerson: 'کاوه محمودی', email: 'kaveh@xyz.org', phone: '09126543210', accountManager: 'زهرا محمدی', status: 'معلق' },
-    { id: 'CUST-006', companyName: 'گروه صنعتی بهاران', contactPerson: 'نگین افشار', email: 'negin@baharan.com', phone: '09129876543', accountManager: 'مریم احمدی', status: 'فعال' },
+const mockTicketsData: Ticket[] = [
+    { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', description: 'کاربر اعلام کرده نمی‌تواند وارد پنل شود.', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'در حال بررسی', priority: 'بالا', createdAt: '1403/05/01', category: 'فنی', replies: [
+        {id: 'R1', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', authorAvatar: mockUsers[0].avatar, text: 'در حال بررسی مشکل هستیم.', isInternal: false, createdAt: '1403/05/01 10:30'},
+        {id: 'R2', authorType: 'Customer', authorName: 'شرکت آلفا', text: 'ممنون از پیگیری شما.', isInternal: false, createdAt: '1403/05/01 10:35'},
+        {id: 'R3', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', authorAvatar: mockUsers[0].avatar, text: 'مشکل از سمت سرور بود، لطفا مجدد تست کنید.', isInternal: true, createdAt: '1403/05/01 11:00'},
+    ]},
+    { id: 'TKT-720', subject: 'سوال در مورد صورتحساب', customer: mockCustomers[1], customerId: 'C2', assignee: mockUsers[1], assigneeId: 'U2', status: 'جدید', priority: 'متوسط', createdAt: '1403/05/01', category: 'مالی' },
+    { id: 'TKT-719', subject: 'گزارش باگ در ماژول گزارشات', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'حل شده', priority: 'بالا', createdAt: '1403/04/31', category: 'فنی', surveySubmitted: false },
+    { id: 'TKT-718', subject: 'درخواست افزودن ویژگی جدید', customer: mockCustomers[1], customerId: 'C2', status: 'در انتظار مشتری', priority: 'کم', createdAt: '1403/04/30', category: 'عمومی' },
+    { id: 'TKT-722', subject: 'نحوه کار با API', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[1], assigneeId: 'U2', status: 'بسته شده', priority: 'متوسط', createdAt: '1403/04/28', category: 'فنی', surveySubmitted: true, rating: 5, feedbackTags: ['پاسخ سریع', 'دانش فنی بالا'] },
 ];
 
-const initialLeads: Lead[] = [
-    { id: 'LEAD-001', contactName: 'آرش ستوده', companyName: 'دیجی‌کالا', email: 'arash@digikala.com', phone: '09121112233', source: 'وبسایت', status: 'جدید', score: 75, assignedTo: 'مریم احمدی', createdAt: '1403/08/15', converted: false },
-    { id: 'LEAD-002', contactName: 'سیمین بهبهانی', companyName: 'کافه‌بازار', email: 'simin@cafebazaar.ir', phone: '09122223344', source: 'ارجاعی', status: 'تماس گرفته شده', score: 60, assignedTo: 'علی رضایی', createdAt: '1403/08/14', converted: false },
-    { id: 'LEAD-003', contactName: 'فریدون مشیری', companyName: 'تپسی', email: 'fereydoun@tapsi.cab', phone: '09123334455', source: 'تماس سرد', status: 'واجد شرایط', score: 85, assignedTo: 'زهرا محمدی', createdAt: '1403/08/12', converted: false },
-    { id: 'LEAD-004', contactName: 'پروین اعتصامی', companyName: 'اسنپ', email: 'parvin@snapp.cab', phone: '09124445566', source: 'شبکه اجتماعی', status: 'جدید', score: 50, assignedTo: 'مریم احمدی', createdAt: '1403/08/11', converted: false },
-    { id: 'LEAD-005', contactName: 'نیما یوشیج', companyName: 'آپارات', email: 'nima@aparat.com', phone: '09125556677', source: 'وبسایت', status: 'از دست رفته', score: 20, assignedTo: 'علی رضایی', createdAt: '1403/08/10', converted: false },
-    { id: 'LEAD-006', contactName: 'سهراب سپهری', companyName: 'شیپور', email: 'sohrab@sheypoor.com', phone: '09126667788', source: 'ارجاعی', status: 'تبدیل شده', score: 95, assignedTo: 'زهرا محمدی', createdAt: '1403/08/09', converted: true },
+const mockKbCategories: KnowledgeBaseCategory[] = [
+    { id: 'KBC1', name: 'راهنمای شروع' },
+    { id: 'KBC2', name: 'عیب‌یابی فنی' },
+    { id: 'KBC3', name: 'سوالات متداول فروش' },
+    { id: 'KBC4', name: 'سیاست‌های داخلی' },
 ];
 
-const initialOpportunities: Opportunity[] = [
-    { id: 'OPP-001', name: 'پروژه CRM جدید', customerName: 'شرکت ABC', amount: 150000000, stage: 'ارائه پیشنهاد', closeDate: '1403/09/15', assignedTo: 'علی رضایی' },
-    { id: 'OPP-002', name: 'تمدید اشتراک سالانه', customerName: 'فناوران پیشرو', amount: 50000000, stage: 'مذاکره', closeDate: '1403/08/30', assignedTo: 'زهرا محمدی' },
-    { id: 'OPP-003', name: 'قرارداد پشتیبانی', customerName: 'داده پردازان', amount: 75000000, stage: 'واجد شرایط', closeDate: '1403/10/01', assignedTo: 'علی رضایی' },
-    { id: 'OPP-004', name: 'فروش 10 لایسنس جدید', customerName: 'صنایع نوین', amount: 120000000, stage: 'موفق', closeDate: '1403/08/10', assignedTo: 'مریم احمدی' },
-    { id: 'OPP-005', name: 'پروژه وب‌سایت', customerName: 'شرکت XYZ', amount: 250000000, stage: 'شناسایی', closeDate: '1403/11/01', assignedTo: 'زهرا محمدی' },
-    { id: 'OPP-006', name: 'ارتقا به پلن Enterprise', customerName: 'آریا سیستم', amount: 90000000, stage: 'ارائه پیشنهاد', closeDate: '1403/09/20', assignedTo: 'مریم احمدی' },
+const mockKbArticles: KnowledgeBaseArticle[] = [
+    { id: 'KBA1', title: 'چگونه یک تیکت جدید ثبت کنیم؟', content: 'برای ثبت تیکت جدید، از منوی پورتال مشتریان گزینه تیکت‌ها را انتخاب کرده و روی دکمه <b>"تیکت جدید"</b> کلیک کنید... <br/> <img src="https://via.placeholder.com/400x200.png?text=Ticket+Example" alt="Example"/>', categoryId: 'KBC1', tags: ['تیکت', 'مشتری'], authorId: 'U1', createdAt: '1403/04/15', visibility: 'public' },
+    { id: 'KBA2', title: 'خطای 500 هنگام ورود به پنل', content: 'این خطا معمولا به دلیل مشکلات سمت سرور است. لطفاً ابتدا کش مرورگر خود را پاک کرده و مجددا تلاش کنید. در صورت عدم رفع مشکل، با <a href="mailto:support@example.com">پشتیبانی</a> تماس بگیرید.', categoryId: 'KBC2', tags: ['خطا', 'ورود', 'فنی'], authorId: 'U2', createdAt: '1403/04/20', visibility: 'public' },
+    { id: 'KBA3', title: 'راهنمای قیمت‌گذاری سرویس‌ها', content: 'این یک سند داخلی است و نباید در دسترس مشتری قرار گیرد. پلن‌های قیمت‌گذاری به شرح زیر است...', categoryId: 'KBC3', tags: ['قیمت', 'فروش'], authorId: 'U3', createdAt: '1403/05/01', visibility: 'internal' },
+    { id: 'KBA4', title: 'سیاست مرخصی کارکنان', content: 'هر کارمند در سال مجاز به استفاده از ۲۴ روز مرخصی با حقوق است...', categoryId: 'KBC4', tags: ['منابع انسانی', 'داخلی'], authorId: 'U1', createdAt: '1403/01/10', visibility: 'internal' },
 ];
 
-const initialProducts: Product[] = [
-    { id: 'PROD-001', code: 'CRM-SUB-Y-B', name: 'اشتراک سالانه پایه', description: 'دسترسی به تمام امکانات پایه CRM', price: 50000000 },
-    { id: 'PROD-002', code: 'CRM-SUB-Y-P', name: 'اشتراک سالانه حرفه‌ای', description: 'تمام امکانات پایه + گزارش‌های پیشرفته و اتوماسیون', price: 90000000 },
-    { id: 'PROD-003', code: 'CRM-LIC-USER', name: 'لایسنس کاربر اضافه', description: 'افزودن یک کاربر جدید به پلن فعلی', price: 12000000 },
-    { id: 'PROD-004', code: 'CRM-SVC-CONS', name: 'ساعت مشاوره فنی', description: 'مشاوره و راهنمایی فنی توسط کارشناسان ما', price: 1500000 },
-    { id: 'PROD-005', code: 'CRM-SVC-SETUP', name: 'پکیج راه‌اندازی اولیه', description: 'نصب، پیکربندی و آموزش اولیه تیم شما', price: 60000000 },
-];
-
-const initialQuotes: Quote[] = [];
-const initialInvoices: Invoice[] = [];
-
-const mockTickets: Ticket[] = [
-    { 
-      id: 'TKT-00123', subject: 'مشکل در ورود به سیستم', customer: 'شرکت ABC', status: 'در حال بررسی', priority: 'بالا', assignee: 'علی رضایی', date: '۱۴۰۳/۰۸/۱۵', category: 'فنی',
-      history: [
-        { id: 'TR-1', author: 'شرکت ABC', text: 'سلام، من در ورود به سیستم مشکل دارم و خطای نام کاربری یا رمز عبور اشتباه است دریافت می‌کنم.', timestamp: '۱۴۰۳/۰۸/۱۵ ۱۰:۰۰', isInternal: false, authorAvatar: 'https://i.pravatar.cc/40?u=CUST-001' },
-        { id: 'TR-2', author: 'علی رضایی', authorId: 'USER-1', text: 'سلام، مشکل شما در حال بررسی است. لطفاً منتظر بمانید.', timestamp: '۱۴۰۳/۰۸/۱۵ ۱۰:۰۵', isInternal: false, authorAvatar: 'https://i.pravatar.cc/40?u=USER-1' },
-        { id: 'TR-3', author: 'علی رضایی', authorId: 'USER-1', text: 'به نظر می‌رسد مشکل از سمت کش مرورگر باشد. کاربر راهنمایی شد تا کش را پاک کند.', timestamp: '۱۴۰۳/۰۸/۱۵ ۱۰:۲۰', isInternal: true, authorAvatar: 'https://i.pravatar.cc/40?u=USER-1' },
-      ]
-    },
-    { id: 'TKT-00122', subject: 'درخواست فیچر جدید', customer: 'شرکت XYZ', status: 'جدید', priority: 'متوسط', assignee: 'مریم احمدی', date: '۱۴۰۳/۰۸/۱۴', category: 'عمومی' },
-    { id: 'TKT-00121', subject: 'سوال در مورد صورتحساب', customer: 'فناوران پیشرو', status: 'بسته شده', priority: 'متوسط', assignee: 'علی رضایی', date: '۱۴۰۳/۰۸/۱۴', category: 'مالی', surveySubmitted: true, rating: 5, feedbackTags: ['پاسخ سریع', 'راه حل مناسب'] },
-    { id: 'TKT-00120', subject: 'گزارش باگ در داشبورد', customer: 'داده پردازان', status: 'حل شده', priority: 'حیاتی', assignee: 'زهرا محمدی', date: '۱۴۰۳/۰۸/۱۳', category: 'پشتیبانی', surveySubmitted: false },
-    { id: 'TKT-00119', subject: 'عدم ارسال نوتیفیکیشن', customer: 'صنایع نوین', status: 'بسته شده', priority: 'بالا', assignee: 'مریم احمدی', date: '۱۴۰۳/۰۸/۱۲', category: 'فنی', surveySubmitted: true, rating: 4, feedbackTags: ['برخورد عالی کارشناس'] },
-    { id: 'TKT-00118', subject: 'نیاز به راهنمایی برای API', customer: 'تجارت الکترونیک پارس', status: 'در انتظار مشتری', priority: 'کم', assignee: 'زهرا محمدی', date: '۱۴۰۳/۰۸/۱۱', category: 'فنی' },
-    { id: 'TKT-00117', subject: 'مشکل در پرداخت آنلاین', customer: 'گروه صنعتی بهاران', status: 'بازگشایی شده', priority: 'حیاتی', assignee: 'علی رضایی', date: '۱۴۰۳/۰۸/۱۰', category: 'مالی' },
-];
 
 interface PageState {
   name: string;
   params?: any;
 }
 
-const App: React.FC = () => {
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+const MainApp: React.FC<{ 
+    user: User, 
+    customers: Customer[], 
+    setCustomers: React.Dispatch<React.SetStateAction<Customer[]>>, 
+    kbCategories: KnowledgeBaseCategory[],
+    setKbCategories: React.Dispatch<React.SetStateAction<KnowledgeBaseCategory[]>>,
+    kbArticles: KnowledgeBaseArticle[],
+    setKbArticles: React.Dispatch<React.SetStateAction<KnowledgeBaseArticle[]>>,
+    onLogout: () => void 
+}> = ({ user, customers, setCustomers, kbCategories, setKbCategories, kbArticles, setKbArticles, onLogout }) => {
   const [activePage, setActivePage] = useState<PageState>({ name: 'dashboard' });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  // Centralized state management
-  const [users, setUsers] = useState<User[]>(initialUsers);
-  const [roles, setRoles] = useState<Role[]>(initialRoles);
-  const [channels, setChannels] = useState<ChatChannel[]>(initialChannels);
-  const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
-  const [leads, setLeads] = useState<Lead[]>(initialLeads);
-  const [opportunities, setOpportunities] = useState<Opportunity[]>(initialOpportunities);
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [quotes, setQuotes] = useState<Quote[]>(initialQuotes);
-  const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
-  const [tickets, setTickets] = useState<Ticket[]>(mockTickets);
-
-  // User/Portal Mode State
-  const [currentUser, setCurrentUser] = useState<User | Customer | null>(initialUsers.find(u => u.roleId === 'ROLE-1')!);
-  const [currentUserType, setCurrentUserType] = useState<'crm' | 'portal'>('crm');
-
-
-  useEffect(() => {
-    const root = window.document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
   
   const handleSetActivePage = (name: string, params: any = {}) => {
     setActivePage({ name, params });
+    setIsSidebarOpen(false);
   };
   
-  // --- LOGIN/PORTAL HANDLERS ---
-  const handleLoginAs = (userOrCustomer: User | Customer, type: 'crm' | 'portal') => {
-      setCurrentUser(userOrCustomer);
-      setCurrentUserType(type);
-      if(type === 'portal') {
-          setActivePage({ name: 'tickets' });
-      } else {
-          setActivePage({ name: 'dashboard' });
-      }
-  };
-
-  const handleLogout = () => {
-      // Log back in as admin
-      handleLoginAs(initialUsers.find(u => u.roleId === 'ROLE-1')!, 'crm');
-  };
-
-  // --- TICKET MODULE HANDLERS ---
-  const handleAddTicket = (ticket: Omit<Ticket, 'id' | 'assignee' | 'date' >) => {
-    const newTicketWithId: Ticket = {
-      id: `TKT-${String(Date.now()).slice(-5)}`,
-      assignee: 'تخصیص نیافته',
-      date: new Date().toLocaleDateString('fa-IR-u-nu-latn').replace(/\//g, '/'),
-      ...ticket
-    };
-    setTickets(prev => [newTicketWithId, ...prev]);
-  };
-
-  const handleUpdateTicket = (updatedTicket: Ticket) => {
-    setTickets(currentTickets => currentTickets.map(t => t.id === updatedTicket.id ? updatedTicket : t));
-  };
-  
-  const handleSurveySubmit = (ticketId: string, rating: number, feedback: string, tags: string[]) => {
-      const ticketToUpdate = tickets.find(t => t.id === ticketId);
-      if (ticketToUpdate) {
-        handleUpdateTicket({
-            ...ticketToUpdate,
-            rating: rating,
-            surveySubmitted: true,
-            feedbackTags: tags
-            // You could also add the feedback to the ticket history as an internal note
-        });
-      }
-  };
-
-  const handleCreateTaskFromTicket = (ticket: Ticket) => {
+  const handleCreateTaskFromTicket = (ticketId: string, ticketSubject: string, priority: string, customerId: string) => {
       handleSetActivePage('tasks', { 
           action: 'create', 
           prefill: {
-              title: `رسیدگی به تیکت: ${ticket.subject}`,
-              customer: ticket.customer,
-              relatedTicketId: ticket.id,
-              priority: ticket.priority === 'حیاتی' ? 'فوری' : ticket.priority === 'کم' ? 'پایین' : ticket.priority,
+              title: `رسیدگی به تیکت: ${ticketSubject}`,
+              customerId: customerId,
+              relatedTicketId: ticketId,
+              priority: priority === 'حیاتی' ? 'فوری' : priority === 'کم' ? 'پایین' : priority,
           }
       });
-  };
-
-  // --- CUSTOMER MODULE HANDLERS ---
-  const handleAddCustomer = (customer: Omit<Customer, 'id'>) => {
-    const newCustomer: Customer = { 
-      id: `CUST-${Date.now()}`,
-      accountManager: 'علی رضایی',
-      status: 'فعال',
-      ...customer, 
-    };
-    setCustomers(prev => [newCustomer, ...prev]);
-  };
-
-  const handleUpdateCustomer = (updatedCustomer: Customer) => {
-    setCustomers(prev => prev.map(c => c.id === updatedCustomer.id ? updatedCustomer : c));
-  };
-
-  const handleDeleteCustomer = (customerId: string) => {
-    setCustomers(prev => prev.filter(c => c.id !== customerId));
-  };
-
-
-  // --- SALES MODULE HANDLERS ---
-  const handleAddLead = (lead: Omit<Lead, 'id'>) => {
-    const newLead: Lead = { ...lead, id: `LEAD-${Date.now()}` };
-    setLeads(prev => [newLead, ...prev]);
-  };
-  const handleUpdateLead = (updatedLead: Lead) => {
-    setLeads(prev => prev.map(l => l.id === updatedLead.id ? updatedLead : l));
-  };
-  const handleConvertLead = (lead: Lead, opportunityName: string, opportunityAmount: number) => {
-      const newCustomer: Customer = {
-          id: `CUST-${Date.now()}`,
-          companyName: lead.companyName || lead.contactName,
-          contactPerson: lead.contactName,
-          email: lead.email || '',
-          phone: lead.phone || '',
-          accountManager: lead.assignedTo,
-          status: 'فعال',
-      };
-      setCustomers(prev => [newCustomer, ...prev]);
-
-      const newOpportunity: Opportunity = {
-          id: `OPP-${Date.now()}`,
-          name: opportunityName,
-          customerName: newCustomer.companyName,
-          amount: opportunityAmount,
-          stage: 'واجد شرایط',
-          closeDate: new Date(new Date().setDate(new Date().getDate() + 30)).toLocaleDateString('fa-IR-u-nu-latn'),
-          assignedTo: lead.assignedTo,
-      };
-      setOpportunities(prev => [newOpportunity, ...prev]);
-      handleUpdateLead({ ...lead, status: 'تبدیل شده', converted: true });
-  };
-  const handleUpdateOpportunity = (opportunityId: string, updates: Partial<Opportunity>) => {
-      setOpportunities(prev => prev.map(opp => opp.id === opportunityId ? { ...opp, ...updates } : opp));
-  };
-  const handleAddProduct = (product: Omit<Product, 'id'>) => {
-    const newProduct: Product = { ...product, id: `PROD-${Date.now()}` };
-    setProducts(prev => [newProduct, ...prev]);
-  };
-  const handleUpdateProduct = (updatedProduct: Product) => {
-    setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
-  };
-
-  const handleAddQuote = (quote: Omit<Quote, 'id'>) => {
-    const newQuote: Quote = { ...quote, id: `QT-${Date.now()}` };
-    setQuotes(prev => [newQuote, ...prev]);
-  };
-  const handleUpdateQuote = (updatedQuote: Quote) => {
-    setQuotes(prev => prev.map(q => q.id === updatedQuote.id ? updatedQuote : q));
-  };
-
-  const handleAddInvoice = (invoice: Omit<Invoice, 'id'>) => {
-    const newInvoice: Invoice = { ...invoice, id: `INV-${Date.now()}` };
-    setInvoices(prev => [newInvoice, ...prev]);
-  };
-  const handleUpdateInvoice = (updatedInvoice: Invoice) => {
-    setInvoices(prev => prev.map(i => i.id === updatedInvoice.id ? updatedInvoice : i));
   };
   
-  const handleCreateInvoiceFromQuote = (quote: Quote) => {
-      handleSetActivePage('invoices', { 
+  const handleCreateTaskFromMessage = (messageText: string, authorName: string) => {
+      handleSetActivePage('tasks', { 
           action: 'create', 
           prefill: {
-              quoteId: quote.id,
-              customerId: quote.customerId,
-              items: quote.items,
-              subtotal: quote.subtotal,
-              discountAmount: quote.discountAmount,
-              taxAmount: quote.taxAmount,
-              totalAmount: quote.totalAmount,
+              title: `وظیفه از چت: ${messageText.substring(0, 30)}...`,
+              description: `ایجاد شده از پیام کاربر ${authorName}:\n\n"${messageText}"`,
+              assignedToId: user.id,
           }
       });
   };
+
+  const handleCreateInvoiceFromQuote = (quoteId: string, customerId: string) => {
+    handleSetActivePage('invoices', {
+      action: 'create',
+      prefill: {
+        quoteId,
+        customerId,
+      }
+    })
+  }
 
   const pageTitles: { [key: string]: string } = {
     dashboard: 'داشبورد مدیریتی',
     customers: 'مدیریت مشتریان',
+    customerInteractions: 'تعاملات با مشتری',
     tickets: 'مدیریت تیکت‌ها',
     tasks: 'مدیریت وظایف',
     opportunities: 'فرصت‌های فروش',
@@ -301,91 +138,65 @@ const App: React.FC = () => {
     chat: 'چت تیمی',
     reports: 'گزارش‌ها',
     settings: 'تنظیمات',
+    knowledgeBase: 'پایگاه دانش',
   };
 
   const renderPage = () => {
     switch (activePage.name) {
       case 'customers':
         return <Customers 
-            customers={customers} 
-            onAddCustomer={handleAddCustomer}
-            onUpdateCustomer={handleUpdateCustomer}
-            onDeleteCustomer={handleDeleteCustomer}
+            customers={customers}
+            setCustomers={setCustomers}
+            onViewInteractions={(customerId) => handleSetActivePage('customerInteractions', { customerId })}
         />;
+      case 'customerInteractions': {
+            if (!activePage.params.customerId) return <div>مشتری یافت نشد.</div>;
+            return <CustomerInteractions 
+                customerId={activePage.params.customerId}
+                customers={customers}
+                currentUser={user}
+                onBack={() => handleSetActivePage('customers')}
+            />;
+        }
       case 'tickets':
         return <Tickets 
-            tickets={tickets}
-            users={users}
-            onAddTicket={handleAddTicket}
-            onUpdateTicket={handleUpdateTicket}
+            customers={customers}
             onCreateTaskFromTicket={handleCreateTaskFromTicket} 
         />;
       case 'tasks':
-        return <Tasks initialParams={activePage.params} users={users} />;
+        return <Tasks initialParams={activePage.params} customers={customers} />;
       case 'opportunities':
-        return <Opportunities opportunities={opportunities} onUpdateOpportunity={handleUpdateOpportunity} />;
+        return <Opportunities />;
       case 'leads':
-        return <Leads 
-            leads={leads}
-            users={users}
-            onAddLead={handleAddLead}
-            onUpdateLead={handleUpdateLead}
-            onConvertLead={handleConvertLead}
-        />;
+        return <Leads />;
       case 'products':
-        return <Products products={products} onAddProduct={handleAddProduct} onUpdateProduct={handleUpdateProduct} />;
+        return <Products />;
       case 'quotes':
-        return <Quotes
-            quotes={quotes}
-            customers={customers}
-            products={products}
-            onAddQuote={handleAddQuote}
-            onUpdateQuote={handleUpdateQuote}
-            onCreateInvoiceFromQuote={handleCreateInvoiceFromQuote}
-          />;
+        return <Quotes customers={customers} onCreateInvoiceFromQuote={handleCreateInvoiceFromQuote}/>;
       case 'invoices':
-        return <Invoices
-            initialParams={activePage.params}
-            invoices={invoices}
-            quotes={quotes}
-            customers={customers}
-            products={products}
-            onAddInvoice={handleAddInvoice}
-            onUpdateInvoice={handleUpdateInvoice}
-          />;
+        return <Invoices initialParams={activePage.params} customers={customers} />;
       case 'chat':
-        return <Chat channels={channels} users={users} />;
+        return <Chat 
+            currentUser={user}
+            onCreateTask={handleCreateTaskFromMessage}
+        />;
       case 'reports':
         return <Reports />;
       case 'settings':
-        return (
-          <Settings 
-            users={users}
-            setUsers={setUsers}
-            roles={roles}
-            setRoles={setRoles}
-            channels={channels}
-            setChannels={setChannels}
-          />
-        );
+        return <Settings customers={customers} setCustomers={setCustomers} />;
+      case 'knowledgeBase':
+        return <KnowledgeBase 
+            articles={kbArticles} 
+            setArticles={setKbArticles}
+            categories={kbCategories}
+            setCategories={setKbCategories}
+            currentUser={user}
+        />;
       case 'dashboard':
       default:
-        return <Dashboard />;
+        return <Dashboard customers={customers} />;
     }
   };
-
-  if (currentUserType === 'portal' && currentUser) {
-      return (
-          <CustomerPortal 
-              customer={currentUser as Customer}
-              onLogout={handleLogout}
-              tickets={tickets.filter(t => t.customer === (currentUser as Customer).companyName)}
-              onAddTicket={handleAddTicket}
-              onUpdateTicket={handleUpdateTicket}
-              onSurveySubmit={handleSurveySubmit}
-          />
-      );
-  }
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans overflow-hidden">
@@ -413,24 +224,115 @@ const App: React.FC = () => {
             >
               <HamburgerIcon className="w-6 h-6" />
             </button>
-            <h1 className="text-xl sm:text-2xl font-semibold">{pageTitles[activePage.name]}</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold">{pageTitles[activePage.name] || 'CRM'}</h1>
           </div>
           <div className="flex items-center space-i-4">
-            <LoginAs 
-              users={users}
-              customers={customers}
-              currentUser={currentUser}
-              onLoginAs={handleLoginAs}
-            />
-            <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+            <UserProfile user={user} onLogout={onLogout} />
+            <ThemeToggle />
           </div>
         </header>
-        <div className={`flex-1 overflow-x-hidden overflow-y-auto ${!['chat', 'opportunities'].includes(activePage.name) ? 'p-6' : ''}`}>
+        <div className={`flex-1 overflow-x-hidden overflow-y-auto ${!['chat', 'opportunities', 'customerInteractions', 'knowledgeBase'].includes(activePage.name) ? 'p-6' : ''}`}>
           {renderPage()}
         </div>
       </main>
     </div>
   );
+}
+
+
+const App: React.FC = () => {
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+  const [auth, setAuth] = useState<{ type: 'user' | 'customer' | null, entity: User | Customer | null }>({ type: null, entity: null });
+  const [tickets, setTickets] = useState<Ticket[]>(mockTicketsData);
+  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+  const [kbCategories, setKbCategories] = useState<KnowledgeBaseCategory[]>(mockKbCategories);
+  const [kbArticles, setKbArticles] = useState<KnowledgeBaseArticle[]>(mockKbArticles);
+
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const handleLogin = (type: 'user' | 'customer', username: string, pass: string) => {
+    // Mock login logic
+    if (pass === '1234') {
+        if (type === 'user') {
+            const user = mockUsers.find(u => u.username === username);
+            if (user) {
+                setAuth({ type: 'user', entity: user });
+                return true;
+            }
+        } else {
+            const customer = customers.find(c => c.username === username);
+            if (customer) {
+                setAuth({ type: 'customer', entity: customer });
+                return true;
+            }
+        }
+    }
+    return false;
+  };
+  
+  const handleLogout = () => {
+      setAuth({ type: null, entity: null });
+  };
+  
+  const handleAddTicket = (ticketData: Omit<Ticket, 'id'|'customer'|'assignee'|'assigneeId'>) => {
+      const customer = auth.entity as Customer;
+      const newTicket: Ticket = {
+          ...ticketData,
+          id: `TKT-${Date.now()}`,
+          customer,
+      };
+      setTickets(prev => [newTicket, ...prev]);
+  };
+  
+  const handleUpdateTicket = (updatedTicket: Ticket) => {
+      setTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
+  };
+  
+  const handleSurveySubmit = (ticketId: string, rating: number, feedback: string, tags: string[]) => {
+      setTickets(prev => prev.map(t => 
+          t.id === ticketId ? { ...t, rating, feedbackTags: tags, surveySubmitted: true } : t
+      ));
+  };
+
+  if (!auth.type || !auth.entity) {
+      return <LoginPage onLogin={handleLogin} />;
+  }
+
+  if (auth.type === 'customer') {
+      const customerTickets = tickets.filter(t => t.customerId === auth.entity!.id);
+      const publicKbArticles = kbArticles.filter(a => a.visibility === 'public');
+      return <CustomerPortal 
+          customer={auth.entity as Customer} 
+          onLogout={handleLogout}
+          tickets={customerTickets}
+          onAddTicket={handleAddTicket}
+          onUpdateTicket={handleUpdateTicket}
+          onSurveySubmit={handleSurveySubmit}
+          kbArticles={publicKbArticles}
+          kbCategories={kbCategories}
+      />;
+  }
+  
+  return <MainApp 
+            user={auth.entity as User} 
+            customers={customers} 
+            setCustomers={setCustomers} 
+            kbCategories={kbCategories}
+            setKbCategories={setKbCategories}
+            kbArticles={kbArticles}
+            setKbArticles={setKbArticles}
+            onLogout={handleLogout} 
+        />;
 };
+
 
 export default App;

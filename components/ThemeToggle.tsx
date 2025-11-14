@@ -1,12 +1,20 @@
-
 import React from 'react';
 
-interface ThemeToggleProps {
-  theme: string;
-  toggleTheme: () => void;
-}
+const ThemeToggle: React.FC = () => {
+    const [theme, setTheme] = React.useState(localStorage.getItem('theme') || 'light');
 
-const ThemeToggle: React.FC<ThemeToggleProps> = ({ theme, toggleTheme }) => {
+    const toggleTheme = () => {
+        const newTheme = theme === 'dark' ? 'light' : 'dark';
+        setTheme(newTheme);
+        const root = window.document.documentElement;
+        if (newTheme === 'dark') {
+            root.classList.add('dark');
+        } else {
+            root.classList.remove('dark');
+        }
+        localStorage.setItem('theme', newTheme);
+    };
+
   return (
     <button
       onClick={toggleTheme}

@@ -24,7 +24,7 @@ const priorityColors: { [key in Ticket['priority']]: string } = {
     'کم': 'border-gray-400',
 };
 
-const initialNewTicketState: Omit<Ticket, 'id' | 'assignee' | 'date' | 'customer' > = {
+const initialNewTicketState: Omit<Ticket, 'id' | 'customer' | 'customerId' | 'assignee' | 'assigneeId' | 'replies' | 'rating' | 'surveySubmitted' | 'feedbackTags' | 'createdAt'> = {
     subject: '',
     description: '',
     category: 'عمومی',
@@ -35,7 +35,7 @@ const initialNewTicketState: Omit<Ticket, 'id' | 'assignee' | 'date' | 'customer
 interface CustomerTicketsProps {
     customer: Customer;
     tickets: Ticket[];
-    onAddTicket: (ticket: Omit<Ticket, 'id' | 'assignee' | 'date' >) => void;
+    onAddTicket: (ticket: Omit<Ticket, 'id' | 'assignee' | 'customer' | 'assigneeId' | 'date'>) => void;
     onUpdateTicket: (ticket: Ticket) => void;
     onSurveySubmit: (ticketId: string, rating: number, feedback: string, tags: string[]) => void;
 }
@@ -47,19 +47,20 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; onUpdate:
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [ticket.history]);
+    }, [ticket.replies]);
 
     const handleSendReply = () => {
         if (newReply.trim() === '') return;
         const reply: TicketReply = {
             id: `TR-${Date.now()}`,
-            author: ticket.customer,
+            authorName: ticket.customer.companyName,
+            authorType: 'Customer',
             text: newReply,
-            timestamp: new Date().toLocaleDateString('fa-IR-u-nu-latn', { hour: '2-digit', minute: '2-digit' }),
+            createdAt: new Date().toLocaleString('fa-IR-u-nu-latn'),
             isInternal: false,
         };
-        const updatedHistory = [...(ticket.history || []), reply];
-        onUpdate({ ...ticket, history: updatedHistory, status: 'در انتظار مشتری' });
+        const updatedReplies = [...(ticket.replies || []), reply];
+        onUpdate({ ...ticket, replies: updatedReplies, status: 'در انتظار مشتری' });
         setNewReply('');
     };
 
@@ -79,19 +80,19 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; onUpdate:
             <div className="flex-grow flex flex-col md:flex-row overflow-hidden">
                 <div className="flex-1 flex flex-col p-4 overflow-y-auto">
                     <div className="space-y-4">
-                        {ticket.history?.filter(r => !r.isInternal).map(reply => (
-                            <div key={reply.id} className={`flex items-end gap-3 ${!reply.authorId ? 'justify-end' : ''}`}>
-                                {reply.authorId && <img src={reply.authorAvatar} alt={reply.author} className="w-8 h-8 rounded-full order-2" />}
+                        {ticket.replies?.filter(r => !r.isInternal).map(reply => (
+                            <div key={reply.id} className={`flex items-end gap-3 ${reply.authorType === 'Customer' ? 'justify-end' : ''}`}>
+                                {reply.authorType === 'User' && <img src={reply.authorAvatar} alt={reply.authorName} className="w-8 h-8 rounded-full order-2" />}
                                 <div className={`w-fit max-w-lg rounded-xl px-4 py-3 ${
-                                    !reply.authorId 
+                                    reply.authorType === 'Customer'
                                     ? 'bg-gray-200 dark:bg-gray-700 order-1' 
                                     : 'bg-indigo-100 dark:bg-indigo-900/50 order-2'
                                 }`}>
-                                    <p className="font-semibold text-sm mb-1">{reply.author}</p>
+                                    <p className="font-semibold text-sm mb-1">{reply.authorName}</p>
                                     <p className="text-sm text-gray-800 dark:text-gray-200">{reply.text}</p>
-                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{reply.timestamp}</p>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{reply.createdAt}</p>
                                 </div>
-                                {!reply.authorId && <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center font-bold text-sm order-2">{ticket.customer.charAt(0)}</div>}
+                                {reply.authorType === 'Customer' && <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center font-bold text-sm order-2">{ticket.customer.companyName.charAt(0)}</div>}
                             </div>
                         ))}
                         <div ref={chatEndRef}></div>
@@ -100,7 +101,7 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; onUpdate:
                 <div className="w-full md:w-80 border-t md:border-t-0 md:border-r border-gray-200 dark:border-gray-700 p-4 space-y-4 flex-shrink-0 overflow-y-auto">
                     <div className="text-sm space-y-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                         <div className="flex justify-between"><span>وضعیت:</span><span className="font-semibold">{ticket.status}</span></div>
-                        <div className="flex justify-between"><span>کارشناس:</span><span className="font-semibold">{ticket.assignee}</span></div>
+                        <div className="flex justify-between"><span>کارشناس:</span><span className="font-semibold">{ticket.assignee?.name || '-'}</span></div>
                         <div className="flex justify-between"><span>اولویت:</span><span className="font-semibold">{ticket.priority}</span></div>
                     </div>
                     {ticket.rating && (
@@ -129,11 +130,13 @@ const CustomerTickets: React.FC<CustomerTicketsProps> = ({ customer, tickets, on
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [newTicket, setNewTicket] = useState(initialNewTicketState);
   const [viewingTicket, setViewingTicket] = useState<Ticket | null>(null);
-  const [showSurveyModal, setShowSurveyModal] = useState<Ticket | null>(null);
+  const [surveyTicket, setSurveyTicket] = useState<Ticket | null>(null);
 
   useEffect(() => {
     if (viewingTicket && ['حل شده', 'بسته شده'].includes(viewingTicket.status) && !viewingTicket.surveySubmitted) {
-        setShowSurveyModal(viewingTicket);
+        setSurveyTicket(viewingTicket);
+    } else {
+        setSurveyTicket(null);
     }
   }, [viewingTicket]);
 
@@ -144,7 +147,7 @@ const CustomerTickets: React.FC<CustomerTicketsProps> = ({ customer, tickets, on
 
   const handleAddTicket = (e: React.FormEvent) => {
     e.preventDefault();
-    onAddTicket({ ...newTicket, customer: customer.companyName });
+    onAddTicket({ ...newTicket, customerId: customer.id, createdAt: new Date().toLocaleDateString('fa-IR-u-nu-latn')} as any);
     closePanel();
   };
   
@@ -155,11 +158,15 @@ const CustomerTickets: React.FC<CustomerTicketsProps> = ({ customer, tickets, on
   };
   
   const handleSurvey = (rating: number, feedback: string, tags: string[]) => {
-      if (showSurveyModal) {
-          onSurveySubmit(showSurveyModal.id, rating, feedback, tags);
-          // Also update the viewing ticket to reflect the change immediately
-          setViewingTicket(prev => prev ? {...prev, surveySubmitted: true, rating: rating, feedbackTags: tags} : null);
-          setShowSurveyModal(null);
+      if (surveyTicket) {
+          onSurveySubmit(surveyTicket.id, rating, feedback, tags);
+          const updatedTicket = { ...surveyTicket, surveySubmitted: true, rating: rating, feedbackTags: tags };
+          onUpdateTicket(updatedTicket);
+          
+          if(viewingTicket?.id === surveyTicket.id) {
+              setViewingTicket(updatedTicket);
+          }
+          setSurveyTicket(null);
       }
   };
 
@@ -167,10 +174,10 @@ const CustomerTickets: React.FC<CustomerTicketsProps> = ({ customer, tickets, on
     return (
       <>
         <TicketDetailView ticket={viewingTicket} onBack={() => setViewingTicket(null)} onUpdate={onUpdateTicket} />
-        {showSurveyModal && (
+        {surveyTicket && (
             <SatisfactionSurvey 
-                ticket={showSurveyModal}
-                onClose={() => setShowSurveyModal(null)}
+                ticket={surveyTicket}
+                onClose={() => setSurveyTicket(null)}
                 onSubmit={handleSurvey}
             />
         )}
@@ -204,7 +211,7 @@ const CustomerTickets: React.FC<CustomerTicketsProps> = ({ customer, tickets, on
                       <tr key={ticket.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                           <td className={`px-4 py-3 font-medium text-gray-900 dark:text-white border-r-4 ${priorityColors[ticket.priority]}`}>{ticket.id}</td>
                           <td className="px-4 py-3">{ticket.subject}</td>
-                          <td className="px-4 py-3">{ticket.date}</td>
+                          <td className="px-4 py-3">{ticket.createdAt}</td>
                           <td className="px-4 py-3 text-center">
                               <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[ticket.status]}`}>{ticket.status}</span>
                           </td>
@@ -238,8 +245,8 @@ const CustomerTickets: React.FC<CustomerTicketsProps> = ({ customer, tickets, on
               </div>
             </div>
             <div className="flex items-center justify-end p-4 border-t dark:border-gray-700 flex-shrink-0">
-              <button type="button" onClick={closePanel} className="px-4 py-2 text-sm">انصراف</button>
-              <button type="submit" className="px-4 py-2 text-sm text-white bg-indigo-600 rounded-lg">ثبت تیکت</button>
+              <button type="button" onClick={closePanel} className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-lg border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">انصراف</button>
+              <button type="submit" className="px-4 py-2 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 mr-2">ثبت تیکت</button>
             </div>
           </form>
         </div>

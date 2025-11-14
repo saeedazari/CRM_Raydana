@@ -26,11 +26,15 @@ const OpportunityCard: React.FC<{ opportunity: Opportunity }> = ({ opportunity }
             <span className="text-xs mr-1">تومان</span>
         </div>
         <div className="flex items-center text-xs text-gray-400 dark:text-gray-500 mt-2">
-            <span>تاریخ بستن: {opportunity.closeDate}</span>
+            <span>تاریخ بستن: {new Date(opportunity.closeDate).toLocaleDateString('fa-IR')}</span>
         </div>
         <div className="flex items-center mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-            <UserCircleIcon className="w-6 h-6 text-gray-400" />
-            <span className="text-sm text-gray-600 dark:text-gray-300 mr-2">{opportunity.assignedTo}</span>
+            {opportunity.assignedTo?.avatar ? (
+                 <img src={opportunity.assignedTo.avatar} alt={opportunity.assignedTo.name} className="w-6 h-6 rounded-full" />
+            ) : (
+                <UserCircleIcon className="w-6 h-6 text-gray-400" />
+            )}
+            <span className="text-sm text-gray-600 dark:text-gray-300 mr-2">{opportunity.assignedTo?.name || 'تخصیص نیافته'}</span>
         </div>
     </div>
 );

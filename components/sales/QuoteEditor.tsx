@@ -95,26 +95,35 @@ const QuoteEditor: React.FC<{
                 </div>
             </div>
             <div className="flex-grow p-6 overflow-y-auto space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-4 border rounded-lg dark:border-gray-700">
-                    <div className="md:col-span-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 p-4 border rounded-lg dark:border-gray-700">
+                    <div className="sm:col-span-2 lg:col-span-2">
                         <label className="block text-sm font-medium mb-1">مشتری</label>
-                        <select value={quote.customerId} onChange={(e) => handleCustomerChange(e.target.value)} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" required>
+                        <select value={quote.customerId} onChange={(e) => handleCustomerChange(e.target.value)} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white" required>
                             <option value="">انتخاب کنید...</option>
                             {customers.map(c => <option key={c.id} value={c.id}>{c.companyName}</option>)}
                         </select>
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">تاریخ صدور</label>
-                        <input type="text" value={quote.issueDate} onChange={e => setQuote({...quote, issueDate: e.target.value})} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" />
+                        <input type="text" value={quote.issueDate} placeholder="مثلا: 1403/05/01" onChange={e => setQuote({...quote, issueDate: e.target.value})} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white" />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">تاریخ انقضا</label>
-                        <input type="text" value={quote.expiryDate} onChange={e => setQuote({...quote, expiryDate: e.target.value})} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" />
+                        <input type="text" value={quote.expiryDate} placeholder="مثلا: 1403/05/15" onChange={e => setQuote({...quote, expiryDate: e.target.value})} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">وضعیت</label>
+                        <select value={quote.status} onChange={e => setQuote({...quote, status: e.target.value as QuoteStatus})} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white" required>
+                            <option value="پیش‌نویس">پیش‌نویس</option>
+                            <option value="ارسال شده">ارسال شده</option>
+                            <option value="تایید شده">تایید شده</option>
+                            <option value="رد شده">رد شده</option>
+                        </select>
                     </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700">
+                        <thead className="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-gray-700">
                             <tr>
                                 <th className="p-2 text-right w-2/5">محصول</th>
                                 <th className="p-2 text-center w-1/12">تعداد</th>
@@ -128,12 +137,12 @@ const QuoteEditor: React.FC<{
                         <tbody>
                             {items.map((item, index) => (
                                 <tr key={index} className="border-b dark:border-gray-700">
-                                    <td className="p-1"><select value={item.productId} onChange={e => handleItemChange(index, 'productId', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-lg dark:bg-gray-700"><option value="">انتخاب محصول</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></td>
-                                    <td className="p-1"><input type="number" value={item.quantity} onChange={e => handleItemChange(index, 'quantity', e.target.value)} min="1" className="w-full p-2 text-center bg-gray-50 border rounded-lg dark:bg-gray-700" /></td>
-                                    <td className="p-1"><input type="text" value={item.unitPrice.toLocaleString('fa-IR')} className="w-full p-2 text-center bg-gray-100 border rounded-lg dark:bg-gray-600" readOnly /></td>
-                                    <td className="p-1"><input type="number" value={item.discount} onChange={e => handleItemChange(index, 'discount', e.target.value)} min="0" max="100" className="w-full p-2 text-center bg-gray-50 border rounded-lg dark:bg-gray-700" /></td>
-                                    <td className="p-1"><input type="number" value={item.tax} onChange={e => handleItemChange(index, 'tax', e.target.value)} min="0" max="100" className="w-full p-2 text-center bg-gray-50 border rounded-lg dark:bg-gray-700" /></td>
-                                    <td className="p-1 text-left font-semibold">{item.total.toLocaleString('fa-IR')}</td>
+                                    <td className="p-1"><select value={item.productId} onChange={e => handleItemChange(index, 'productId', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white"><option value="">انتخاب محصول</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></td>
+                                    <td className="p-1"><input type="number" value={item.quantity} onChange={e => handleItemChange(index, 'quantity', e.target.value)} min="1" className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" /></td>
+                                    <td className="p-1"><input type="text" value={item.unitPrice.toLocaleString('fa-IR')} className="w-full p-2 text-center bg-gray-100 border rounded-lg text-gray-900 dark:bg-gray-600 dark:text-white" readOnly /></td>
+                                    <td className="p-1"><input type="number" value={item.discount} onChange={e => handleItemChange(index, 'discount', e.target.value)} min="0" max="100" className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" /></td>
+                                    <td className="p-1"><input type="number" value={item.tax} onChange={e => handleItemChange(index, 'tax', e.target.value)} min="0" max="100" className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" /></td>
+                                    <td className="p-1 text-left font-semibold text-gray-900 dark:text-white">{item.total.toLocaleString('fa-IR')}</td>
                                     <td className="p-1 text-center"><button type="button" onClick={() => handleRemoveItem(index)} className="text-red-500 hover:text-red-700 p-1"><TrashIcon className="w-5 h-5"/></button></td>
                                 </tr>
                             ))}

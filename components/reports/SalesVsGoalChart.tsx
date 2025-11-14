@@ -39,9 +39,10 @@ const SalesVsGoalChart: React.FC = () => {
                         angleAxisId={0}
                         tick={false}
                     />
+                    {/* FIX: The 'clockWise' prop is incorrect. It should be 'clockwise'. */}
                     <RadialBar
                         background
-                        clockWise
+                        clockwise
                         dataKey="value"
                         cornerRadius={10}
                     />

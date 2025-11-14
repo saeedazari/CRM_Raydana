@@ -13,12 +13,13 @@ export type TicketStatus = 'جدید' | 'در حال بررسی' | 'بسته ش�
 
 export interface TicketReply {
     id: string;
-    author: string;
     authorId?: string; // User ID if author is an agent
+    authorType: 'User' | 'Customer';
     text: string;
-    timestamp: string;
     isInternal: boolean;
-    authorAvatar?: string;
+    createdAt: string;
+    authorName?: string; // Not in schema, but useful for display
+    authorAvatar?: string; // Not in schema, but useful for display
 }
 
 
@@ -26,16 +27,18 @@ export interface Ticket {
   id: string;
   subject: string;
   description?: string;
-  customer: string;
+  customerId: string;
+  customer: Customer; // Populated by API
   status: TicketStatus;
   priority: 'حیاتی' | 'بالا' | 'متوسط' | 'کم';
-  assignee: string;
-  date: string;
+  assigneeId?: string;
+  assignee?: User; // Populated by API
+  createdAt: string;
   category: 'فنی' | 'مالی' | 'عمومی' | 'پشتیبانی';
-  history?: TicketReply[];
+  replies?: TicketReply[];
   rating?: number;
   surveySubmitted?: boolean;
-  feedbackTags?: string[];
+  feedbackTags?: string[]; // Stored as comma-separated string in DB
 }
 
 export type CustomerType = 'شرکتی' | 'شخصی' | 'کسب و کار';
@@ -44,9 +47,12 @@ export interface Customer {
   id: string;
   companyName: string;
   contactPerson: string;
+  username: string;
+  password?: string;
   email: string;
   phone: string;
-  accountManager: string;
+  accountManagerId?: string;
+  accountManager?: User; // Populated by API
   status: 'فعال' | 'غیرفعال' | 'معلق';
   mobile?: string;
   city?: string;
@@ -57,6 +63,8 @@ export interface Customer {
   customerType?: CustomerType;
   industry?: string;
   internalNotes?: string;
+  portalToken?: string;
+  supportEndDate?: string;
 }
 
 export type LeadStatus = 'جدید' | 'تماس گرفته شده' | 'واجد شرایط' | 'تبدیل شده' | 'از دست رفته';
@@ -71,7 +79,8 @@ export interface Lead {
   source: LeadSource;
   status: LeadStatus;
   score: number;
-  assignedTo: string;
+  assignedToId?: string;
+  assignedTo?: User; // Populated by API
   createdAt: string;
   converted?: boolean;
 }
@@ -82,10 +91,12 @@ export interface Opportunity {
   id: string;
   name: string;
   customerName: string;
+  customerId: string;
   amount: number;
   stage: OpportunityStage;
   closeDate: string;
-  assignedTo: string;
+  assignedToId?: string;
+  assignedTo?: User; // Populated by API
 }
 
 // Sales Module Expansion
@@ -148,20 +159,28 @@ export interface Invoice {
 
 
 // Settings & User Management Types
-export type Permission = 'manageUsers' | 'manageRoles' | 'manageChannels' | 'viewReports' | 'manageTickets' | 'manageSales';
+export type Permission = 
+    'view_customers' | 'create_customers' | 'edit_customers' | 'delete_customers' |
+    'view_tickets' | 'create_tickets' | 'edit_tickets' | 'delete_tickets' |
+    'view_sales' | 'create_sales' | 'edit_sales' | 'delete_sales' |
+    'view_reports' |
+    'manage_users' | 'manage_roles';
+
 
 export interface Role {
     id: string;
     name: string;
-    permissions: Permission[];
+    permissions: string; // Stored as comma-separated string in DB
 }
 
 export interface User {
     id: string;
     name: string;
-    email: string;
+    username: string;
     roleId: string;
+    role?: Role; // Populated by API
     avatar?: string;
+    password?: string; // For create/edit forms
 }
 
 
@@ -173,8 +192,8 @@ export interface Task {
     id: string;
     title: string;
     description?: string;
-    customer?: string; // Related customer name
-    relatedTicketId?: string; // Link to the ticket it was created from
+    customer?: Customer; 
+    relatedTicketId?: string; 
     assignedTo: User;
     priority: TaskPriority;
     status: TaskStatus;
@@ -187,7 +206,7 @@ export interface ChatMessage {
     id: string;
     user: User;
     text: string;
-    timestamp: string;
+    timestamp: string; // Should be ISO string
     thread?: ChatMessage[];
 }
 
@@ -212,7 +231,38 @@ export interface SalesGoalData {
   fill: string;
 }
 
+// FIX: Changed `name` property from `LeadSource` to `string` to make it compatible with recharts' Pie component typings, which expect a more generic data structure.
 export interface LeadSourceData {
-    name: LeadSource;
+    name: string;
     value: number;
+}
+
+// Customer Interactions
+export interface Interaction {
+  id: string;
+  customerId: string;
+  userId: string;
+  user: User;
+  createdAt: string;
+  text: string;
+  type: 'یادداشت' | 'تماس' | 'ایمیل' | 'جلسه';
+}
+
+// Knowledge Base Types
+export interface KnowledgeBaseCategory {
+    id: string;
+    name: string;
+}
+
+export interface KnowledgeBaseArticle {
+    id: string;
+    title: string;
+    content: string;
+    categoryId: string;
+    categoryName?: string;
+    tags: string[];
+    authorId: string;
+    authorName?: string;
+    createdAt: string;
+    visibility: 'public' | 'internal'; // public for customers, internal for staff
 }

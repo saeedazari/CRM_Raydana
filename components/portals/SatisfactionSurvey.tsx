@@ -46,7 +46,7 @@ const SatisfactionSurvey: React.FC<SatisfactionSurveyProps> = ({ ticket, onClose
         return (
             <div className="mt-4">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">چه چیزی خوب بود؟ / چه چیزی نیاز به بهبود دارد؟</p>
-                <div className="flex flex-wrap justify-center gap-2">
+                <div className="flex flex-wrap gap-2">
                     {tagsToShow.map(tag => {
                         const isSelected = selectedTags.includes(tag);
                         return (
@@ -71,18 +71,19 @@ const SatisfactionSurvey: React.FC<SatisfactionSurveyProps> = ({ ticket, onClose
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4" onClick={onClose}>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-                <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
+        <div className="fixed inset-0 z-50">
+            <div className="absolute inset-0 bg-black bg-opacity-50" onClick={onClose}></div>
+            <div className="absolute inset-y-0 left-0 bg-white dark:bg-gray-800 h-full w-full max-w-lg shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out translate-x-0">
+                 <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
                     <h3 className="text-lg font-semibold">نظرسنجی رضایت از تیکت</h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1 rounded-full"><XMarkIcon className="w-6 h-6" /></button>
+                    <button onClick={onClose} className="p-1 rounded-full text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"><XMarkIcon className="w-6 h-6" /></button>
                 </div>
-                <form onSubmit={handleSubmit}>
-                    <div className="p-6 text-center">
+                <form onSubmit={handleSubmit} className="flex flex-col flex-grow overflow-hidden">
+                    <div className="p-6 overflow-y-auto flex-grow">
                         <p className="mb-2 text-gray-700 dark:text-gray-300">چقدر از پاسخ‌دهی به تیکت زیر رضایت داشتید؟</p>
                         <p className="font-bold mb-4">"{ticket.subject}"</p>
                         
-                        <div className="flex justify-center items-center text-4xl mb-4">
+                        <div className="flex items-center text-4xl mb-4">
                             {[1, 2, 3, 4, 5].map((star) => (
                                 <button
                                     type="button"
@@ -92,7 +93,7 @@ const SatisfactionSurvey: React.FC<SatisfactionSurveyProps> = ({ ticket, onClose
                                     onMouseLeave={() => setHoverRating(0)}
                                 >
                                     <StarIcon 
-                                        className={`cursor-pointer transition-colors 
+                                        className={`w-10 h-10 cursor-pointer transition-colors 
                                             ${(hoverRating || rating) >= star ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'}`}
                                     />
                                 </button>
@@ -104,12 +105,12 @@ const SatisfactionSurvey: React.FC<SatisfactionSurveyProps> = ({ ticket, onClose
                         <textarea
                             value={feedback}
                             onChange={(e) => setFeedback(e.target.value)}
-                            rows={3}
+                            rows={4}
                             placeholder="بازخورد شما (اختیاری)..."
                             className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600 mt-6"
                         ></textarea>
                     </div>
-                    <div className="flex items-center justify-end p-4 border-t dark:border-gray-700">
+                    <div className="flex items-center justify-end p-4 border-t dark:border-gray-700 mt-auto">
                         <button type="submit" className="px-6 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:bg-gray-400" disabled={rating === 0}>
                             ثبت نظر
                         </button>

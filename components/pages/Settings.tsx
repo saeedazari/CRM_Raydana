@@ -1,28 +1,41 @@
 import React, { useState } from 'react';
-import { User, Role, ChatChannel } from '../../types';
+import { User, Role, Customer } from '../../types';
 import UserManagement from '../settings/UserManagement';
 import RoleManagement from '../settings/RoleManagement';
 import ChannelManagement from '../settings/ChannelManagement';
+import CustomerUserManagement from '../settings/CustomerUserManagement';
 import { UsersIcon } from '../icons/UsersIcon';
 import { ShieldCheckIcon } from '../icons/ShieldCheckIcon';
 import { ChatBubbleLeftRightIcon } from '../icons/ChatBubbleLeftRightIcon';
+import { KeyIcon } from '../icons/KeyIcon';
+
+const mockRoles: Role[] = [
+    { id: 'R1', name: 'مدیر کل', permissions: 'view_customers,create_customers,edit_customers,delete_customers,view_tickets,create_tickets,edit_tickets,delete_tickets,view_sales,create_sales,edit_sales,delete_sales,view_reports,manage_users,manage_roles' },
+    { id: 'R2', name: 'کارشناس پشتیبانی', permissions: 'view_customers,view_tickets,create_tickets,edit_tickets' },
+    { id: 'R3', name: 'کارشناس فروش', permissions: 'view_customers,create_customers,view_sales,create_sales,edit_sales' },
+];
+
+const mockUsers: User[] = [
+  { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
+  { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
+  { id: 'U3', name: 'محمد کریمی', username: 'mohammad', roleId: 'R3', avatar: 'https://i.pravatar.cc/40?u=U3' },
+];
+
+type ActiveTab = 'users' | 'customerUsers' | 'roles' | 'channels';
 
 interface SettingsProps {
-    users: User[];
-    setUsers: React.Dispatch<React.SetStateAction<User[]>>;
-    roles: Role[];
-    setRoles: React.Dispatch<React.SetStateAction<Role[]>>;
-    channels: ChatChannel[];
-    setChannels: React.Dispatch<React.SetStateAction<ChatChannel[]>>;
+    customers: Customer[];
+    setCustomers: React.Dispatch<React.SetStateAction<Customer[]>>;
 }
 
-type ActiveTab = 'users' | 'roles' | 'channels';
-
-const Settings: React.FC<SettingsProps> = (props) => {
+const Settings: React.FC<SettingsProps> = ({ customers, setCustomers }) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('users');
+  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [roles, setRoles] = useState<Role[]>(mockRoles);
 
   const tabs: { id: ActiveTab; name: string; icon: React.ReactNode }[] = [
-    { id: 'users', name: 'مدیریت کاربران', icon: <UsersIcon className="w-5 h-5" /> },
+    { id: 'users', name: 'مدیریت کاربران داخلی', icon: <UsersIcon className="w-5 h-5" /> },
+    { id: 'customerUsers', name: 'مدیریت کاربران مشتریان', icon: <KeyIcon className="w-5 h-5" /> },
     { id: 'roles', name: 'نقش‌ها و دسترسی‌ها', icon: <ShieldCheckIcon className="w-5 h-5" /> },
     { id: 'channels', name: 'مدیریت گروه‌های چت', icon: <ChatBubbleLeftRightIcon className="w-5 h-5" /> },
   ];
@@ -30,11 +43,13 @@ const Settings: React.FC<SettingsProps> = (props) => {
   const renderContent = () => {
     switch (activeTab) {
       case 'users':
-        return <UserManagement users={props.users} roles={props.roles} setUsers={props.setUsers} />;
+        return <UserManagement users={users} roles={roles} setUsers={setUsers} />;
+      case 'customerUsers':
+        return <CustomerUserManagement customers={customers} setCustomers={setCustomers} />;
       case 'roles':
-        return <RoleManagement roles={props.roles} setRoles={props.setRoles} />;
+        return <RoleManagement roles={roles} setRoles={setRoles} />;
       case 'channels':
-        return <ChannelManagement channels={props.channels} setChannels={props.setChannels} users={props.users} />;
+        return <ChannelManagement channels={[]} setChannels={() => {}} users={users} />;
       default:
         return null;
     }

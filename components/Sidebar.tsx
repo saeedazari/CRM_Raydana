@@ -12,6 +12,7 @@ import { LightBulbIcon } from './icons/LightBulbIcon';
 import { DocumentDuplicateIcon } from './icons/DocumentDuplicateIcon';
 import { CreditCardIcon } from './icons/CreditCardIcon';
 import { CubeIcon } from './icons/CubeIcon';
+import { AcademicCapIcon } from './icons/AcademicCapIcon';
 
 interface SidebarProps {
   activePage: string;
@@ -33,6 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, isOpen, se
     { id: 'invoices', icon: <CreditCardIcon className="w-6 h-6" />, name: 'فاکتورها' },
     { id: 'products', icon: <CubeIcon className="w-6 h-6" />, name: 'کالاها و خدمات' },
     { isHeader: true, name: 'ابزارها' },
+    { id: 'knowledgeBase', icon: <AcademicCapIcon className="w-6 h-6" />, name: 'پایگاه دانش' },
     { id: 'chat', icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />, name: 'چت تیمی' },
     { id: 'reports', icon: <ReportsIcon className="w-6 h-6" />, name: 'گزارش‌ها' },
     { id: 'settings', icon: <SettingsIcon className="w-6 h-6" />, name: 'تنظیمات' },

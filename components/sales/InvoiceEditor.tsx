@@ -42,8 +42,15 @@ const InvoiceEditor: React.FC<{
 
     const [invoice, setInvoice] = useState(getInitialState());
     const [items, setItems] = useState<InvoiceItem[]>(getInitialState().items || []);
-    const [quoteToLoad, setQuoteToLoad] = useState<string>('');
+    const [quoteToLoad, setQuoteToLoad] = useState<string>(prefillData?.quoteId || '');
     const approvedQuotes = useMemo(() => quotes.filter(q => q.status === 'تایید شده'), [quotes]);
+    
+    useEffect(() => {
+        // If prefillData exists, load from quote automatically
+        if (prefillData?.quoteId) {
+            handleLoadFromQuote(prefillData.quoteId);
+        }
+    }, [prefillData]);
 
     useEffect(() => {
         const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
@@ -90,8 +97,8 @@ const InvoiceEditor: React.FC<{
         setInvoice(inv => ({ ...inv, customerId, customerName: customer?.companyName || '' }));
     };
 
-    const handleLoadFromQuote = () => {
-        const selectedQuote = quotes.find(q => q.id === quoteToLoad);
+    const handleLoadFromQuote = (idToLoad: string) => {
+        const selectedQuote = quotes.find(q => q.id === idToLoad);
         if (selectedQuote) {
             const customer = customers.find(c => c.id === selectedQuote.customerId);
             const invoiceFromQuote = {
@@ -124,35 +131,35 @@ const InvoiceEditor: React.FC<{
             <div className="flex-grow p-6 overflow-y-auto space-y-6">
                 <div className="mb-4 p-4 border rounded-lg dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex flex-wrap items-center gap-4">
                     <label className="text-sm font-medium flex-shrink-0">ایجاد از روی پیش‌فاکتور:</label>
-                    <select value={quoteToLoad} onChange={e => setQuoteToLoad(e.target.value)} className="flex-grow p-2 bg-white border rounded-lg dark:bg-gray-700">
+                    <select value={quoteToLoad} onChange={e => setQuoteToLoad(e.target.value)} className="flex-grow p-2 bg-white border rounded-lg dark:bg-gray-700 dark:text-white">
                         <option value="">انتخاب پیش‌فاکتور تایید شده...</option>
                         {approvedQuotes.map(q => <option key={q.id} value={q.id}>{q.id} - {q.customerName}</option>)}
                     </select>
-                    <button onClick={handleLoadFromQuote} disabled={!quoteToLoad} className="px-4 py-2 text-sm text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400">بارگذاری</button>
+                    <button onClick={() => handleLoadFromQuote(quoteToLoad)} disabled={!quoteToLoad} className="px-4 py-2 text-sm text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400">بارگذاری</button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 border rounded-lg dark:border-gray-700">
                     <div>
                         <label className="block text-sm font-medium mb-1">مشتری</label>
-                        <select value={invoice.customerId} onChange={(e) => handleCustomerChange(e.target.value)} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" required>
+                        <select value={invoice.customerId} onChange={(e) => handleCustomerChange(e.target.value)} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white" required>
                             <option value="">انتخاب کنید...</option>
                             {customers.map(c => <option key={c.id} value={c.id}>{c.companyName}</option>)}
                         </select>
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">تاریخ صدور</label>
-                        <input type="text" value={invoice.issueDate} onChange={e => setInvoice({...invoice, issueDate: e.target.value})} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" />
+                        <input type="text" value={invoice.issueDate} placeholder="مثلا: 1403/05/01" onChange={e => setInvoice({...invoice, issueDate: e.target.value})} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white" />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">تاریخ سررسید</label>
-                        <input type="text" value={invoice.dueDate} onChange={e => setInvoice({...invoice, dueDate: e.target.value})} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" />
+                        <input type="text" value={invoice.dueDate} placeholder="مثلا: 1403/06/01" onChange={e => setInvoice({...invoice, dueDate: e.target.value})} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white" />
                     </div>
                 </div>
 
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         {/* Table Header */}
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700">
+                        <thead className="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-gray-700">
                             <tr>
                                 <th className="p-2 text-right w-2/5">محصول</th>
                                 <th className="p-2 text-center w-1/12">تعداد</th>
@@ -167,12 +174,12 @@ const InvoiceEditor: React.FC<{
                         <tbody>
                             {items.map((item, index) => (
                                 <tr key={index} className="border-b dark:border-gray-700">
-                                    <td className="p-1"><select value={item.productId} onChange={e => handleItemChange(index, 'productId', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-lg dark:bg-gray-700"><option value="">انتخاب محصول</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></td>
-                                    <td className="p-1"><input type="number" value={item.quantity} onChange={e => handleItemChange(index, 'quantity', e.target.value)} min="1" className="w-full p-2 text-center bg-gray-50 border rounded-lg dark:bg-gray-700" /></td>
-                                    <td className="p-1"><input type="text" value={item.unitPrice.toLocaleString('fa-IR')} className="w-full p-2 text-center bg-gray-100 border rounded-lg dark:bg-gray-600" readOnly /></td>
-                                    <td className="p-1"><input type="number" value={item.discount} onChange={e => handleItemChange(index, 'discount', e.target.value)} min="0" max="100" className="w-full p-2 text-center bg-gray-50 border rounded-lg dark:bg-gray-700" /></td>
-                                    <td className="p-1"><input type="number" value={item.tax} onChange={e => handleItemChange(index, 'tax', e.target.value)} min="0" max="100" className="w-full p-2 text-center bg-gray-50 border rounded-lg dark:bg-gray-700" /></td>
-                                    <td className="p-1 text-left font-semibold">{item.total.toLocaleString('fa-IR')}</td>
+                                    <td className="p-1"><select value={item.productId} onChange={e => handleItemChange(index, 'productId', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white"><option value="">انتخاب محصول</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></td>
+                                    <td className="p-1"><input type="number" value={item.quantity} onChange={e => handleItemChange(index, 'quantity', e.target.value)} min="1" className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" /></td>
+                                    <td className="p-1"><input type="text" value={item.unitPrice.toLocaleString('fa-IR')} className="w-full p-2 text-center bg-gray-100 border rounded-lg text-gray-900 dark:bg-gray-600 dark:text-white" readOnly /></td>
+                                    <td className="p-1"><input type="number" value={item.discount} onChange={e => handleItemChange(index, 'discount', e.target.value)} min="0" max="100" className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" /></td>
+                                    <td className="p-1"><input type="number" value={item.tax} onChange={e => handleItemChange(index, 'tax', e.target.value)} min="0" max="100" className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" /></td>
+                                    <td className="p-1 text-left font-semibold text-gray-900 dark:text-white">{item.total.toLocaleString('fa-IR')}</td>
                                     <td className="p-1 text-center"><button type="button" onClick={() => handleRemoveItem(index)} className="text-red-500 hover:text-red-700 p-1"><TrashIcon className="w-5 h-5"/></button></td>
                                 </tr>
                             ))}

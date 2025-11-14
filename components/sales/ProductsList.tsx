@@ -10,6 +10,7 @@ interface ProductsListProps {
     products: Product[];
     onAddProduct: (product: Omit<Product, 'id'>) => void;
     onUpdateProduct: (product: Product) => void;
+    onDeleteProduct: (productId: string) => void;
 }
 
 const initialNewProductState: Omit<Product, 'id'> = {
@@ -19,7 +20,7 @@ const initialNewProductState: Omit<Product, 'id'> = {
     price: 0,
 };
 
-const ProductsList: React.FC<ProductsListProps> = ({ products, onAddProduct, onUpdateProduct }) => {
+const ProductsList: React.FC<ProductsListProps> = ({ products, onAddProduct, onUpdateProduct, onDeleteProduct }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isPanelOpen, setIsPanelOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -31,7 +32,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, onAddProduct, onU
         } else {
             setProductFormData(initialNewProductState);
         }
-    }, [editingProduct]);
+    }, [editingProduct, isPanelOpen]);
 
     const filteredProducts = useMemo(() => 
         products.filter(product =>
@@ -53,6 +54,12 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, onAddProduct, onU
             onAddProduct(productFormData);
         }
         closePanel();
+    };
+
+    const handleDelete = (productId: string) => {
+        if (window.confirm('آیا از حذف این محصول اطمینان دارید؟')) {
+            onDeleteProduct(productId);
+        }
     };
 
     const openPanel = (product: Product | null = null) => {
@@ -107,7 +114,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, onAddProduct, onU
                                     <td className="px-4 py-3 text-center">
                                         <div className="flex justify-center items-center gap-2">
                                             <button onClick={() => openPanel(product)} className="p-1 text-gray-500 hover:text-indigo-600"><PencilIcon className="w-5 h-5" /></button>
-                                            <button className="p-1 text-gray-500 hover:text-red-600"><TrashIcon className="w-5 h-5" /></button>
+                                            <button onClick={() => handleDelete(product.id)} className="p-1 text-gray-500 hover:text-red-600"><TrashIcon className="w-5 h-5" /></button>
                                         </div>
                                     </td>
                                 </tr>

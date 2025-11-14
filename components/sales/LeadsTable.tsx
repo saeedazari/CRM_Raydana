@@ -21,7 +21,7 @@ const statusColors: { [key in LeadStatus]: string } = {
 
 const ITEMS_PER_PAGE = 10;
 
-const initialLeadState: Omit<Lead, 'id'> = {
+const initialLeadState: Omit<Lead, 'id' | 'assignedTo'> = {
     contactName: '',
     companyName: '',
     email: '',
@@ -29,7 +29,7 @@ const initialLeadState: Omit<Lead, 'id'> = {
     source: 'وبسایت',
     status: 'جدید',
     score: 50,
-    assignedTo: '',
+    assignedToId: '',
     createdAt: new Date().toLocaleDateString('fa-IR-u-nu-latn'),
     converted: false,
 };
@@ -51,7 +51,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ leads, onConvertLead, onAddLead
     
     const [isPanelOpen, setIsPanelOpen] = useState(false);
     const [editingLead, setEditingLead] = useState<Lead | null>(null);
-    const [leadFormData, setLeadFormData] = useState<Omit<Lead, 'id'>>(initialLeadState);
+    const [leadFormData, setLeadFormData] = useState<Omit<Lead, 'id' | 'assignedTo'>>(initialLeadState);
 
     const [isConvertPanelOpen, setIsConvertPanelOpen] = useState(false);
     const [leadToConvert, setLeadToConvert] = useState<Lead | null>(null);
@@ -127,8 +127,8 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ leads, onConvertLead, onAddLead
     return (
         <>
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                 <div className="w-full md:w-auto flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 flex-wrap">
+                 <div className="w-full md:w-auto flex flex-col sm:flex-row gap-4 flex-wrap">
                      <div className="relative w-full sm:w-auto">
                         <input type="text" placeholder="جستجوی سرنخ..." value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="w-full sm:w-56 pr-10 pl-4 py-2 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                         <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"><SearchIcon className="w-5 h-5 text-gray-400" /></div>
@@ -171,7 +171,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ leads, onConvertLead, onAddLead
                                 <td className="px-4 py-3">{lead.companyName || '-'}</td>
                                 <td className="px-4 py-3">{lead.source}</td>
                                 <td className="px-4 py-3 text-center">{lead.score}</td>
-                                <td className="px-4 py-3">{lead.assignedTo}</td>
+                                <td className="px-4 py-3">{lead.assignedTo?.name}</td>
                                 <td className="px-4 py-3 text-center">
                                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[lead.status]}`}>{lead.status}</span>
                                 </td>
@@ -239,10 +239,10 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ leads, onConvertLead, onAddLead
                                 </select>
                             </div>
                             <div>
-                                <label htmlFor="assignedTo" className="block mb-2 text-sm">کارشناس</label>
-                                <select name="assignedTo" value={leadFormData.assignedTo} onChange={handleFormChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" required>
+                                <label htmlFor="assignedToId" className="block mb-2 text-sm">کارشناس</label>
+                                <select name="assignedToId" id="assignedToId" value={leadFormData.assignedToId} onChange={handleFormChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" required>
                                     <option value="">انتخاب کنید</option>
-                                    {users.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+                                    {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                                 </select>
                             </div>
                             <div>
