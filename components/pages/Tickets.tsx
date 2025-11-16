@@ -1,3 +1,44 @@
+/* 
+    === BACKEND SPEC ===
+    توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
+    این کامپوننت مسئولیت مدیریت تیکت‌های پشتیبانی را بر عهده دارد.
+
+    1. دریافت لیست تیکت‌ها (Read)
+    - Route: /api/tickets
+    - Method: GET
+    - Expected Query Params: ?page={number}&limit={number}&search={string}&status={string}&priority={string}
+    - Response JSON Schema: { "data": [Ticket], "totalPages": number, "currentPage": number }
+    - توضیح منطق بکند مورد نیاز: یک کنترلر برای تیکت‌ها که قابلیت فیلتر و صفحه‌بندی داشته باشد. باید اطلاعات مشتری و کارشناس (assignee) را join کند.
+    - Dependencies: نیاز به Auth Token، نیاز به Pagination.
+
+    2. دریافت یک تیکت خاص (برای مشاهده جزئیات)
+    - Route: /api/tickets/:id
+    - Method: GET
+    - Response JSON Schema: Ticket (شامل تمام reply ها)
+    - توضیح منطق بکند مورد نیاز: دریافت کامل یک تیکت به همراه تمام پیام‌های آن.
+    - Dependencies: نیاز به Auth Token.
+
+    3. افزودن تیکت جدید (Create)
+    - Route: /api/tickets
+    - Method: POST
+    - Expected Body JSON Schema: Omit<Ticket, 'id' | 'replies' | ...> (فیلدهای فرم)
+    - Response JSON Schema: Ticket (تیکت جدید)
+    - توضیح منطق بکند مورد نیاز: ایجاد رکورد جدید برای تیکت.
+    - Dependencies: نیاز به Auth Token.
+
+    4. بروزرسانی تیکت (Update) - شامل تغییر وضعیت، تخصیص کارشناس و افزودن پاسخ
+    - Route: /api/tickets/:id
+    - Method: PUT
+    - Expected Body JSON Schema: Partial<Ticket> (مثلا فقط { status: '...' } یا { assigneeId: '...' })
+    - Response JSON Schema: Ticket (تیکت بروز شده)
+    - توضیح منطق بکند مورد نیاز: بروزرسانی فیلدهای مشخص شده تیکت.
+    - ---
+    - Route (برای افزودن پاسخ): /api/tickets/:id/reply
+    - Method: POST
+    - Expected Body JSON Schema: { "text": "string", "isInternal": boolean }
+    - Response JSON Schema: Ticket (تیکت بروز شده با پاسخ جدید)
+    - Dependencies: نیاز به Auth Token.
+*/
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Ticket, User, TicketStatus, TicketReply, Customer } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
@@ -11,28 +52,43 @@ import { EyeIcon } from '../icons/EyeIcon';
 import { ArrowRightIcon } from '../icons/ArrowRightIcon';
 import { LockClosedIcon } from '../icons/LockClosedIcon';
 
-// FIX: Removed 'email' property and added 'username' to align with the 'User' type definition.
-const mockUsers: User[] = [
-  { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
-  { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
-];
+/*
+    === REMOVE OR REPLACE MOCK DATA ===
+    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
+    ساختار مورد انتظار پاسخ API: GET /api/users
+*/
+// // FIX: Removed 'email' property and added 'username' to align with the 'User' type definition.
+// const mockUsers: User[] = [
+//   { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
+//   { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
+// ];
 
-// FIX: Added required 'username' property to align with the 'Customer' type definition.
-const mockCustomers: Customer[] = [
-  { id: 'C1', companyName: 'شرکت آلفا', contactPerson: 'آقای الف', username: 'alpha', email: 'alpha@co.com', phone: '021-123', status: 'فعال' },
-  { id: 'C2', companyName: 'تجارت بتا', contactPerson: 'خانم ب', username: 'beta', email: 'beta@co.com', phone: '021-456', status: 'فعال' },
-];
+/*
+    === REMOVE OR REPLACE MOCK DATA ===
+    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
+    ساختار مورد انتظار پاسخ API: GET /api/customers
+*/
+// // FIX: Added required 'username' property to align with the 'Customer' type definition.
+// const mockCustomers: Customer[] = [
+//   { id: 'C1', companyName: 'شرکت آلفا', contactPerson: 'آقای الف', username: 'alpha', email: 'alpha@co.com', phone: '021-123', status: 'فعال' },
+//   { id: 'C2', companyName: 'تجارت بتا', contactPerson: 'خانم ب', username: 'beta', email: 'beta@co.com', phone: '021-456', status: 'فعال' },
+// ];
 
-const mockTickets: Ticket[] = [
-    { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', description: 'کاربر اعلام کرده نمی‌تواند وارد پنل شود.', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'در حال بررسی', priority: 'بالا', createdAt: '1403/05/01', category: 'فنی', replies: [
-        {id: 'R1', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', text: 'در حال بررسی مشکل هستیم.', isInternal: false, createdAt: '1403/05/01 10:30', authorAvatar: mockUsers[0].avatar},
-        {id: 'R2', authorType: 'Customer', authorName: 'شرکت آلفا', text: 'ممنون از پیگیری شما.', isInternal: false, createdAt: '1403/05/01 10:35'},
-        {id: 'R3', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', text: 'مشکل از سمت سرور بود، لطفا مجدد تست کنید.', isInternal: true, createdAt: '1403/05/01 11:00', authorAvatar: mockUsers[0].avatar},
-    ]},
-    { id: 'TKT-720', subject: 'سوال در مورد صورتحساب', customer: mockCustomers[1], customerId: 'C2', assignee: mockUsers[1], assigneeId: 'U2', status: 'جدید', priority: 'متوسط', createdAt: '1403/05/01', category: 'مالی' },
-    { id: 'TKT-719', subject: 'گزارش باگ در ماژول گزارشات', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'حل شده', priority: 'بالا', createdAt: '1403/04/31', category: 'فنی', surveySubmitted: false },
-    { id: 'TKT-718', subject: 'درخواست افزودن ویژگی جدید', customer: mockCustomers[1], customerId: 'C2', status: 'در انتظار مشتری', priority: 'کم', createdAt: '1403/04/30', category: 'عمومی' },
-];
+/*
+    === REMOVE OR REPLACE MOCK DATA ===
+    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
+    ساختار مورد انتظار پاسخ API: GET /api/tickets
+*/
+// const mockTickets: Ticket[] = [
+//     { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', description: 'کاربر اعلام کرده نمی‌تواند وارد پنل شود.', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'در حال بررسی', priority: 'بالا', createdAt: '1403/05/01', category: 'فنی', replies: [
+//         {id: 'R1', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', text: 'در حال بررسی مشکل هستیم.', isInternal: false, createdAt: '1403/05/01 10:30', authorAvatar: mockUsers[0].avatar},
+//         {id: 'R2', authorType: 'Customer', authorName: 'شرکت آلفا', text: 'ممنون از پیگیری شما.', isInternal: false, createdAt: '1403/05/01 10:35'},
+//         {id: 'R3', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', text: 'مشکل از سمت سرور بود، لطفا مجدد تست کنید.', isInternal: true, createdAt: '1403/05/01 11:00', authorAvatar: mockUsers[0].avatar},
+//     ]},
+//     { id: 'TKT-720', subject: 'سوال در مورد صورتحساب', customer: mockCustomers[1], customerId: 'C2', assignee: mockUsers[1], assigneeId: 'U2', status: 'جدید', priority: 'متوسط', createdAt: '1403/05/01', category: 'مالی' },
+//     { id: 'TKT-719', subject: 'گزارش باگ در ماژول گزارشات', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'حل شده', priority: 'بالا', createdAt: '1403/04/31', category: 'فنی', surveySubmitted: false },
+//     { id: 'TKT-718', subject: 'درخواست افزودن ویژگی جدید', customer: mockCustomers[1], customerId: 'C2', status: 'در انتظار مشتری', priority: 'کم', createdAt: '1403/04/30', category: 'عمومی' },
+// ];
 
 
 const statusColors: { [key in TicketStatus]: string } = {
@@ -76,12 +132,47 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; users: Us
     }, [ticket?.replies]);
 
     const handleUpdate = (updates: Partial<Ticket>) => {
+        /*
+          === API CALL REQUIRED HERE ===
+          - Route: /api/tickets/:id
+          - Method: PUT
+          - Input: { ...updates } e.g., { "status": "بسته شده" }
+          - Output: The updated ticket object.
+          - Sample Fetch Code:
+            fetch(`/api/tickets/${ticket.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <TOKEN>' },
+                body: JSON.stringify(updates)
+            })
+            .then(res => res.json())
+            .then(updatedTicketFromServer => {
+                onUpdate(updatedTicketFromServer);
+            });
+        */
         onUpdate({ ...ticket, ...updates });
     };
     
     const handleSendReply = () => {
         if (newReply.trim() === '' || !ticket) return;
-        
+        /*
+          === API CALL REQUIRED HERE ===
+          - Route: /api/tickets/:id/reply
+          - Method: POST
+          - Input: { "text": newReply, "isInternal": isInternalNote }
+          - Output: The updated ticket object with the new reply.
+          - Sample Fetch Code:
+            fetch(`/api/tickets/${ticket.id}/reply`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <TOKEN>' },
+                body: JSON.stringify({ text: newReply, isInternal: isInternalNote })
+            })
+            .then(res => res.json())
+            .then(updatedTicketFromServer => {
+                onUpdate(updatedTicketFromServer);
+                setNewReply('');
+                setIsInternalNote(false);
+            });
+        */
         const reply: TicketReply = {
             id: `R-${Date.now()}`,
             text: newReply,
@@ -168,8 +259,9 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; users: Us
 }
 
 const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) => {
-  const [tickets, setTickets] = useState<Ticket[]>(mockTickets);
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  // state ها باید با useEffect از API دریافت شوند
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -178,6 +270,57 @@ const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) 
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [newTicketData, setNewTicketData] = useState(initialNewTicketState);
   const [viewingTicket, setViewingTicket] = useState<Ticket | null>(null);
+
+  useEffect(() => {
+    /*
+      === API CALL REQUIRED HERE ===
+      - Route: /api/tickets, /api/users
+      - Method: GET
+      - Input: Query params for filtering and pagination.
+      - Output: List of tickets and users.
+      - Sample Fetch Code:
+        const fetchTickets = async () => {
+            const params = new URLSearchParams({ 
+                page: currentPage.toString(), 
+                limit: ITEMS_PER_PAGE.toString(),
+                search: searchTerm,
+                status: statusFilter,
+                priority: priorityFilter
+            });
+            const res = await fetch(`/api/tickets?${params}`, { headers: { 'Authorization': 'Bearer <TOKEN>' } });
+            const data = await res.json();
+            setTickets(data.data);
+            // setTotalPages(data.totalPages);
+        };
+        const fetchUsers = async () => {
+             const res = await fetch('/api/users', { headers: { 'Authorization': 'Bearer <TOKEN>' } });
+             const data = await res.json();
+             setUsers(data.data);
+        }
+        fetchTickets();
+        fetchUsers();
+    */
+    const mockUsers: User[] = [
+      { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
+      { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
+    ];
+    const mockCustomers: Customer[] = [
+      { id: 'C1', companyName: 'شرکت آلفا', contactPerson: 'آقای الف', username: 'alpha', email: 'alpha@co.com', phone: '021-123', status: 'فعال' },
+      { id: 'C2', companyName: 'تجارت بتا', contactPerson: 'خانم ب', username: 'beta', email: 'beta@co.com', phone: '021-456', status: 'فعال' },
+    ];
+    const mockTickets: Ticket[] = [
+        { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', description: 'کاربر اعلام کرده نمی‌تواند وارد پنل شود.', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'در حال بررسی', priority: 'بالا', createdAt: '1403/05/01', category: 'فنی', replies: [
+            {id: 'R1', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', text: 'در حال بررسی مشکل هستیم.', isInternal: false, createdAt: '1403/05/01 10:30', authorAvatar: mockUsers[0].avatar},
+            {id: 'R2', authorType: 'Customer', authorName: 'شرکت آلفا', text: 'ممنون از پیگیری شما.', isInternal: false, createdAt: '1403/05/01 10:35'},
+            {id: 'R3', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', text: 'مشکل از سمت سرور بود، لطفا مجدد تست کنید.', isInternal: true, createdAt: '1403/05/01 11:00', authorAvatar: mockUsers[0].avatar},
+        ]},
+        { id: 'TKT-720', subject: 'سوال در مورد صورتحساب', customer: mockCustomers[1], customerId: 'C2', assignee: mockUsers[1], assigneeId: 'U2', status: 'جدید', priority: 'متوسط', createdAt: '1403/05/01', category: 'مالی' },
+        { id: 'TKT-719', subject: 'گزارش باگ در ماژول گزارشات', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'حل شده', priority: 'بالا', createdAt: '1403/04/31', category: 'فنی', surveySubmitted: false },
+        { id: 'TKT-718', subject: 'درخواست افزودن ویژگی جدید', customer: mockCustomers[1], customerId: 'C2', status: 'در انتظار مشتری', priority: 'کم', createdAt: '1403/04/30', category: 'عمومی' },
+    ];
+    setTickets(mockTickets);
+    setUsers(mockUsers);
+  }, [searchTerm, statusFilter, priorityFilter, currentPage]);
 
   const filteredTickets = useMemo(() => 
     tickets.filter(ticket =>
@@ -204,6 +347,24 @@ const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) 
 
   const handleAddTicket = (e: React.FormEvent) => {
     e.preventDefault();
+    /*
+      === API CALL REQUIRED HERE ===
+      - Route: /api/tickets
+      - Method: POST
+      - Input: newTicketData
+      - Output: The newly created ticket object.
+      - Sample Fetch Code:
+        fetch('/api/tickets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <TOKEN>' },
+            body: JSON.stringify(newTicketData)
+        })
+        .then(res => res.json())
+        .then(newTicketFromServer => {
+            setTickets(prev => [newTicketFromServer, ...prev]);
+            closePanel();
+        });
+    */
     const customer = customers.find(c => c.id === newTicketData.customerId);
     if(!customer) {
         alert("لطفا یک مشتری انتخاب کنید.");
@@ -234,6 +395,23 @@ const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) 
   };
 
   const handleAssigneeChange = (ticketId: string, assigneeId: string) => {
+      /*
+          === API CALL REQUIRED HERE ===
+          - Route: /api/tickets/:id
+          - Method: PUT
+          - Input: { "assigneeId": assigneeId }
+          - Output: The updated ticket object.
+          - Sample Fetch Code:
+            fetch(`/api/tickets/${ticketId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <TOKEN>' },
+                body: JSON.stringify({ assigneeId: assigneeId })
+            })
+            .then(res => res.json())
+            .then(updatedTicketFromServer => {
+                setTickets(prev => prev.map(t => t.id === ticketId ? updatedTicketFromServer : t));
+            });
+        */
       const assignee = users.find(u => u.id === assigneeId);
       setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, assignee, assigneeId } : t));
   };

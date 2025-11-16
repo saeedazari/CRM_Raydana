@@ -1,3 +1,65 @@
+/* 
+    === BACKEND SPEC ===
+    توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
+    این کامپوننت App.tsx نقطه ورود اصلی برنامه است و مسئولیت‌های زیر را بر عهده دارد:
+    1. احراز هویت (ورود کاربر/مشتری)
+    2. Fetch کردن داده‌های اولیه برنامه (مشتریان، تیکت‌ها، مقالات پایگاه دانش و دسته‌بندی‌ها)
+    3. مدیریت State کلی برنامه و پاس دادن آن به کامپوننت‌های فرزند.
+
+    API های مورد نیاز:
+
+    1. احراز هویت کاربر (User Login)
+    - Route: /api/auth/login/user
+    - Method: POST
+    - Expected Body JSON Schema: { "username": "string", "password": "string" }
+    - Response JSON Schema: { "token": "string", "user": { "id": "string", "name": "string", "username": "string", "roleId": "string", "avatar": "string" } }
+    - توضیح منطق بکند مورد نیاز: بررسی نام کاربری و رمز عبور در دیتابیس کاربران. در صورت موفقیت، یک توکن JWT صادر کرده و اطلاعات کاربر را بازگرداند.
+    - Dependencies: نیاز به Auth Token ندارد.
+    - نکات امنیتی: رمز عبور باید هش شده مقایسه شود. از HTTPS استفاده شود.
+
+    2. احراز هویت مشتری (Customer Login)
+    - Route: /api/auth/login/customer
+    - Method: POST
+    - Expected Body JSON Schema: { "username": "string", "password": "string" }
+    - Response JSON Schema: { "token": "string", "customer": { "id": "string", "companyName": "string", ... } }
+    - توضیح منطق بکند مورد نیاز: مشابه ورود کاربر، اما برای جدول مشتریان.
+    - Dependencies: نیاز به Auth Token ندارد.
+
+    3. دریافت داده‌های اولیه (Initial Data Fetch)
+    - توضیح: پس از ورود موفق کاربر، برنامه باید داده‌های اصلی را از سرور دریافت کند. می‌توان این‌ها را در یک endpoint تکی یا چند endpoint جداگانه قرار داد.
+    - Route (Example for separate endpoints): 
+        - /api/customers
+        - /api/tickets
+        - /api/kb/articles
+        - /api/kb/categories
+    - Method: GET
+    - Expected Query Params:
+        - برای تیکت‌ها و مشتریان ممکن است نیاز به pagination باشد (e.g., ?page=1&limit=20)
+    - Response JSON Schema:
+        - /api/customers -> { "data": [Customer], "totalPages": number }
+        - /api/tickets -> { "data": [Ticket], "totalPages": number }
+        - ...
+    - توضیح منطق بکند مورد نیاز: کنترلرهای جداگانه برای هر موجودیت (Customer, Ticket, etc.) که داده‌ها را از دیتابیس خوانده و برمی‌گردانند. باید شامل اطلاعات مرتبط (populated fields) مانند اطلاعات کاربر تخصیص داده شده به تیکت باشد.
+    - Dependencies: نیاز به Auth Token در هدر Authorization دارد.
+
+    4. عملیات روی تیکت‌ها (از پورتال مشتری)
+    - Route (Add Ticket): /api/portal/tickets
+    - Method: POST
+    - Expected Body JSON Schema: Omit<Ticket, 'id'|'customer'|'assignee'|'assigneeId'>
+    - Response JSON Schema: Ticket (the created ticket)
+    - ---
+    - Route (Update Ticket - e.g., add reply): /api/portal/tickets/:ticketId/reply
+    - Method: POST
+    - Expected Body JSON Schema: { "text": "string" }
+    - Response JSON Schema: Ticket (the updated ticket)
+    - ---
+    - Route (Submit Survey): /api/portal/tickets/:ticketId/survey
+    - Method: POST
+    - Expected Body JSON Schema: { "rating": number, "feedback": "string", "tags": ["string"] }
+    - Response JSON Schema: { "success": true }
+
+    - نحوه هندل‌کردن خطا: پاسخ‌های 401 برای خطای احراز هویت، 400 برای ورودی نامعتبر و 500 برای خطاهای سرور.
+*/
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -22,18 +84,38 @@ import CustomerPortal from './components/portals/CustomerPortal';
 import KnowledgeBase from './components/pages/KnowledgeBase';
 
 // --- MOCK DATA AGGREGATION ---
+/*
+    === REMOVE OR REPLACE MOCK DATA ===
+    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
+    ساختار مورد انتظار پاسخ API برای نقش‌ها: GET /api/roles -> { "data": [Role] }
+    {
+        "id": "string",
+        "name": "string",
+        "permissions": "string" // Comma-separated
+    }
+*/
 const mockRoles: Role[] = [
     { id: 'R1', name: 'مدیر کل', permissions: 'view_customers,create_customers,edit_customers,delete_customers,view_tickets,create_tickets,edit_tickets,delete_tickets,view_sales,create_sales,edit_sales,delete_sales,view_reports,manage_users,manage_roles' },
     { id: 'R2', name: 'کارشناس پشتیبانی', permissions: 'view_customers,view_tickets,create_tickets,edit_tickets' },
     { id: 'R3', name: 'کارشناس فروش', permissions: 'view_customers,create_customers,view_sales,create_sales,edit_sales' },
 ];
 
+/*
+    === REMOVE OR REPLACE MOCK DATA ===
+    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
+    ساختار مورد انتظار پاسخ API برای کاربران: GET /api/users -> { "data": [User] }
+*/
 const mockUsers: User[] = [
   { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
   { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
   { id: 'U3', name: 'محمد کریمی', username: 'mohammad', roleId: 'R3', avatar: 'https://i.pravatar.cc/40?u=U3' },
 ];
 
+/*
+    === REMOVE OR REPLACE MOCK DATA ===
+    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
+    ساختار مورد انتظار پاسخ API برای مشتریان: GET /api/customers -> { "data": [Customer] }
+*/
 const mockCustomers: Customer[] = [
   { id: 'C1', companyName: 'شرکت آلفا', contactPerson: 'آقای الف', username: 'alpha', email: 'alpha@co.com', phone: '021-12345678', status: 'فعال', accountManagerId: 'U1', accountManager: mockUsers[0], portalToken: 'alpha-secret-token-xyz', supportEndDate: '1404/05/01' },
   { id: 'C2', companyName: 'تجارت بتا', contactPerson: 'خانم ب', username: 'beta', email: 'beta@co.com', phone: '021-87654321', status: 'غیرفعال', accountManagerId: 'U2', accountManager: mockUsers[1], portalToken: 'beta-secret-token-abc', supportEndDate: '1403/10/01' },
@@ -41,6 +123,11 @@ const mockCustomers: Customer[] = [
   { id: 'C4', companyName: 'راهکارهای دلتا', contactPerson: 'خانم د', username: 'delta', email: 'delta@co.com', phone: '021-55667788', status: 'معلق', accountManagerId: 'U2', accountManager: mockUsers[1] },
 ];
 
+/*
+    === REMOVE OR REPLACE MOCK DATA ===
+    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
+    ساختار مورد انتظار پاسخ API برای تیکت‌ها: GET /api/tickets -> { "data": [Ticket] }
+*/
 const mockTicketsData: Ticket[] = [
     { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', description: 'کاربر اعلام کرده نمی‌تواند وارد پنل شود.', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'در حال بررسی', priority: 'بالا', createdAt: '1403/05/01', category: 'فنی', replies: [
         {id: 'R1', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', authorAvatar: mockUsers[0].avatar, text: 'در حال بررسی مشکل هستیم.', isInternal: false, createdAt: '1403/05/01 10:30'},
@@ -53,6 +140,11 @@ const mockTicketsData: Ticket[] = [
     { id: 'TKT-722', subject: 'نحوه کار با API', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[1], assigneeId: 'U2', status: 'بسته شده', priority: 'متوسط', createdAt: '1403/04/28', category: 'فنی', surveySubmitted: true, rating: 5, feedbackTags: ['پاسخ سریع', 'دانش فنی بالا'] },
 ];
 
+/*
+    === REMOVE OR REPLACE MOCK DATA ===
+    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
+    ساختار مورد انتظار پاسخ API: GET /api/kb/categories -> { "data": [KnowledgeBaseCategory] }
+*/
 const mockKbCategories: KnowledgeBaseCategory[] = [
     { id: 'KBC1', name: 'راهنمای شروع' },
     { id: 'KBC2', name: 'عیب‌یابی فنی' },
@@ -60,6 +152,11 @@ const mockKbCategories: KnowledgeBaseCategory[] = [
     { id: 'KBC4', name: 'سیاست‌های داخلی' },
 ];
 
+/*
+    === REMOVE OR REPLACE MOCK DATA ===
+    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
+    ساختار مورد انتظار پاسخ API: GET /api/kb/articles -> { "data": [KnowledgeBaseArticle] }
+*/
 const mockKbArticles: KnowledgeBaseArticle[] = [
     { id: 'KBA1', title: 'چگونه یک تیکت جدید ثبت کنیم؟', content: 'برای ثبت تیکت جدید، از منوی پورتال مشتریان گزینه تیکت‌ها را انتخاب کرده و روی دکمه <b>"تیکت جدید"</b> کلیک کنید... <br/> <img src="https://via.placeholder.com/400x200.png?text=Ticket+Example" alt="Example"/>', categoryId: 'KBC1', tags: ['تیکت', 'مشتری'], authorId: 'U1', createdAt: '1403/04/15', visibility: 'public' },
     { id: 'KBA2', title: 'خطای 500 هنگام ورود به پنل', content: 'این خطا معمولا به دلیل مشکلات سمت سرور است. لطفاً ابتدا کش مرورگر خود را پاک کرده و مجددا تلاش کنید. در صورت عدم رفع مشکل، با <a href="mailto:support@example.com">پشتیبانی</a> تماس بگیرید.', categoryId: 'KBC2', tags: ['خطا', 'ورود', 'فنی'], authorId: 'U2', createdAt: '1403/04/20', visibility: 'public' },
@@ -242,7 +339,21 @@ const MainApp: React.FC<{
 
 const App: React.FC = () => {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+  /*
+    === پیشنهاد برای Data Fetching ===
+    به جای مدیریت state های متعدد در کامپوننت App، پیشنهاد می‌شود از React Context یا کتابخانه‌هایی مانند SWR/React-Query استفاده شود.
+    یک AuthContext برای مدیریت اطلاعات کاربر لاگین شده و توکن.
+    یک DataContext برای fetch کردن و نگهداری داده‌های اصلی (مشتریان، تیکت‌ها و ...).
+    این کار باعث تمیزتر شدن کد App.tsx و جداسازی بهتر مسئولیت‌ها می‌شود.
+
+    مثال برای AuthContext:
+    const AuthContext = React.createContext({ auth: null, login: () => {}, logout: () => {} });
+    export const AuthProvider = ({ children }) => { ... };
+    export const useAuth = () => React.useContext(AuthContext);
+  */
   const [auth, setAuth] = useState<{ type: 'user' | 'customer' | null, entity: User | Customer | null }>({ type: null, entity: null });
+
+  // این state ها باید پس از اتصال به بک‌اند با داده‌های واقعی از API پر شوند
   const [tickets, setTickets] = useState<Ticket[]>(mockTicketsData);
   const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
   const [kbCategories, setKbCategories] = useState<KnowledgeBaseCategory[]>(mockKbCategories);
@@ -250,6 +361,9 @@ const App: React.FC = () => {
 
 
   useEffect(() => {
+    // در یک اپلیکیشن واقعی، اینجا باید چک شود که آیا توکن معتبری در localStorage وجود دارد یا نه
+    // اگر وجود داشت، اطلاعات کاربر از API گرفته شده و state مربوط به auth ست می‌شود.
+    // fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }}) ...
     const root = window.document.documentElement;
     if (theme === 'dark') {
       root.classList.add('dark');
@@ -258,8 +372,96 @@ const App: React.FC = () => {
     }
     localStorage.setItem('theme', theme);
   }, [theme]);
+  
+  // بعد از لاگین موفق، داده‌های اولیه برنامه باید fetch شوند.
+  useEffect(() => {
+        if (auth.type === 'user') {
+            /*
+            === API CALL REQUIRED HERE ===
+            - Route: /api/customers, /api/tickets, /api/kb/articles, /api/kb/categories
+            - Method: GET
+            - Input: Auth token in header.
+            - Output: Lists of customers, tickets, articles, and categories.
+            - Sample Fetch Code:
+              const fetchInitialData = async () => {
+                  const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
+                  const [customersRes, ticketsRes, articlesRes, categoriesRes] = await Promise.all([
+                      fetch('/api/customers', { headers }),
+                      fetch('/api/tickets', { headers }),
+                      fetch('/api/kb/articles', { headers }),
+                      fetch('/api/kb/categories', { headers }),
+                  ]);
+                  const customersData = await customersRes.json();
+                  const ticketsData = await ticketsRes.json();
+                  const articlesData = await articlesRes.json();
+                  const categoriesData = await categoriesRes.json();
+                  setCustomers(customersData.data);
+                  setTickets(ticketsData.data);
+                  setKbArticles(articlesData.data);
+                  setKbCategories(categoriesData.data);
+              };
+              fetchInitialData();
+            */
+        } else if (auth.type === 'customer') {
+             /*
+            === API CALL REQUIRED HERE ===
+            - Route: /api/portal/tickets, /api/portal/kb/articles, ...
+            - Method: GET
+            - Input: Auth token for the customer in header.
+            - Output: Data relevant to the logged-in customer.
+            - Sample Fetch Code:
+              const fetchPortalData = async () => {
+                  const headers = { 'Authorization': `Bearer ${localStorage.getItem('customer_token')}` };
+                  const [ticketsRes, articlesRes, categoriesRes] = await Promise.all([
+                      fetch('/api/portal/tickets', { headers }),
+                      fetch('/api/portal/kb/articles', { headers }),
+                      fetch('/api/portal/kb/categories', { headers }),
+                  ]);
+                  // ... set state
+              };
+              fetchPortalData();
+            */
+        }
+    }, [auth]);
 
   const handleLogin = (type: 'user' | 'customer', username: string, pass: string) => {
+    /*
+      === API CALL REQUIRED HERE ===
+      این تابع باید یک درخواست به API برای احراز هویت ارسال کند.
+      - Route: /api/auth/login/user or /api/auth/login/customer
+      - Method: POST
+      - Input: { "username": "string", "password": "string" }
+      - Output: { "token": "string", "user": User } or { "token": "string", "customer": Customer }
+      - Sample Fetch Code (کاملاً واقعی، فقط کامنت شده):
+        const loginUrl = type === 'user' ? '/api/auth/login/user' : '/api/auth/login/customer';
+        fetch(loginUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password: pass })
+        })
+        .then(async res => {
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || 'Login failed');
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (type === 'user') {
+                localStorage.setItem('token', data.token);
+                setAuth({ type: 'user', entity: data.user });
+            } else {
+                 localStorage.setItem('customer_token', data.token);
+                 setAuth({ type: 'customer', entity: data.customer });
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            // Handle error UI, e.g., setError('نام کاربری یا رمز عبور نامعتبر است.')
+        });
+
+      - نکته برای بک‌اند: پس از موفقیت، توکن JWT باید در پاسخ بازگردانده شود.
+    */
     // Mock login logic
     if (pass === '1234') {
         if (type === 'user') {
@@ -280,10 +482,30 @@ const App: React.FC = () => {
   };
   
   const handleLogout = () => {
+      // باید توکن از localStorage پاک شود
+      // localStorage.removeItem('token');
+      // localStorage.removeItem('customer_token');
       setAuth({ type: null, entity: null });
   };
   
   const handleAddTicket = (ticketData: Omit<Ticket, 'id'|'customer'|'assignee'|'assigneeId'>) => {
+      /*
+      === API CALL REQUIRED HERE ===
+      - Route: /api/portal/tickets
+      - Method: POST
+      - Input: ticketData
+      - Output: The newly created ticket object.
+      - Sample Fetch Code:
+        fetch('/api/portal/tickets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('customer_token')}` },
+            body: JSON.stringify(ticketData)
+        })
+        .then(res => res.json())
+        .then(newTicketFromServer => {
+            setTickets(prev => [newTicketFromServer, ...prev]);
+        });
+      */
       const customer = auth.entity as Customer;
       const newTicket: Ticket = {
           ...ticketData,
@@ -294,10 +516,47 @@ const App: React.FC = () => {
   };
   
   const handleUpdateTicket = (updatedTicket: Ticket) => {
+       /*
+      === API CALL REQUIRED HERE ===
+      این تابع معمولا برای افزودن پاسخ توسط مشتری فراخوانی می‌شود.
+      - Route: /api/portal/tickets/:ticketId
+      - Method: PUT (or PATCH)
+      - Input: The updated ticket object or just the new reply.
+      - Output: The fully updated ticket object from the server.
+      - Sample Fetch Code:
+        fetch(`/api/portal/tickets/${updatedTicket.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('customer_token')}` },
+            body: JSON.stringify(updatedTicket)
+        })
+        .then(res => res.json())
+        .then(updatedTicketFromServer => {
+            setTickets(prev => prev.map(t => t.id === updatedTicketFromServer.id ? updatedTicketFromServer : t));
+        });
+      */
       setTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
   };
   
   const handleSurveySubmit = (ticketId: string, rating: number, feedback: string, tags: string[]) => {
+      /*
+      === API CALL REQUIRED HERE ===
+      - Route: /api/portal/tickets/:ticketId/survey
+      - Method: POST
+      - Input: { rating, feedback, tags }
+      - Output: { success: true }
+      - Sample Fetch Code:
+        fetch(`/api/portal/tickets/${ticketId}/survey`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('customer_token')}` },
+            body: JSON.stringify({ rating, feedback, tags })
+        })
+        .then(res => res.json())
+        .then(() => {
+             setTickets(prev => prev.map(t => 
+                t.id === ticketId ? { ...t, rating, feedbackTags: tags, surveySubmitted: true } : t
+            ));
+        });
+      */
       setTickets(prev => prev.map(t => 
           t.id === ticketId ? { ...t, rating, feedbackTags: tags, surveySubmitted: true } : t
       ));

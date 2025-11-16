@@ -1,3 +1,46 @@
+/* 
+    === BACKEND SPEC ===
+    توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
+    این کامپوننت مسئولیت مدیریت مشتریان (CRUD) را بر عهده دارد.
+
+    1. دریافت لیست مشتریان (Read)
+    - Route: /api/customers
+    - Method: GET
+    - Expected Query Params: ?page={number}&limit={number}&search={string}
+    - Response JSON Schema: { "data": [Customer], "totalPages": number, "currentPage": number }
+    - توضیح منطق بکند مورد نیاز: یک کنترلر برای مشتریان که قابلیت فیلتر بر اساس نام، شخص رابط و ایمیل و همچنین صفحه‌بندی (pagination) را داشته باشد. باید اطلاعات مدیر حساب (accountManager) را join کند و برگرداند.
+    - Dependencies: نیاز به Auth Token، نیاز به Pagination.
+
+    2. افزودن مشتری جدید (Create)
+    - Route: /api/customers
+    - Method: POST
+    - Expected Body JSON Schema: Partial<Customer> (تمام فیلدهای فرم افزودن مشتری)
+    - Response JSON Schema: Customer (مشتری جدید ایجاد شده)
+    - توضیح منطق بکند مورد نیاز: اعتبارسنجی داده‌های ورودی (مانند یکتا بودن نام کاربری و ایمیل). ایجاد رکورد جدید در دیتابیس.
+    - Dependencies: نیاز به Auth Token.
+
+    3. ویرایش مشتری (Update)
+    - Route: /api/customers/:id
+    - Method: PUT
+    - Expected Body JSON Schema: Partial<Customer> (تمام فیلدهای فرم ویرایش مشتری)
+    - Response JSON Schema: Customer (مشتری ویرایش شده)
+    - توضیح منطق بکند مورد نیاز: اعتبارسنجی داده‌ها و به‌روزرسانی رکورد مشتری در دیتابیس.
+    - Dependencies: نیاز به Auth Token.
+
+    4. حذف مشتری (Delete)
+    - Route: /api/customers/:id
+    - Method: DELETE
+    - Response JSON Schema: { "success": true }
+    - توضیح منطق بکند مورد نیاز: حذف مشتری از دیتابیس. می‌توان به جای حذف فیزیکی، از soft delete استفاده کرد.
+    - Dependencies: نیاز به Auth Token.
+
+    5. دریافت لیست کاربران (برای dropdown مدیر حساب)
+    - Route: /api/users?role=sales_manager_or_similar
+    - Method: GET
+    - Response JSON Schema: { "data": [User] }
+    - توضیح منطق بکند مورد نیاز: لیستی از کاربران که می‌توانند به عنوان مدیر حساب انتخاب شوند.
+    - Dependencies: نیاز به Auth Token.
+*/
 import React, { useState, useMemo, useEffect } from 'react';
 import { Customer, CustomerType, User } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
@@ -10,10 +53,15 @@ import { XMarkIcon } from '../icons/XMarkIcon';
 import { EyeIcon } from '../icons/EyeIcon';
 import { getJwtExpiry } from '../../utils/jwt';
 
-const mockUsers: User[] = [
-  { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
-  { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
-];
+/*
+    === REMOVE OR REPLACE MOCK DATA ===
+    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
+    ساختار مورد انتظار پاسخ API: GET /api/users?role=account_manager
+*/
+// const mockUsers: User[] = [
+//   { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
+//   { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
+// ];
 
 const ITEMS_PER_PAGE = 8;
 
@@ -45,7 +93,8 @@ interface CustomersProps {
 }
 
 const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewInteractions }) => {
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  // این state باید از API دریافت شود.
+  const [users, setUsers] = useState<User[]>([]);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -59,6 +108,25 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
     'غیرفعال': 'bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-300',
     'معلق': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
   };
+
+  useEffect(() => {
+    // customers و users باید از طریق API دریافت شوند
+    /*
+      === API CALL REQUIRED HERE ===
+      - Route: /api/users?role=account_manager
+      - Method: GET
+      - Output: { "data": [User] }
+      - Sample Fetch Code:
+        fetch('/api/users?role=account_manager', { headers: { 'Authorization': 'Bearer <TOKEN>' } })
+        .then(r => r.json())
+        .then(data => setUsers(data.data));
+    */
+    const mockUsers: User[] = [
+      { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
+      { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
+    ];
+    setUsers(mockUsers);
+  }, []);
 
   useEffect(() => {
     if (editingCustomer) {
@@ -102,9 +170,45 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingCustomer) {
+        /*
+          === API CALL REQUIRED HERE ===
+          - Route: /api/customers/:id
+          - Method: PUT
+          - Input: customerFormData
+          - Output: The updated customer object.
+          - Sample Fetch Code:
+            fetch(`/api/customers/${editingCustomer.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <TOKEN>' },
+                body: JSON.stringify(customerFormData)
+            })
+            .then(res => res.json())
+            .then(updatedCustomer => {
+                setCustomers(customers.map(c => c.id === editingCustomer.id ? updatedCustomer : c));
+                closePanel();
+            });
+        */
         const manager = users.find(u => u.id === customerFormData.accountManagerId);
         setCustomers(customers.map(c => c.id === editingCustomer.id ? { ...c, ...customerFormData, accountManager: manager } as Customer : c));
     } else {
+        /*
+          === API CALL REQUIRED HERE ===
+          - Route: /api/customers
+          - Method: POST
+          - Input: customerFormData
+          - Output: The newly created customer object.
+          - Sample Fetch Code:
+            fetch('/api/customers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <TOKEN>' },
+                body: JSON.stringify(customerFormData)
+            })
+            .then(res => res.json())
+            .then(newCustomer => {
+                setCustomers([...customers, newCustomer]);
+                closePanel();
+            });
+        */
         const manager = users.find(u => u.id === customerFormData.accountManagerId);
         const newCustomer: Customer = {
             id: `C-${Date.now()}`,
@@ -119,6 +223,23 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
 
   const handleDelete = (customerId: string) => {
     if (window.confirm('آیا از حذف این مشتری اطمینان دارید؟ این عمل قابل بازگشت نیست.')) {
+        /*
+          === API CALL REQUIRED HERE ===
+          - Route: /api/customers/:id
+          - Method: DELETE
+          - Input: customerId in URL
+          - Output: { success: true }
+          - Sample Fetch Code:
+            fetch(`/api/customers/${customerId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer <TOKEN>' }
+            })
+            .then(res => {
+                if (res.ok) {
+                    setCustomers(customers.filter(c => c.id !== customerId));
+                }
+            });
+        */
         setCustomers(customers.filter(c => c.id !== customerId));
     }
   };

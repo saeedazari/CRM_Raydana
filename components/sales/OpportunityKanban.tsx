@@ -52,6 +52,7 @@ const OpportunityKanban: React.FC<OpportunityKanbanProps> = ({ opportunities, on
             return;
         }
         const newStage = destination.droppableId as OpportunityStage;
+        // این تابع در کامپوننت والد (Opportunities.tsx) تعریف شده و باید API call را انجام دهد.
         onUpdateOpportunity(draggableId, { stage: newStage });
     };
 

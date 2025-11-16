@@ -1,3 +1,38 @@
+/* 
+    === BACKEND SPEC ===
+    توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
+    این کامپوننت مسئولیت مدیریت وظایف (Tasks) را بر عهده دارد.
+
+    1. دریافت لیست وظایف (Read)
+    - Route: /api/tasks
+    - Method: GET
+    - Expected Query Params: ?page={number}&limit={number}&search={string}&status={string}&priority={string}
+    - Response JSON Schema: { "data": [Task], "totalPages": number }
+    - توضیح منطق بکند مورد نیاز: یک کنترلر برای وظایف که قابلیت فیلتر و صفحه‌بندی داشته باشد. باید اطلاعات مشتری و کاربر (assignedTo) را join کند.
+    - Dependencies: نیاز به Auth Token، نیاز به Pagination.
+
+    2. افزودن وظیفه جدید (Create)
+    - Route: /api/tasks
+    - Method: POST
+    - Expected Body JSON Schema: Omit<Task, 'id' | 'createdAt'>
+    - Response JSON Schema: Task (وظیفه جدید)
+    - توضیح منطق بکند مورد نیاز: ایجاد رکورد جدید برای وظیفه.
+
+    3. ویرایش وظیفه (Update)
+    - Route: /api/tasks/:id
+    - Method: PUT
+    - Expected Body JSON Schema: Partial<Task>
+    - Response JSON Schema: Task (وظیفه ویرایش شده)
+    - توضیح منطق بکند مورد نیاز: بروزرسانی رکورد وظیفه در دیتابیس.
+
+    4. حذف وظیفه (Delete)
+    - Route: /api/tasks/:id
+    - Method: DELETE
+    - Response JSON Schema: { "success": true }
+    - توضیح منطق بکند مورد نیاز: حذف وظیفه از دیتابیس.
+
+    - Dependencies: تمام endpoint ها نیاز به Auth Token دارند.
+*/
 import React, { useState, useMemo, useEffect } from 'react';
 import { Task, User, TaskStatus, TaskPriority, Customer } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
@@ -9,23 +44,27 @@ import { ChevronRightIcon } from '../icons/ChevronRightIcon';
 import { XMarkIcon } from '../icons/XMarkIcon';
 import { FilterIcon } from '../icons/FilterIcon';
 
-// FIX: Removed 'email' property and added 'username' to align with the 'User' type definition.
-const mockUsers: User[] = [
-  { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
-  { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
-];
+/*
+    === REMOVE OR REPLACE MOCK DATA ===
+    این داده‌ها موقتی هستند و باید از API دریافت شوند.
+*/
+// // FIX: Removed 'email' property and added 'username' to align with the 'User' type definition.
+// const mockUsers: User[] = [
+//   { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
+//   { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
+// ];
 
-// FIX: Added required 'username' property to align with the 'Customer' type definition.
-const mockCustomers: Customer[] = [
-  { id: 'C1', companyName: 'شرکت آلفا', contactPerson: 'آقای الف', username: 'alpha', email: 'alpha@co.com', phone: '021-123', status: 'فعال' },
-  { id: 'C2', companyName: 'تجارت بتا', contactPerson: 'خانم ب', username: 'beta', email: 'beta@co.com', phone: '021-456', status: 'فعال' },
-];
+// // FIX: Added required 'username' property to align with the 'Customer' type definition.
+// const mockCustomers: Customer[] = [
+//   { id: 'C1', companyName: 'شرکت آلفا', contactPerson: 'آقای الف', username: 'alpha', email: 'alpha@co.com', phone: '021-123', status: 'فعال' },
+//   { id: 'C2', companyName: 'تجارت بتا', contactPerson: 'خانم ب', username: 'beta', email: 'beta@co.com', phone: '021-456', status: 'فعال' },
+// ];
 
-const mockTasks: Task[] = [
-    { id: 'TSK1', title: 'پیگیری تیکت #721', description: 'مشتری در مورد ورود به پنل کاربری مشکل دارد.', customer: mockCustomers[0], relatedTicketId: 'TKT-721', assignedTo: mockUsers[0], priority: 'بالا', status: 'در حال انجام', dueDate: '1403/05/10', createdAt: '1403/05/01' },
-    { id: 'TSK2', title: 'آماده‌سازی پیش‌فاکتور برای تجارت بتا', description: '', customer: mockCustomers[1], assignedTo: mockUsers[0], priority: 'متوسط', status: 'معلق', dueDate: '1403/05/15', createdAt: '1403/05/02' },
-    { id: 'TSK3', title: 'جلسه دمو با مشتری جدید', description: 'معرفی ویژگی‌های جدید محصول', assignedTo: mockUsers[1], priority: 'فوری', status: 'تکمیل شده', dueDate: '1403/04/30', createdAt: '1403/04/28' },
-];
+// const mockTasks: Task[] = [
+//     { id: 'TSK1', title: 'پیگیری تیکت #721', description: 'مشتری در مورد ورود به پنل کاربری مشکل دارد.', customer: mockCustomers[0], relatedTicketId: 'TKT-721', assignedTo: mockUsers[0], priority: 'بالا', status: 'در حال انجام', dueDate: '1403/05/10', createdAt: '1403/05/01' },
+//     { id: 'TSK2', title: 'آماده‌سازی پیش‌فاکتور برای تجارت بتا', description: '', customer: mockCustomers[1], assignedTo: mockUsers[0], priority: 'متوسط', status: 'معلق', dueDate: '1403/05/15', createdAt: '1403/05/02' },
+//     { id: 'TSK3', title: 'جلسه دمو با مشتری جدید', description: 'معرفی ویژگی‌های جدید محصول', assignedTo: mockUsers[1], priority: 'فوری', status: 'تکمیل شده', dueDate: '1403/04/30', createdAt: '1403/04/28' },
+// ];
 
 const statusColors: { [key in TaskStatus]: string } = {
   'معلق': 'bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-300',
@@ -61,8 +100,9 @@ interface TasksProps {
 }
 
 const Tasks: React.FC<TasksProps> = ({ initialParams, customers }) => {
-  const [tasks, setTasks] = useState<Task[]>(mockTasks);
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  // این state ها باید از API دریافت شوند
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -71,6 +111,35 @@ const Tasks: React.FC<TasksProps> = ({ initialParams, customers }) => {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [taskFormData, setTaskFormData] = useState(initialNewTaskState);
+
+  useEffect(() => {
+    /*
+      === API CALL REQUIRED HERE ===
+      - Route: /api/tasks, /api/users
+      - Method: GET
+      - Output: Lists of tasks and users.
+      - Sample Fetch Code:
+        const fetchTasks = async () => { ... };
+        const fetchUsers = async () => { ... };
+        fetchTasks();
+        fetchUsers();
+    */
+    const mockUsers: User[] = [
+      { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
+      { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
+    ];
+    const mockCustomers: Customer[] = [
+      { id: 'C1', companyName: 'شرکت آلفا', contactPerson: 'آقای الف', username: 'alpha', email: 'alpha@co.com', phone: '021-123', status: 'فعال' },
+      { id: 'C2', companyName: 'تجارت بتا', contactPerson: 'خانم ب', username: 'beta', email: 'beta@co.com', phone: '021-456', status: 'فعال' },
+    ];
+    const mockTasks: Task[] = [
+        { id: 'TSK1', title: 'پیگیری تیکت #721', description: 'مشتری در مورد ورود به پنل کاربری مشکل دارد.', customer: mockCustomers[0], relatedTicketId: 'TKT-721', assignedTo: mockUsers[0], priority: 'بالا', status: 'در حال انجام', dueDate: '1403/05/10', createdAt: '1403/05/01' },
+        { id: 'TSK2', title: 'آماده‌سازی پیش‌فاکتور برای تجارت بتا', description: '', customer: mockCustomers[1], assignedTo: mockUsers[0], priority: 'متوسط', status: 'معلق', dueDate: '1403/05/15', createdAt: '1403/05/02' },
+        { id: 'TSK3', title: 'جلسه دمو با مشتری جدید', description: 'معرفی ویژگی‌های جدید محصول', assignedTo: mockUsers[1], priority: 'فوری', status: 'تکمیل شده', dueDate: '1403/04/30', createdAt: '1403/04/28' },
+    ];
+    setTasks(mockTasks);
+    setUsers(mockUsers);
+  }, []);
 
   useEffect(() => {
     if (initialParams?.action === 'create' && initialParams?.prefill) {
@@ -126,8 +195,44 @@ const Tasks: React.FC<TasksProps> = ({ initialParams, customers }) => {
     }
 
     if (editingTask) {
+        /*
+          === API CALL REQUIRED HERE ===
+          - Route: /api/tasks/:id
+          - Method: PUT
+          - Input: taskFormData
+          - Output: The updated task object.
+          - Sample Fetch Code:
+            fetch(`/api/tasks/${editingTask.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <TOKEN>' },
+                body: JSON.stringify(taskFormData)
+            })
+            .then(res => res.json())
+            .then(updatedTask => {
+                setTasks(tasks.map(t => t.id === editingTask.id ? updatedTask : t));
+                closePanel();
+            });
+        */
         setTasks(tasks.map(t => t.id === editingTask.id ? { ...editingTask, ...taskFormData, assignedTo, customer } : t));
     } else {
+        /*
+          === API CALL REQUIRED HERE ===
+          - Route: /api/tasks
+          - Method: POST
+          - Input: taskFormData
+          - Output: The newly created task object.
+          - Sample Fetch Code:
+            fetch('/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <TOKEN>' },
+                body: JSON.stringify(taskFormData)
+            })
+            .then(res => res.json())
+            .then(newTask => {
+                setTasks(prev => [newTask, ...prev]);
+                closePanel();
+            });
+        */
         const newTask: Task = {
             id: `TSK-${Date.now()}`,
             ...initialNewTaskState,
@@ -143,6 +248,22 @@ const Tasks: React.FC<TasksProps> = ({ initialParams, customers }) => {
   
   const handleDelete = (taskId: string) => {
     if (window.confirm('آیا از حذف این وظیفه اطمینان دارید؟')) {
+       /*
+          === API CALL REQUIRED HERE ===
+          - Route: /api/tasks/:id
+          - Method: DELETE
+          - Output: { success: true }
+          - Sample Fetch Code:
+            fetch(`/api/tasks/${taskId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer <TOKEN>' }
+            })
+            .then(res => {
+                if (res.ok) {
+                    setTasks(tasks.filter(t => t.id !== taskId));
+                }
+            });
+       */
        setTasks(tasks.filter(t => t.id !== taskId));
     }
   };

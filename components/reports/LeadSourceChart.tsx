@@ -2,12 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { LeadSourceData, LeadSource } from '../../types';
 
-const data: LeadSourceData[] = [
-  { name: 'وبسایت', value: 400 },
-  { name: 'ارجاعی', value: 300 },
-  { name: 'تماس سرد', value: 300 },
-  { name: 'شبکه اجتماعی', value: 200 },
-];
+/*
+    === REMOVE OR REPLACE MOCK DATA ===
+    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
+    ساختار مورد انتظار پاسخ API: GET /api/reports/lead-sources
+    { 
+      "data": [
+        { "name": "وبسایت", "value": 400 },
+        ...
+      ]
+    }
+*/
+// const data: LeadSourceData[] = [
+//   { name: 'وبسایت', value: 400 },
+//   { name: 'ارجاعی', value: 300 },
+//   { name: 'تماس سرد', value: 300 },
+//   { name: 'شبکه اجتماعی', value: 200 },
+// ];
 
 const COLORS: { [key in LeadSource]: string } = {
     'وبسایت': '#4f46e5',
@@ -19,8 +30,29 @@ const COLORS: { [key in LeadSource]: string } = {
 
 const LeadSourceChart: React.FC = () => {
   const [isClient, setIsClient] = useState(false);
+  // داده ها باید از API گرفته شوند
+  const [data, setData] = useState<LeadSourceData[]>([]);
+
   useEffect(() => {
     setIsClient(true);
+    /*
+      === API CALL REQUIRED HERE ===
+      - Route: /api/reports/lead-sources
+      - Method: GET
+      - Output: { "data": [LeadSourceData] }
+      - Sample Fetch Code:
+        fetch('/api/reports/lead-sources', { headers: { 'Authorization': 'Bearer <TOKEN>' } })
+        .then(r => r.json())
+        .then(result => setData(result.data));
+    */
+    const mockData: LeadSourceData[] = [
+      { name: 'وبسایت', value: 400 },
+      { name: 'ارجاعی', value: 300 },
+      { name: 'تماس سرد', value: 300 },
+      { name: 'شبکه اجتماعی', value: 200 },
+    ];
+    setData(mockData);
+
   }, []);
   
   return (

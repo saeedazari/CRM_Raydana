@@ -1,3 +1,22 @@
+/* 
+    === BACKEND SPEC ===
+    توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
+    این کامپوننت به عنوان یک کانتینر برای صفحات مختلف تنظیمات (مدیریت کاربران، نقش‌ها و ...) عمل می‌کند.
+    مسئولیت اصلی آن fetch کردن داده‌های اولیه مورد نیاز برای کامپوننت‌های فرزند (مانند لیست کاربران و نقش‌ها) است.
+
+    1. دریافت لیست کاربران داخلی
+    - Route: /api/users
+    - Method: GET
+    - Response JSON Schema: { "data": [User] }
+
+    2. دریافت لیست نقش‌ها
+    - Route: /api/roles
+    - Method: GET
+    - Response JSON Schema: { "data": [Role] }
+    
+    - Dependencies: نیاز به Auth Token.
+    - توضیح منطق بکند مورد نیاز: این داده‌ها به کامپوننت‌های فرزند پاس داده می‌شوند تا در آنجا عملیات CRUD انجام شود.
+*/
 import React, { useState } from 'react';
 import { User, Role, Customer } from '../../types';
 import UserManagement from '../settings/UserManagement';
@@ -9,17 +28,27 @@ import { ShieldCheckIcon } from '../icons/ShieldCheckIcon';
 import { ChatBubbleLeftRightIcon } from '../icons/ChatBubbleLeftRightIcon';
 import { KeyIcon } from '../icons/KeyIcon';
 
-const mockRoles: Role[] = [
-    { id: 'R1', name: 'مدیر کل', permissions: 'view_customers,create_customers,edit_customers,delete_customers,view_tickets,create_tickets,edit_tickets,delete_tickets,view_sales,create_sales,edit_sales,delete_sales,view_reports,manage_users,manage_roles' },
-    { id: 'R2', name: 'کارشناس پشتیبانی', permissions: 'view_customers,view_tickets,create_tickets,edit_tickets' },
-    { id: 'R3', name: 'کارشناس فروش', permissions: 'view_customers,create_customers,view_sales,create_sales,edit_sales' },
-];
+/*
+    === REMOVE OR REPLACE MOCK DATA ===
+    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
+    ساختار مورد انتظار پاسخ API: GET /api/roles -> { "data": [Role] }
+*/
+// const mockRoles: Role[] = [
+//     { id: 'R1', name: 'مدیر کل', permissions: 'view_customers,create_customers,edit_customers,delete_customers,view_tickets,create_tickets,edit_tickets,delete_tickets,view_sales,create_sales,edit_sales,delete_sales,view_reports,manage_users,manage_roles' },
+//     { id: 'R2', name: 'کارشناس پشتیبانی', permissions: 'view_customers,view_tickets,create_tickets,edit_tickets' },
+//     { id: 'R3', name: 'کارشناس فروش', permissions: 'view_customers,create_customers,view_sales,create_sales,edit_sales' },
+// ];
 
-const mockUsers: User[] = [
-  { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
-  { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
-  { id: 'U3', name: 'محمد کریمی', username: 'mohammad', roleId: 'R3', avatar: 'https://i.pravatar.cc/40?u=U3' },
-];
+/*
+    === REMOVE OR REPLACE MOCK DATA ===
+    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
+    ساختار مورد انتظار پاسخ API: GET /api/users -> { "data": [User] }
+*/
+// const mockUsers: User[] = [
+//   { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
+//   { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
+//   { id: 'U3', name: 'محمد کریمی', username: 'mohammad', roleId: 'R3', avatar: 'https://i.pravatar.cc/40?u=U3' },
+// ];
 
 type ActiveTab = 'users' | 'customerUsers' | 'roles' | 'channels';
 
@@ -30,8 +59,43 @@ interface SettingsProps {
 
 const Settings: React.FC<SettingsProps> = ({ customers, setCustomers }) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('users');
-  const [users, setUsers] = useState<User[]>(mockUsers);
-  const [roles, setRoles] = useState<Role[]>(mockRoles);
+  // این state ها باید از API دریافت شوند.
+  const [users, setUsers] = useState<User[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+
+  React.useEffect(() => {
+    /*
+        === API CALL REQUIRED HERE ===
+        - Route: /api/users, /api/roles
+        - Method: GET
+        - Output: Lists of users and roles.
+        - Sample Fetch Code:
+          const fetchSettingsData = async () => {
+              const headers = { 'Authorization': 'Bearer <TOKEN>' };
+              const [usersRes, rolesRes] = await Promise.all([
+                  fetch('/api/users', { headers }),
+                  fetch('/api/roles', { headers }),
+              ]);
+              const usersData = await usersRes.json();
+              const rolesData = await rolesRes.json();
+              setUsers(usersData.data);
+              setRoles(rolesData.data);
+          };
+          fetchSettingsData();
+    */
+    const mockRoles: Role[] = [
+        { id: 'R1', name: 'مدیر کل', permissions: 'view_customers,create_customers,edit_customers,delete_customers,view_tickets,create_tickets,edit_tickets,delete_tickets,view_sales,create_sales,edit_sales,delete_sales,view_reports,manage_users,manage_roles' },
+        { id: 'R2', name: 'کارشناس پشتیبانی', permissions: 'view_customers,view_tickets,create_tickets,edit_tickets' },
+        { id: 'R3', name: 'کارشناس فروش', permissions: 'view_customers,create_customers,view_sales,create_sales,edit_sales' },
+    ];
+    const mockUsers: User[] = [
+      { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
+      { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
+      { id: 'U3', name: 'محمد کریمی', username: 'mohammad', roleId: 'R3', avatar: 'https://i.pravatar.cc/40?u=U3' },
+    ];
+    setUsers(mockUsers);
+    setRoles(mockRoles);
+  }, []);
 
   const tabs: { id: ActiveTab; name: string; icon: React.ReactNode }[] = [
     { id: 'users', name: 'مدیریت کاربران داخلی', icon: <UsersIcon className="w-5 h-5" /> },

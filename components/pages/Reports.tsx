@@ -1,3 +1,40 @@
+/* 
+    === BACKEND SPEC ===
+    توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
+    این صفحه گزارش‌های مختلف را نمایش می‌دهد. هر کارت گزارش و نمودار باید داده‌های خود را از یک API endpoint جداگانه دریافت کند.
+
+    1. خلاصه عملکرد پشتیبانی (Support Performance Summary)
+    - Route: /api/reports/support-summary
+    - Method: GET
+    - Response JSON Schema: { "averageSatisfaction": number, "slaCompliance": number, "slaViolations": number }
+    - توضیح منطق بکند مورد نیاز: محاسبه میانگین رضایت مشتریان از نظرسنجی‌ها، درصد تیکت‌هایی که در محدوده SLA پاسخ داده شده‌اند و تعداد تیکت‌هایی که SLA را نقض کرده‌اند.
+
+    2. خلاصه عملکرد فروش (Sales Performance Summary)
+    - Route: /api/reports/sales-summary
+    - Method: GET
+    - Response JSON Schema: { "dealsWonThisMonth": number, "leadToOpportunityRate": number, "averageSalesCycleDays": number }
+    - توضیح منطق بکند مورد نیاز: شمارش فرصت‌های موفق در ماه جاری، محاسبه نرخ تبدیل سرنخ به فرصت و میانگین زمان از ایجاد سرنخ تا موفقیت فرصت.
+
+    3. عملکرد فروش در برابر هدف (Sales Vs Goal)
+    - Route: /api/reports/sales-goal
+    - Method: GET
+    - Response JSON Schema: { "currentSales": number, "goal": number }
+    - توضیح منطق بکند مورد نیاز: دریافت میزان فروش فعلی و هدف فروش تعیین شده برای دوره زمانی مشخص.
+
+    4. گزارش عملکرد تیکت‌ها (Ticket Performance by Category)
+    - Route: /api/reports/ticket-performance
+    - Method: GET
+    - Response JSON Schema: { "data": [{ "category": "string", "avgFirstResponseHours": number, "avgResolutionHours": number }] }
+    - توضیح منطق بکند مورد نیاز: محاسبه میانگین زمان اولین پاسخ و میانگین زمان حل تیکت به تفکیک دسته‌بندی.
+
+    5. تحلیل منابع سرنخ (Lead Source Analysis)
+    - Route: /api/reports/lead-sources
+    - Method: GET
+    - Response JSON Schema: { "data": [{ "name": "string", "value": number }] }
+    - توضیح منطق بکند مورد نیاز: شمارش تعداد سرنخ‌ها به تفکیک منبع ایجاد آن‌ها.
+
+    - Dependencies: تمام این endpoint ها نیاز به Auth Token دارند.
+*/
 import React from 'react';
 import ReportCard from '../reports/ReportCard';
 import TicketPerformanceChart from '../reports/TicketPerformanceChart';
@@ -11,6 +48,9 @@ import { SalesIcon } from '../icons/SalesIcon';
 import { TicketsIcon } from '../icons/TicketsIcon';
 
 const Reports: React.FC = () => {
+    // در یک اپلیکیشن واقعی، داده‌های هر کارت از API های مربوطه fetch می‌شود
+    // مثال: const { data: supportSummary } = useSWR('/api/reports/support-summary');
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
       {/* KPIs */}
