@@ -72,7 +72,7 @@ const QuoteEditor: React.FC<{
 
     const handleCustomerChange = (customerId: string) => {
         const customer = customers.find(c => c.id === customerId);
-        setQuote(q => ({ ...q, customerId, customerName: customer?.companyName || '' }));
+        setQuote(q => ({ ...q, customerId, customerName: customer?.name || '' }));
     };
 
     return (
@@ -100,7 +100,7 @@ const QuoteEditor: React.FC<{
                         <label className="block text-sm font-medium mb-1">مشتری</label>
                         <select value={quote.customerId} onChange={(e) => handleCustomerChange(e.target.value)} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white" required>
                             <option value="">انتخاب کنید...</option>
-                            {customers.map(c => <option key={c.id} value={c.id}>{c.companyName}</option>)}
+                            {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                     </div>
                     <div>

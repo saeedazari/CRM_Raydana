@@ -1,3 +1,4 @@
+
 export interface SalesData {
   month: string;
   sales: number;
@@ -43,16 +44,22 @@ export interface Ticket {
 
 export type CustomerType = 'شرکتی' | 'شخصی' | 'کسب و کار';
 
+export interface Contact {
+  id: string;
+  name: string;
+  phone?: string;
+  position?: string;
+  isPrimary: boolean;
+}
+
 export interface Customer {
   id: string;
-  companyName: string;
-  contactPerson: string;
-  username: string;
+  name: string; // Replaces companyName
+  contacts: Contact[];
+  username?: string;
   password?: string;
   email: string;
   phone: string;
-  accountManagerId?: string;
-  accountManager?: User; // Populated by API
   status: 'فعال' | 'غیرفعال' | 'معلق';
   mobile?: string;
   city?: string;
@@ -241,6 +248,8 @@ export interface LeadSourceData {
 export interface Interaction {
   id: string;
   customerId: string;
+  contactId?: string;
+  contactName?: string;
   userId: string;
   user: User;
   createdAt: string;
@@ -265,4 +274,20 @@ export interface KnowledgeBaseArticle {
     authorName?: string;
     createdAt: string;
     visibility: 'public' | 'internal'; // public for customers, internal for staff
+}
+
+// Reminder Types
+export interface Reminder {
+    id: string;
+    userId: string;
+    title: string;
+    description?: string;
+    dueDateTime: string; // ISO String
+    isCompleted: boolean;
+    isRead?: boolean; // For notification list status
+    isNotified?: boolean; // For toast notification status
+    sourceType: 'manual' | 'interaction' | 'chat' | 'task';
+    sourceId?: string; // ID of related item
+    sourcePreview?: string; // Snippet of text from source
+    createdAt: string;
 }

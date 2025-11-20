@@ -217,13 +217,13 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; users: Us
                                         : 'bg-indigo-100 dark:bg-indigo-900/50 order-2'
                                 }`}>
                                      <div className="flex items-center gap-3 mb-1">
-                                         <p className="font-semibold text-sm">{reply.authorName || (reply.authorType === 'Customer' ? ticket.customer.companyName : 'کاربر حذف شده')}</p>
+                                         <p className="font-semibold text-sm">{reply.authorName || (reply.authorType === 'Customer' ? ticket.customer.name : 'کاربر حذف شده')}</p>
                                          {reply.isInternal && <LockClosedIcon className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
                                      </div>
                                     <p className="text-sm text-gray-800 dark:text-gray-200">{reply.text}</p>
                                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{new Date(reply.createdAt).toLocaleDateString('fa-IR', { hour: '2-digit', minute: '2-digit' })}</p>
                                 </div>
-                                {reply.authorType === 'Customer' && <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center font-bold text-sm order-2">{ticket.customer.companyName.charAt(0)}</div>}
+                                {reply.authorType === 'Customer' && <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center font-bold text-sm order-2">{ticket.customer.name.charAt(0)}</div>}
                             </div>
                         ))}
                         <div ref={chatEndRef}></div>
@@ -237,7 +237,7 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; users: Us
                         </select>
                     </div>
                      <div className="text-sm space-y-3">
-                        <div className="flex justify-between"><span>مشتری:</span><span className="font-semibold">{ticket.customer.companyName}</span></div>
+                        <div className="flex justify-between"><span>مشتری:</span><span className="font-semibold">{ticket.customer.name}</span></div>
                         <div className="flex justify-between"><span>کارشناس:</span><span className="font-semibold">{ticket.assignee?.name || 'تخصیص نیافته'}</span></div>
                         <div className="flex justify-between"><span>اولویت:</span><span className="font-semibold">{ticket.priority}</span></div>
                         <div className="flex justify-between"><span>دسته‌بندی:</span><span className="font-semibold">{ticket.category}</span></div>
@@ -305,8 +305,8 @@ const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) 
       { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
     ];
     const mockCustomers: Customer[] = [
-      { id: 'C1', companyName: 'شرکت آلفا', contactPerson: 'آقای الف', username: 'alpha', email: 'alpha@co.com', phone: '021-123', status: 'فعال' },
-      { id: 'C2', companyName: 'تجارت بتا', contactPerson: 'خانم ب', username: 'beta', email: 'beta@co.com', phone: '021-456', status: 'فعال' },
+      { id: 'C1', name: 'شرکت آلفا', contacts:[], username: 'alpha', email: 'alpha@co.com', phone: '021-123', status: 'فعال' },
+      { id: 'C2', name: 'تجارت بتا', contacts:[], username: 'beta', email: 'beta@co.com', phone: '021-456', status: 'فعال' },
     ];
     const mockTickets: Ticket[] = [
         { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', description: 'کاربر اعلام کرده نمی‌تواند وارد پنل شود.', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'در حال بررسی', priority: 'بالا', createdAt: '1403/05/01', category: 'فنی', replies: [
@@ -325,7 +325,7 @@ const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) 
   const filteredTickets = useMemo(() => 
     tickets.filter(ticket =>
       (ticket.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       ticket.customer.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       ticket.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
        ticket.id.toLowerCase().includes(searchTerm.toLowerCase())) &&
       (statusFilter === 'all' || ticket.status === statusFilter) &&
       (priorityFilter === 'all' || ticket.priority === priorityFilter)
@@ -469,7 +469,7 @@ const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) 
                       <tr key={ticket.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                           <td className={`px-4 py-3 font-medium text-gray-900 dark:text-white border-r-4 ${priorityColors[ticket.priority]}`}>{ticket.id}</td>
                           <td className="px-4 py-3">{ticket.subject}</td>
-                          <td className="px-4 py-3">{ticket.customer.companyName}</td>
+                          <td className="px-4 py-3">{ticket.customer.name}</td>
                           <td className="px-4 py-3">
                             <select value={ticket.assignee?.id || ''} onChange={(e) => handleAssigneeChange(ticket.id, e.target.value)} className="w-full p-1.5 border-0 bg-transparent rounded-lg dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                 <option value="">تخصیص نیافته</option>
@@ -513,7 +513,7 @@ const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) 
               <div><label htmlFor="customerId" className="block mb-2 text-sm font-medium">مشتری</label>
                 <select name="customerId" id="customerId" value={newTicketData.customerId} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required>
                     <option value="">انتخاب کنید...</option>
-                    {customers.map(c => <option key={c.id} value={c.id}>{c.companyName}</option>)}
+                    {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
               <div><label htmlFor="subject" className="block mb-2 text-sm font-medium">موضوع</label><input type="text" name="subject" id="subject" value={newTicketData.subject} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required /></div>

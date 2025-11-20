@@ -1,3 +1,4 @@
+
 /* 
     === BACKEND SPEC ===
     توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
@@ -74,7 +75,11 @@ import Leads from './components/pages/Leads';
 import Products from './components/pages/Products';
 import Quotes from './components/pages/Quotes';
 import Invoices from './components/pages/Invoices';
-import { User, Customer, Ticket, Interaction, Lead, Opportunity, Product, Quote, Invoice, Role, KnowledgeBaseCategory, KnowledgeBaseArticle } from './types';
+import Reminders from './components/pages/Reminders';
+import ReminderModal from './components/ReminderModal';
+import NotificationToast from './components/NotificationToast';
+import HeaderNotifications from './components/HeaderNotifications';
+import { User, Customer, Ticket, Interaction, Lead, Opportunity, Product, Quote, Invoice, Role, KnowledgeBaseCategory, KnowledgeBaseArticle, Contact, Reminder } from './types';
 import { HamburgerIcon } from './components/icons/HamburgerIcon';
 import CustomerInteractions from './components/pages/CustomerInteractions';
 import UserProfile from './components/UserProfile';
@@ -116,11 +121,27 @@ const mockUsers: User[] = [
     این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
     ساختار مورد انتظار پاسخ API برای مشتریان: GET /api/customers -> { "data": [Customer] }
 */
+const mockContacts: Record<string, Contact[]> = {
+    C1: [
+        { id: 'P1', name: 'آقای الف', phone: '09121112233', position: 'مدیرعامل', isPrimary: true },
+        { id: 'P2', name: 'خانم ب', phone: '09122223344', position: 'مدیر فنی', isPrimary: false },
+    ],
+    C2: [
+        { id: 'P3', name: 'خانم ب', phone: '09123334455', position: 'رابط اصلی', isPrimary: true },
+    ],
+    C3: [
+        { id: 'P4', name: 'آقای ج', phone: '09124445566', position: 'مدیر فروش', isPrimary: true },
+    ],
+    C4: [
+        { id: 'P5', name: 'خانم د', phone: '09125556677', position: 'مدیر مالی', isPrimary: true },
+    ]
+}
+
 const mockCustomers: Customer[] = [
-  { id: 'C1', companyName: 'شرکت آلفا', contactPerson: 'آقای الف', username: 'alpha', email: 'alpha@co.com', phone: '021-12345678', status: 'فعال', accountManagerId: 'U1', accountManager: mockUsers[0], portalToken: 'alpha-secret-token-xyz', supportEndDate: '1404/05/01' },
-  { id: 'C2', companyName: 'تجارت بتا', contactPerson: 'خانم ب', username: 'beta', email: 'beta@co.com', phone: '021-87654321', status: 'غیرفعال', accountManagerId: 'U2', accountManager: mockUsers[1], portalToken: 'beta-secret-token-abc', supportEndDate: '1403/10/01' },
-  { id: 'C3', companyName: 'صنایع گاما', contactPerson: 'آقای ج', username: 'gamma', email: 'gamma@co.com', phone: '021-11223344', status: 'فعال', accountManagerId: 'U1', accountManager: mockUsers[0] },
-  { id: 'C4', companyName: 'راهکارهای دلتا', contactPerson: 'خانم د', username: 'delta', email: 'delta@co.com', phone: '021-55667788', status: 'معلق', accountManagerId: 'U2', accountManager: mockUsers[1] },
+  { id: 'C1', name: 'شرکت آلفا', contacts: mockContacts.C1, username: 'alpha', email: 'info@alpha.com', phone: '021-12345678', status: 'فعال', portalToken: 'alpha-secret-token-xyz', supportEndDate: '1404/05/01' },
+  { id: 'C2', name: 'تجارت بتا', contacts: mockContacts.C2, username: 'beta', email: 'contact@beta.com', phone: '021-87654321', status: 'غیرفعال', portalToken: 'beta-secret-token-abc', supportEndDate: '1403/10/01' },
+  { id: 'C3', name: 'صنایع گاما', contacts: mockContacts.C3, username: 'gamma', email: 'office@gamma.com', phone: '021-11223344', status: 'فعال' },
+  { id: 'C4', name: 'راهکارهای دلتا', contacts: mockContacts.C4, username: 'delta', email: 'sales@delta.com', phone: '021-55667788', status: 'معلق' },
 ];
 
 /*
@@ -178,16 +199,102 @@ const MainApp: React.FC<{
     setKbCategories: React.Dispatch<React.SetStateAction<KnowledgeBaseCategory[]>>,
     kbArticles: KnowledgeBaseArticle[],
     setKbArticles: React.Dispatch<React.SetStateAction<KnowledgeBaseArticle[]>>,
+    reminders: Reminder[],
+    setReminders: React.Dispatch<React.SetStateAction<Reminder[]>>,
     onLogout: () => void 
-}> = ({ user, customers, setCustomers, kbCategories, setKbCategories, kbArticles, setKbArticles, onLogout }) => {
+}> = ({ user, customers, setCustomers, kbCategories, setKbCategories, kbArticles, setKbArticles, reminders, setReminders, onLogout }) => {
   const [activePage, setActivePage] = useState<PageState>({ name: 'dashboard' });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeReminderModal, setActiveReminderModal] = useState<{ isOpen: boolean, prefill?: any, editingReminder?: Reminder }>({ isOpen: false });
+  const [activeNotification, setActiveNotification] = useState<Reminder | null>(null);
+  
+  // Global Ticket State needs to be accessible for CustomerInteractions
+  const [tickets, setTickets] = useState<Ticket[]>(mockTicketsData);
   
   const handleSetActivePage = (name: string, params: any = {}) => {
     setActivePage({ name, params });
     setIsSidebarOpen(false);
   };
+
+  // --- REMINDER LOGIC ---
+  useEffect(() => {
+      const checkReminders = () => {
+          const now = new Date();
+          // Check for reminders that are due, not completed, and NOT notified yet (Toast not shown)
+          const remindersToNotify = reminders.filter(reminder => {
+               const dueDate = new Date(reminder.dueDateTime);
+               return dueDate <= now && !reminder.isNotified && !reminder.isCompleted;
+          });
+
+          if (remindersToNotify.length > 0) {
+              // Show notification for the first one found
+              setActiveNotification(remindersToNotify[0]);
+              
+              // Mark them as notified so they don't trigger toast again, but KEEP isRead false so red dot stays
+              setReminders(prev => prev.map(r => {
+                  if (remindersToNotify.find(rtn => rtn.id === r.id)) {
+                      return { ...r, isNotified: true };
+                  }
+                  return r;
+              }));
+          }
+      };
+
+      const interval = setInterval(checkReminders, 10000); // Check every 10 seconds
+      return () => clearInterval(interval);
+  }, [reminders, setReminders]);
+
+  const handleAddReminder = (reminderData: Omit<Reminder, 'id' | 'userId' | 'createdAt' | 'isCompleted' | 'isRead'>) => {
+      const newReminder: Reminder = {
+          id: `REM-${Date.now()}`,
+          userId: user.id,
+          createdAt: new Date().toISOString(),
+          isCompleted: false,
+          isRead: false,
+          isNotified: false,
+          ...reminderData
+      };
+      setReminders(prev => [...prev, newReminder]);
+  };
+
+  const handleUpdateReminder = (reminder: Reminder) => {
+      setReminders(prev => prev.map(r => r.id === reminder.id ? reminder : r));
+  };
+
+  const handleDeleteReminder = (id: string) => {
+      if(window.confirm('آیا از حذف این یادآور اطمینان دارید؟')) {
+          setReminders(prev => prev.filter(r => r.id !== id));
+      }
+  };
+
+  const handleToggleCompleteReminder = (id: string) => {
+      setReminders(prev => prev.map(r => r.id === id ? { ...r, isCompleted: !r.isCompleted } : r));
+  };
   
+  const handleMarkAsRead = (id: string) => {
+      setReminders(prev => prev.map(r => r.id === id ? { ...r, isRead: true } : r));
+  };
+
+  const openReminderModal = (prefill?: any, editingReminder?: Reminder) => {
+      setActiveReminderModal({ isOpen: true, prefill, editingReminder });
+  };
+
+  const closeReminderModal = () => {
+      setActiveReminderModal({ isOpen: false, prefill: undefined, editingReminder: undefined });
+  };
+
+  const saveReminderFromModal = (data: any) => {
+      if (activeReminderModal.editingReminder) {
+          handleUpdateReminder({ ...activeReminderModal.editingReminder, ...data });
+      } else {
+          handleAddReminder(data);
+      }
+  };
+  
+  const handleUpdateTicket = (updatedTicket: Ticket) => {
+      setTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
+  };
+
   const handleCreateTaskFromTicket = (ticketId: string, ticketSubject: string, priority: string, customerId: string) => {
       handleSetActivePage('tasks', { 
           action: 'create', 
@@ -227,6 +334,7 @@ const MainApp: React.FC<{
     customerInteractions: 'تعاملات با مشتری',
     tickets: 'مدیریت تیکت‌ها',
     tasks: 'مدیریت وظایف',
+    reminders: 'یادآورها',
     opportunities: 'فرصت‌های فروش',
     leads: 'سرنخ‌ها',
     products: 'کالاها و خدمات',
@@ -252,7 +360,10 @@ const MainApp: React.FC<{
                 customerId={activePage.params.customerId}
                 customers={customers}
                 currentUser={user}
+                tickets={tickets}
+                onUpdateTicket={handleUpdateTicket}
                 onBack={() => handleSetActivePage('customers')}
+                onOpenReminderModal={openReminderModal}
             />;
         }
       case 'tickets':
@@ -261,7 +372,15 @@ const MainApp: React.FC<{
             onCreateTaskFromTicket={handleCreateTaskFromTicket} 
         />;
       case 'tasks':
-        return <Tasks initialParams={activePage.params} customers={customers} />;
+        return <Tasks initialParams={activePage.params} customers={customers} onOpenReminderModal={openReminderModal} />;
+      case 'reminders':
+        return <Reminders 
+            reminders={reminders} 
+            onAddReminder={() => openReminderModal()}
+            onEditReminder={(r) => openReminderModal(undefined, r)}
+            onDeleteReminder={handleDeleteReminder}
+            onToggleComplete={handleToggleCompleteReminder}
+        />;
       case 'opportunities':
         return <Opportunities />;
       case 'leads':
@@ -276,6 +395,7 @@ const MainApp: React.FC<{
         return <Chat 
             currentUser={user}
             onCreateTask={handleCreateTaskFromMessage}
+            onOpenReminderModal={openReminderModal}
         />;
       case 'reports':
         return <Reports />;
@@ -311,7 +431,7 @@ const MainApp: React.FC<{
         ></div>
       )}
 
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden relative">
         <header className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
            <div className="flex items-center">
              <button
@@ -323,7 +443,8 @@ const MainApp: React.FC<{
             </button>
             <h1 className="text-xl sm:text-2xl font-semibold">{pageTitles[activePage.name] || 'CRM'}</h1>
           </div>
-          <div className="flex items-center space-i-4">
+          <div className="flex items-center gap-4">
+            <HeaderNotifications reminders={reminders} onMarkAsRead={handleMarkAsRead} />
             <UserProfile user={user} onLogout={onLogout} />
             <ThemeToggle />
           </div>
@@ -331,6 +452,25 @@ const MainApp: React.FC<{
         <div className={`flex-1 overflow-x-hidden overflow-y-auto ${!['chat', 'opportunities', 'customerInteractions', 'knowledgeBase'].includes(activePage.name) ? 'p-6' : ''}`}>
           {renderPage()}
         </div>
+
+        <ReminderModal 
+            isOpen={activeReminderModal.isOpen} 
+            onClose={closeReminderModal} 
+            onSave={saveReminderFromModal}
+            initialData={activeReminderModal.editingReminder || activeReminderModal.prefill}
+            isEditing={!!activeReminderModal.editingReminder}
+        />
+
+        <NotificationToast 
+            reminder={activeNotification} 
+            onClose={() => setActiveNotification(null)} 
+            onAction={(reminder) => {
+                setActiveNotification(null);
+                // If on reminders page, it will be there. If not, navigate?
+                // Ideally, open a detail view or highlight it. For now, simple close.
+                handleSetActivePage('reminders');
+            }}
+        />
       </main>
     </div>
   );
@@ -358,6 +498,7 @@ const App: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
   const [kbCategories, setKbCategories] = useState<KnowledgeBaseCategory[]>(mockKbCategories);
   const [kbArticles, setKbArticles] = useState<KnowledgeBaseArticle[]>(mockKbArticles);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
 
 
   useEffect(() => {
@@ -402,6 +543,11 @@ const App: React.FC = () => {
               };
               fetchInitialData();
             */
+            // Load initial reminders mock
+            setReminders([
+                { id: 'R1', userId: auth.entity!.id, title: 'تماس با شرکت آلفا', description: 'پیگیری قرارداد جدید', dueDateTime: new Date(Date.now() + 3600000).toISOString(), isCompleted: false, isRead: false, isNotified: false, sourceType: 'manual', createdAt: new Date().toISOString() },
+                 { id: 'R2', userId: auth.entity!.id, title: 'ارسال فاکتور بتا', description: '', dueDateTime: new Date(Date.now() - 86400000).toISOString(), isCompleted: false, isRead: false, isNotified: true, sourceType: 'manual', createdAt: new Date().toISOString() }
+            ]);
         } else if (auth.type === 'customer') {
              /*
             === API CALL REQUIRED HERE ===
@@ -498,7 +644,7 @@ const App: React.FC = () => {
       - Sample Fetch Code:
         fetch('/api/portal/tickets', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('customer_token')}` },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ${localStorage.getItem('customer_token')}` },
             body: JSON.stringify(ticketData)
         })
         .then(res => res.json())
@@ -526,7 +672,7 @@ const App: React.FC = () => {
       - Sample Fetch Code:
         fetch(`/api/portal/tickets/${updatedTicket.id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('customer_token')}` },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ${localStorage.getItem('customer_token')}` },
             body: JSON.stringify(updatedTicket)
         })
         .then(res => res.json())
@@ -547,7 +693,7 @@ const App: React.FC = () => {
       - Sample Fetch Code:
         fetch(`/api/portal/tickets/${ticketId}/survey`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('customer_token')}` },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ${localStorage.getItem('customer_token')}` },
             body: JSON.stringify({ rating, feedback, tags })
         })
         .then(res => res.json())
@@ -589,6 +735,8 @@ const App: React.FC = () => {
             setKbCategories={setKbCategories}
             kbArticles={kbArticles}
             setKbArticles={setKbArticles}
+            reminders={reminders}
+            setReminders={setReminders}
             onLogout={handleLogout} 
         />;
 };

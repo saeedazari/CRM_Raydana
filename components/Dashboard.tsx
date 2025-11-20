@@ -279,8 +279,8 @@ const LatestTickets: React.FC = () => {
           { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
         ];
         const mockCustomers: Customer[] = [
-          { id: 'C1', companyName: 'شرکت آلفا', contactPerson: 'آقای الف', username: 'alpha', email: 'alpha@co.com', phone: '021-123', status: 'فعال' },
-          { id: 'C2', companyName: 'تجارت بتا', contactPerson: 'خانم ب', username: 'beta', email: 'beta@co.com', phone: '021-456', status: 'فعال' },
+          { id: 'C1', name: 'شرکت آلفا', contacts:[], username: 'alpha', email: 'alpha@co.com', phone: '021-123', status: 'فعال' },
+          { id: 'C2', name: 'تجارت بتا', contacts:[], username: 'beta', email: 'beta@co.com', phone: '021-456', status: 'فعال' },
         ];
         const mockTickets: Ticket[] = [
             { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'در حال بررسی', priority: 'بالا', createdAt: '1403/05/01', category: 'فنی' },
@@ -298,7 +298,7 @@ const LatestTickets: React.FC = () => {
                 </thead>
                 <tbody>
                     {tickets.map((ticket) => (
-                        <tr key={ticket.id} className="border-b dark:border-gray-700"><td className="px-4 py-3">{ticket.id}</td><td className="px-4 py-3">{ticket.subject}</td><td className="px-4 py-3">{ticket.customer.companyName}</td><td className="px-4 py-3">{ticket.assignee?.name || '-'}</td></tr>
+                        <tr key={ticket.id} className="border-b dark:border-gray-700"><td className="px-4 py-3">{ticket.id}</td><td className="px-4 py-3">{ticket.subject}</td><td className="px-4 py-3">{ticket.customer.name}</td><td className="px-4 py-3">{ticket.assignee?.name || '-'}</td></tr>
                     ))}
                 </tbody>
             </table>

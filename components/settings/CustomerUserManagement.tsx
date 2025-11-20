@@ -27,7 +27,7 @@ const CustomerUserManagement: React.FC<CustomerUserManagementProps> = ({ custome
 
     const filteredCustomers = useMemo(() =>
         customers.filter(customer =>
-            customer.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             customer.email.toLowerCase().includes(searchTerm.toLowerCase())
         ), [customers, searchTerm]
     );
@@ -75,7 +75,7 @@ const CustomerUserManagement: React.FC<CustomerUserManagementProps> = ({ custome
             return;
         }
         setCustomers(prev => prev.map(c => c.id === selectedCustomer?.id ? {...c, password} : c));
-        alert(`رمز عبور برای ${selectedCustomer?.companyName} با موفقیت تنظیم شد.`);
+        alert(`رمز عبور برای ${selectedCustomer?.name} با موفقیت تنظیم شد.`);
         closePasswordPanel();
     };
     
@@ -131,7 +131,7 @@ const CustomerUserManagement: React.FC<CustomerUserManagementProps> = ({ custome
                 <table className="w-full text-sm text-right text-gray-500 dark:text-gray-400">
                     <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                         <tr>
-                            <th scope="col" className="px-4 py-3">نام شرکت</th>
+                            <th scope="col" className="px-4 py-3">نام مشتری</th>
                             <th scope="col" className="px-4 py-3">نام کاربری</th>
                             <th scope="col" className="px-4 py-3 text-center">عملیات</th>
                         </tr>
@@ -139,7 +139,7 @@ const CustomerUserManagement: React.FC<CustomerUserManagementProps> = ({ custome
                     <tbody>
                         {filteredCustomers.map((customer) => (
                             <tr key={customer.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{customer.companyName}</td>
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{customer.name}</td>
                                 <td className="px-4 py-3 font-mono text-xs">{customer.username || <span className="text-gray-400">تعریف نشده</span>}</td>
                                 <td className="px-4 py-3 text-center">
                                     <button onClick={() => openPasswordPanel(customer)} className="flex items-center justify-center mx-auto px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">
@@ -158,7 +158,7 @@ const CustomerUserManagement: React.FC<CustomerUserManagementProps> = ({ custome
                 <div className={`absolute inset-0 bg-black transition-opacity duration-300 ${isPasswordPanelOpen ? 'bg-opacity-50' : 'bg-opacity-0'}`} onClick={closePasswordPanel}></div>
                 <div className={`absolute inset-y-0 left-0 bg-white dark:bg-gray-800 h-full w-full max-w-md shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out ${isPasswordPanelOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                     <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
-                        <h3 className="text-lg font-semibold">تنظیم رمز برای {selectedCustomer?.companyName}</h3>
+                        <h3 className="text-lg font-semibold">تنظیم رمز برای {selectedCustomer?.name}</h3>
                         <button onClick={closePasswordPanel} className="p-1 rounded-full text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"><XMarkIcon className="w-6 h-6" /></button>
                     </div>
                     <form onSubmit={handleSetPassword} className="flex-grow flex flex-col">
@@ -200,7 +200,7 @@ const CustomerUserManagement: React.FC<CustomerUserManagementProps> = ({ custome
                                 >
                                     <option value="">یک مشتری را انتخاب کنید...</option>
                                     {customers.map(customer => (
-                                        <option key={customer.id} value={customer.id}>{customer.companyName}</option>
+                                        <option key={customer.id} value={customer.id}>{customer.name}</option>
                                     ))}
                                 </select>
                             </div>
@@ -216,7 +216,6 @@ const CustomerUserManagement: React.FC<CustomerUserManagementProps> = ({ custome
                                             value={portalUsername} 
                                             onChange={(e) => setPortalUsername(e.target.value)} 
                                             className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" 
-                                            required 
                                         />
                                     </div>
                                     <div>

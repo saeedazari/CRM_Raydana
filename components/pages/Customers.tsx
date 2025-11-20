@@ -42,7 +42,7 @@
     - Dependencies: نیاز به Auth Token.
 */
 import React, { useState, useMemo, useEffect } from 'react';
-import { Customer, CustomerType, User } from '../../types';
+import { Customer, CustomerType, User, Contact } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
 import { SearchIcon } from '../icons/SearchIcon';
 import { PencilIcon } from '../icons/PencilIcon';
@@ -52,22 +52,13 @@ import { ChevronRightIcon } from '../icons/ChevronRightIcon';
 import { XMarkIcon } from '../icons/XMarkIcon';
 import { EyeIcon } from '../icons/EyeIcon';
 import { getJwtExpiry } from '../../utils/jwt';
-
-/*
-    === REMOVE OR REPLACE MOCK DATA ===
-    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
-    ساختار مورد انتظار پاسخ API: GET /api/users?role=account_manager
-*/
-// const mockUsers: User[] = [
-//   { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
-//   { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
-// ];
+import { StarIcon } from '../icons/StarIcon';
 
 const ITEMS_PER_PAGE = 8;
 
 const initialCustomerState: Partial<Customer> = {
-    companyName: '',
-    contactPerson: '',
+    name: '',
+    contacts: [],
     username: '',
     password: '',
     email: '',
@@ -93,9 +84,6 @@ interface CustomersProps {
 }
 
 const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewInteractions }) => {
-  // این state باید از API دریافت شود.
-  const [users, setUsers] = useState<User[]>([]);
-  
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
@@ -110,31 +98,11 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
   };
 
   useEffect(() => {
-    // customers و users باید از طریق API دریافت شوند
-    /*
-      === API CALL REQUIRED HERE ===
-      - Route: /api/users?role=account_manager
-      - Method: GET
-      - Output: { "data": [User] }
-      - Sample Fetch Code:
-        fetch('/api/users?role=account_manager', { headers: { 'Authorization': 'Bearer <TOKEN>' } })
-        .then(r => r.json())
-        .then(data => setUsers(data.data));
-    */
-    const mockUsers: User[] = [
-      { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
-      { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
-    ];
-    setUsers(mockUsers);
-  }, []);
-
-  useEffect(() => {
     if (editingCustomer) {
         setCustomerFormData({
-            ...initialCustomerState, // Ensure all fields are present
+            ...initialCustomerState,
             ...editingCustomer,
-            password: '', // Don't show password on edit
-            accountManagerId: editingCustomer.accountManager?.id
+            password: '',
         });
     } else {
         setCustomerFormData(initialCustomerState);
@@ -148,10 +116,10 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
 
   const filteredCustomers = useMemo(() => 
     customers.filter(customer =>
-      customer.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.contactPerson.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.contacts.some(c => c.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       customer.email.toLowerCase().includes(searchTerm.toLowerCase())
-    ).sort((a, b) => a.companyName.localeCompare(b.companyName)),
+    ).sort((a, b) => a.name.localeCompare(b.name)),
     [searchTerm, customers]
   );
 
@@ -170,51 +138,12 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingCustomer) {
-        /*
-          === API CALL REQUIRED HERE ===
-          - Route: /api/customers/:id
-          - Method: PUT
-          - Input: customerFormData
-          - Output: The updated customer object.
-          - Sample Fetch Code:
-            fetch(`/api/customers/${editingCustomer.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <TOKEN>' },
-                body: JSON.stringify(customerFormData)
-            })
-            .then(res => res.json())
-            .then(updatedCustomer => {
-                setCustomers(customers.map(c => c.id === editingCustomer.id ? updatedCustomer : c));
-                closePanel();
-            });
-        */
-        const manager = users.find(u => u.id === customerFormData.accountManagerId);
-        setCustomers(customers.map(c => c.id === editingCustomer.id ? { ...c, ...customerFormData, accountManager: manager } as Customer : c));
+        setCustomers(customers.map(c => c.id === editingCustomer.id ? { ...c, ...customerFormData } as Customer : c));
     } else {
-        /*
-          === API CALL REQUIRED HERE ===
-          - Route: /api/customers
-          - Method: POST
-          - Input: customerFormData
-          - Output: The newly created customer object.
-          - Sample Fetch Code:
-            fetch('/api/customers', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <TOKEN>' },
-                body: JSON.stringify(customerFormData)
-            })
-            .then(res => res.json())
-            .then(newCustomer => {
-                setCustomers([...customers, newCustomer]);
-                closePanel();
-            });
-        */
-        const manager = users.find(u => u.id === customerFormData.accountManagerId);
         const newCustomer: Customer = {
             id: `C-${Date.now()}`,
             ...initialCustomerState,
             ...customerFormData,
-            accountManager: manager,
         } as Customer;
         setCustomers([...customers, newCustomer]);
     }
@@ -223,23 +152,6 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
 
   const handleDelete = (customerId: string) => {
     if (window.confirm('آیا از حذف این مشتری اطمینان دارید؟ این عمل قابل بازگشت نیست.')) {
-        /*
-          === API CALL REQUIRED HERE ===
-          - Route: /api/customers/:id
-          - Method: DELETE
-          - Input: customerId in URL
-          - Output: { success: true }
-          - Sample Fetch Code:
-            fetch(`/api/customers/${customerId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': 'Bearer <TOKEN>' }
-            })
-            .then(res => {
-                if (res.ok) {
-                    setCustomers(customers.filter(c => c.id !== customerId));
-                }
-            });
-        */
         setCustomers(customers.filter(c => c.id !== customerId));
     }
   };
@@ -266,11 +178,14 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
       setCurrentPage(currentPage - 1);
     }
   };
+  
+  const handleContactsChange = (contacts: Contact[]) => {
+      setCustomerFormData(prev => ({ ...prev, contacts }));
+  }
 
   return (
     <>
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-        {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
           <div className="relative w-full md:w-auto">
             <input
@@ -279,7 +194,7 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
-                setCurrentPage(1); // Reset to first page on search
+                setCurrentPage(1);
               }}
               className="w-full md:w-64 pr-10 pl-4 py-2 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
@@ -295,28 +210,27 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
           </button>
         </div>
 
-        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-right text-gray-500 dark:text-gray-400">
               <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                   <tr>
-                      <th scope="col" className="px-4 py-3">نام شرکت</th>
-                      <th scope="col" className="px-4 py-3">شخص رابط</th>
-                      <th scope="col" className="px-4 py-3">نام کاربری</th>
+                      <th scope="col" className="px-4 py-3">نام مشتری</th>
+                      <th scope="col" className="px-4 py-3">رابط اصلی</th>
+                      <th scope="col" className="px-4 py-3">نام کاربری پورتال</th>
                       <th scope="col" className="px-4 py-3">تلفن</th>
-                      <th scope="col" className="px-4 py-3">مدیر حساب</th>
                       <th scope="col" className="px-4 py-3 text-center">وضعیت</th>
                       <th scope="col" className="px-4 py-3 text-center">عملیات</th>
                   </tr>
               </thead>
               <tbody>
-                  {paginatedCustomers.map((customer) => (
+                  {paginatedCustomers.map((customer) => {
+                      const primaryContact = customer.contacts.find(c => c.isPrimary);
+                      return (
                       <tr key={customer.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                          <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{customer.companyName}</td>
-                          <td className="px-4 py-3">{customer.contactPerson}</td>
+                          <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{customer.name}</td>
+                          <td className="px-4 py-3">{primaryContact?.name || '-'}</td>
                           <td className="px-4 py-3 font-mono text-xs">{customer.username}</td>
                           <td className="px-4 py-3">{customer.phone}</td>
-                          <td className="px-4 py-3">{customer.accountManager?.name || '-'}</td>
                           <td className="px-4 py-3 text-center">
                               <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[customer.status]}`}>
                                   {customer.status}
@@ -336,12 +250,11 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
                             </div>
                           </td>
                       </tr>
-                  ))}
+                  )})}
               </tbody>
           </table>
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex justify-between items-center mt-6">
               <div>
@@ -350,86 +263,28 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
                   </span>
               </div>
               <div className="flex items-center gap-2">
-                  <button 
-                      onClick={handleNextPage} 
-                      disabled={currentPage === totalPages}
-                      className="flex items-center justify-center p-2 text-gray-500 bg-white dark:bg-gray-700 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                      <span className="sr-only">بعدی</span>
-                      <ChevronRightIcon className="w-5 h-5" />
-                  </button>
-                  <button 
-                      onClick={handlePrevPage}
-                      disabled={currentPage === 1}
-                      className="flex items-center justify-center p-2 text-gray-500 bg-white dark:bg-gray-700 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                      <span className="sr-only">قبلی</span>
-                      <ChevronLeftIcon className="w-5 h-5" />
-                  </button>
+                  <button onClick={handleNextPage} disabled={currentPage === totalPages} className="flex items-center justify-center p-2 text-gray-500 bg-white dark:bg-gray-700 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"><ChevronRightIcon className="w-5 h-5" /></button>
+                  <button onClick={handlePrevPage} disabled={currentPage === 1} className="flex items-center justify-center p-2 text-gray-500 bg-white dark:bg-gray-700 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"><ChevronLeftIcon className="w-5 h-5" /></button>
               </div>
           </div>
         )}
       </div>
 
-      {/* Add/Edit Customer Panel */}
       <div className={`fixed inset-0 z-50 ${isPanelOpen ? '' : 'pointer-events-none'}`}>
-        {/* Overlay */}
-        <div 
-          className={`absolute inset-0 bg-black transition-opacity duration-300 ${isPanelOpen ? 'bg-opacity-50' : 'bg-opacity-0'}`}
-          onClick={closePanel}
-        ></div>
-        
-        {/* Panel */}
-        <div 
-          className={`absolute inset-y-0 left-0 bg-white dark:bg-gray-800 h-full w-full max-w-2xl shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out ${isPanelOpen ? 'translate-x-0' : '-translate-x-full'}`}
-        >
+        <div className={`absolute inset-0 bg-black transition-opacity duration-300 ${isPanelOpen ? 'bg-opacity-50' : 'bg-opacity-0'}`} onClick={closePanel}></div>
+        <div className={`absolute inset-y-0 left-0 bg-white dark:bg-gray-800 h-full w-full max-w-2xl shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out ${isPanelOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="flex justify-between items-center p-4 border-b dark:border-gray-700 flex-shrink-0">
             <h3 className="text-lg font-semibold">{editingCustomer ? 'ویرایش مشتری' : 'افزودن مشتری جدید'}</h3>
-            <button onClick={closePanel} className="p-1 rounded-full text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700">
-              <XMarkIcon className="w-6 h-6" />
-            </button>
+            <button onClick={closePanel} className="p-1 rounded-full text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"><XMarkIcon className="w-6 h-6" /></button>
           </div>
-          
           <form onSubmit={handleFormSubmit} className="flex flex-col overflow-hidden flex-grow">
             <div className="p-6 space-y-6 overflow-y-auto flex-grow">
-              <h4 className="text-md font-semibold">اطلاعات ورود به پورتال</h4>
+              
+              <h4 className="text-md font-semibold">اطلاعات اصلی مشتری</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                      <label htmlFor="username" className="block mb-2 text-sm font-medium">نام کاربری</label>
-                      <input type="text" name="username" id="username" value={customerFormData.username || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required />
-                  </div>
-                  <div>
-                      <label htmlFor="password" className="block mb-2 text-sm font-medium">رمز عبور</label>
-                      <input type="password" name="password" id="password" value={customerFormData.password || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder={editingCustomer ? "برای تغییر وارد کنید" : ""} />
-                  </div>
-              </div>
-
-              <hr className="dark:border-gray-600"/>
-              <h4 className="text-md font-semibold">اطلاعات اصلی</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                      <label htmlFor="companyName" className="block mb-2 text-sm font-medium">نام شرکت</label>
-                      <input type="text" name="companyName" id="companyName" value={customerFormData.companyName || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required />
-                  </div>
-                  <div>
-                      <label htmlFor="contactPerson" className="block mb-2 text-sm font-medium">نام شخص تماس</label>
-                      <input type="text" name="contactPerson" id="contactPerson" value={customerFormData.contactPerson || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required />
-                  </div>
-                   <div>
-                      <label htmlFor="email" className="block mb-2 text-sm font-medium">ایمیل</label>
-                      <input type="email" name="email" id="email" value={customerFormData.email || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required />
-                  </div>
-                   <div>
-                      <label htmlFor="website" className="block mb-2 text-sm font-medium">وبسایت</label>
-                      <input type="url" name="website" id="website" value={customerFormData.website || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="https://example.com" />
-                  </div>
-                   <div>
-                      <label htmlFor="phone" className="block mb-2 text-sm font-medium">تلفن</label>
-                      <input type="tel" name="phone" id="phone" value={customerFormData.phone || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required />
-                  </div>
-                   <div>
-                      <label htmlFor="mobile" className="block mb-2 text-sm font-medium">موبایل</label>
-                      <input type="tel" name="mobile" id="mobile" value={customerFormData.mobile || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
+                      <label htmlFor="name" className="block mb-2 text-sm font-medium">نام مشتری (شرکت یا شخص)</label>
+                      <input type="text" name="name" id="name" value={customerFormData.name || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required />
                   </div>
                   <div>
                       <label htmlFor="customerType" className="block mb-2 text-sm font-medium">نوع مشتری</label>
@@ -440,43 +295,41 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
                       </select>
                   </div>
                    <div>
-                      <label htmlFor="industry" className="block mb-2 text-sm font-medium">صنعت</label>
-                      <input type="text" name="industry" id="industry" value={customerFormData.industry || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
+                      <label htmlFor="email" className="block mb-2 text-sm font-medium">ایمیل عمومی</label>
+                      <input type="email" name="email" id="email" value={customerFormData.email || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required />
+                  </div>
+                   <div>
+                      <label htmlFor="phone" className="block mb-2 text-sm font-medium">تلفن عمومی</label>
+                      <input type="tel" name="phone" id="phone" value={customerFormData.phone || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required />
+                  </div>
+                  <div className="md:col-span-2">
+                       <label htmlFor="website" className="block mb-2 text-sm font-medium">وبسایت</label>
+                      <input type="url" name="website" id="website" value={customerFormData.website || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="https://example.com" />
                   </div>
               </div>
 
               <hr className="dark:border-gray-600"/>
-              <h4 className="text-md font-semibold">اطلاعات آدرس</h4>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <div>
-                    <label htmlFor="province" className="block mb-2 text-sm font-medium">استان</label>
-                    <input type="text" name="province" id="province" value={customerFormData.province || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
-                </div>
-                 <div>
-                    <label htmlFor="city" className="block mb-2 text-sm font-medium">شهر</label>
-                    <input type="text" name="city" id="city" value={customerFormData.city || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
-                </div>
-                <div className="md:col-span-2">
-                    <label htmlFor="fullAddress" className="block mb-2 text-sm font-medium">آدرس کامل</label>
-                    <textarea name="fullAddress" id="fullAddress" value={customerFormData.fullAddress || ''} onChange={handleInputChange} rows={3} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600"></textarea>
-                </div>
-                <div>
-                    <label htmlFor="postalCode" className="block mb-2 text-sm font-medium">کد پستی</label>
-                    <input type="text" name="postalCode" id="postalCode" value={customerFormData.postalCode || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
-                </div>
+              <h4 className="text-md font-semibold">اشخاص رابط</h4>
+              <ContactManager contacts={customerFormData.contacts || []} setContacts={handleContactsChange} />
+
+
+              <hr className="dark:border-gray-600"/>
+              <h4 className="text-md font-semibold">اطلاعات ورود به پورتال</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                      <label htmlFor="username" className="block mb-2 text-sm font-medium">نام کاربری</label>
+                      <input type="text" name="username" id="username" value={customerFormData.username || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
+                  </div>
+                  <div>
+                      <label htmlFor="password" className="block mb-2 text-sm font-medium">رمز عبور</label>
+                      <input type="password" name="password" id="password" value={customerFormData.password || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder={editingCustomer ? "برای تغییر وارد کنید" : ""} />
+                  </div>
               </div>
 
               <hr className="dark:border-gray-600"/>
               <h4 className="text-md font-semibold">اطلاعات تکمیلی و فنی</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div>
-                    <label htmlFor="accountManagerId" className="block mb-2 text-sm font-medium">مدیر حساب</label>
-                    <select name="accountManagerId" id="accountManagerId" value={customerFormData.accountManagerId || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
-                      <option value="">انتخاب کنید...</option>
-                      {users.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
-                    </select>
-                  </div>
-                   <div>
                       <label htmlFor="status" className="block mb-2 text-sm font-medium">وضعیت</label>
                       <select name="status" id="status" value={customerFormData.status} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
                           <option value="فعال">فعال</option>
@@ -506,10 +359,6 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
                             </p>
                         )}
                   </div>
-                  <div className="md:col-span-2">
-                       <label htmlFor="internalNotes" className="block mb-2 text-sm font-medium">یادداشت داخلی</label>
-                      <textarea name="internalNotes" id="internalNotes" value={customerFormData.internalNotes || ''} onChange={handleInputChange} rows={4} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600"></textarea>
-                  </div>
               </div>
             </div>
             <div className="flex items-center justify-end p-4 border-t dark:border-gray-700 space-i-3 flex-shrink-0">
@@ -526,5 +375,73 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
     </>
   );
 };
+
+
+const ContactManager: React.FC<{ contacts: Contact[], setContacts: (contacts: Contact[]) => void }> = ({ contacts, setContacts }) => {
+    const handleContactChange = (index: number, field: keyof Omit<Contact, 'id' | 'isPrimary'>, value: string) => {
+        const newContacts = [...contacts];
+        newContacts[index] = { ...newContacts[index], [field]: value };
+        setContacts(newContacts);
+    };
+
+    const handleAddContact = () => {
+        const newContact: Contact = {
+            id: `P-${Date.now()}`,
+            name: '',
+            position: '',
+            phone: '',
+            isPrimary: contacts.length === 0, // First contact is primary by default
+        };
+        setContacts([...contacts, newContact]);
+    };
+
+    const handleRemoveContact = (id: string) => {
+        const contactToRemove = contacts.find(c => c.id === id);
+        const newContacts = contacts.filter(c => c.id !== id);
+        // If the primary contact is deleted, make the first one in the list primary
+        if (contactToRemove?.isPrimary && newContacts.length > 0) {
+            newContacts[0].isPrimary = true;
+        }
+        setContacts(newContacts);
+    };
+
+    const setPrimary = (id: string) => {
+        const newContacts = contacts.map(c => ({
+            ...c,
+            isPrimary: c.id === id,
+        }));
+        setContacts(newContacts);
+    };
+
+    return (
+        <div className="p-4 border rounded-lg dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+            <div className="space-y-3">
+                {contacts.map((contact, index) => (
+                    <div key={contact.id} className="grid grid-cols-12 gap-2 items-center">
+                        <div className="col-span-12 sm:col-span-3">
+                            <input type="text" placeholder="نام" value={contact.name} onChange={e => handleContactChange(index, 'name', e.target.value)} className="w-full text-sm p-2 bg-white border rounded-lg dark:bg-gray-700" required />
+                        </div>
+                        <div className="col-span-12 sm:col-span-3">
+                             <input type="text" placeholder="سمت" value={contact.position || ''} onChange={e => handleContactChange(index, 'position', e.target.value)} className="w-full text-sm p-2 bg-white border rounded-lg dark:bg-gray-700" />
+                        </div>
+                        <div className="col-span-12 sm:col-span-3">
+                            <input type="tel" placeholder="موبایل" value={contact.phone || ''} onChange={e => handleContactChange(index, 'phone', e.target.value)} className="w-full text-sm p-2 bg-white border rounded-lg dark:bg-gray-700" />
+                        </div>
+                         <div className="col-span-12 sm:col-span-3 flex items-center gap-1">
+                             <button type="button" onClick={() => setPrimary(contact.id)} title="تنظیم به عنوان رابط اصلی">
+                                <StarIcon className={`w-5 h-5 cursor-pointer ${contact.isPrimary ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`} />
+                            </button>
+                            <button type="button" onClick={() => handleRemoveContact(contact.id)} className="p-1 text-gray-500 hover:text-red-600"><TrashIcon className="w-5 h-5" /></button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+            <button type="button" onClick={handleAddContact} className="mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-700">
+                + افزودن شخص رابط
+            </button>
+        </div>
+    );
+};
+
 
 export default Customers;

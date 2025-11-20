@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { DashboardIcon } from './icons/DashboardIcon';
 import { CustomersIcon } from './icons/CustomersIcon';
@@ -13,6 +14,7 @@ import { DocumentDuplicateIcon } from './icons/DocumentDuplicateIcon';
 import { CreditCardIcon } from './icons/CreditCardIcon';
 import { CubeIcon } from './icons/CubeIcon';
 import { AcademicCapIcon } from './icons/AcademicCapIcon';
+import { ClockIcon } from './icons/ClockIcon';
 
 interface SidebarProps {
   activePage: string;
@@ -27,6 +29,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, isOpen, se
     { id: 'customers', icon: <CustomersIcon className="w-6 h-6" />, name: 'مشتریان' },
     { id: 'tickets', icon: <TicketsIcon className="w-6 h-6" />, name: 'تیکت‌ها' },
     { id: 'tasks', icon: <ClipboardDocumentCheckIcon className="w-6 h-6" />, name: 'مدیریت وظایف' },
+    { id: 'reminders', icon: <ClockIcon className="w-6 h-6" />, name: 'یادآورها' },
     { isHeader: true, name: 'فروش' },
     { id: 'opportunities', icon: <SalesIcon className="w-6 h-6" />, name: 'فرصت‌ها' },
     { id: 'leads', icon: <LightBulbIcon className="w-6 h-6" />, name: 'سرنخ‌ها' },
@@ -50,7 +53,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, isOpen, se
       fixed inset-y-0 right-0 z-40 transform transition-transform duration-300 ease-in-out md:static md:translate-x-0
       ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
       >
-      <div className="h-16 flex items-center justify-between px-4 text-2xl font-bold text-indigo-600 dark:text-indigo-400 border-b border-gray-200 dark:border-gray-700">
+      <div className="h-16 flex items-center justify-between px-4 text-2xl font-bold text-indigo-600 dark:text-indigo-400 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
         <span>CRM Pro</span>
         <button 
           onClick={() => setIsOpen(false)} 
@@ -60,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, isOpen, se
           <XMarkIcon className="w-6 h-6" />
         </button>
       </div>
-      <nav className="flex-1 px-4 py-6">
+      <nav className="flex-1 px-4 py-6 overflow-y-auto">
         <ul>
           {menuItems.map((item, index) => {
              if ('isHeader' in item && item.isHeader) {
@@ -95,7 +98,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, isOpen, se
         })}
         </ul>
       </nav>
-      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
         <p className="text-xs text-center text-gray-500">© 2024 CRM Pro</p>
       </div>
     </aside>

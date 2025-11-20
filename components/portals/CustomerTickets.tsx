@@ -53,7 +53,7 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; onUpdate:
         if (newReply.trim() === '') return;
         const reply: TicketReply = {
             id: `TR-${Date.now()}`,
-            authorName: ticket.customer.companyName,
+            authorName: ticket.customer.name,
             authorType: 'Customer',
             text: newReply,
             createdAt: new Date().toLocaleString('fa-IR-u-nu-latn'),
@@ -92,7 +92,7 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; onUpdate:
                                     <p className="text-sm text-gray-800 dark:text-gray-200">{reply.text}</p>
                                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{reply.createdAt}</p>
                                 </div>
-                                {reply.authorType === 'Customer' && <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center font-bold text-sm order-2">{ticket.customer.companyName.charAt(0)}</div>}
+                                {reply.authorType === 'Customer' && <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center font-bold text-sm order-2">{ticket.customer.name.charAt(0)}</div>}
                             </div>
                         ))}
                         <div ref={chatEndRef}></div>

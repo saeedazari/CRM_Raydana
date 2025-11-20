@@ -1,3 +1,4 @@
+
 /* 
     === BACKEND SPEC ===
     توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
@@ -42,6 +43,7 @@ import { XMarkIcon } from '../icons/XMarkIcon';
 import { ChatBubbleLeftRightIcon } from '../icons/ChatBubbleLeftRightIcon';
 import { HamburgerIcon } from '../icons/HamburgerIcon';
 import { ClipboardDocumentCheckIcon } from '../icons/ClipboardDocumentCheckIcon';
+import { ClockIcon } from '../icons/ClockIcon';
 
 /*
     === REMOVE OR REPLACE MOCK DATA ===
@@ -88,12 +90,23 @@ const renderMessageText = (text: string, users: User[]) => {
 };
 
 
-const Message: React.FC<{ message: ChatMessage; onOpenThread: (message: ChatMessage) => void; users: User[]; onCreateTaskFromMessage: (text: string, authorName: string) => void; }> = ({ message, onOpenThread, users, onCreateTaskFromMessage }) => {
+const Message: React.FC<{ message: ChatMessage; onOpenThread: (message: ChatMessage) => void; users: User[]; onCreateTaskFromMessage: (text: string, authorName: string) => void; onOpenReminderModal: (data: any) => void; }> = ({ message, onOpenThread, users, onCreateTaskFromMessage, onOpenReminderModal }) => {
     const hasThread = message.thread && message.thread.length > 0;
     const messageContainerClasses = `
         flex items-start space-i-3 py-4 px-4 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-lg group
         ${hasThread ? 'border-r-2 border-indigo-400 dark:border-indigo-600 bg-gray-50 dark:bg-gray-800/30' : ''}
     `;
+    
+    const handleCreateReminder = () => {
+        onOpenReminderModal({
+            title: `یادآوری پیام ${message.user.name}`,
+            description: `متن پیام: ${message.text.substring(0, 100)}...`,
+            sourceType: 'chat',
+            sourceId: message.id,
+            sourcePreview: message.text.substring(0, 60) + '...'
+        });
+    };
+
     return (
         <div className={messageContainerClasses}>
             <img src={message.user.avatar} alt={message.user.name} className="w-10 h-10 rounded-full" />
@@ -110,10 +123,13 @@ const Message: React.FC<{ message: ChatMessage; onOpenThread: (message: ChatMess
                 )}
             </div>
              <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => onCreateTaskFromMessage(message.text, message.user.name)} className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600" aria-label="ایجاد وظیفه">
+                <button onClick={() => onCreateTaskFromMessage(message.text, message.user.name)} className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600" aria-label="ایجاد وظیفه" title="ایجاد وظیفه">
                     <ClipboardDocumentCheckIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                 </button>
-                <button onClick={() => onOpenThread(message)} className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600" aria-label="پاسخ در ترد">
+                 <button onClick={handleCreateReminder} className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600" aria-label="ایجاد یادآور" title="ایجاد یادآور">
+                    <ClockIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                </button>
+                <button onClick={() => onOpenThread(message)} className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600" aria-label="پاسخ در ترد" title="پاسخ">
                     <ChatBubbleLeftRightIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                 </button>
             </div>
@@ -123,7 +139,7 @@ const Message: React.FC<{ message: ChatMessage; onOpenThread: (message: ChatMess
 
 const ThreadView: React.FC<{ message: ChatMessage; onClose: () => void; onAddReply: (parentMessageId: string, text: string) => void; users: User[]; }> = ({ message, onClose, onAddReply, users }) => {
     const [reply, setReply] = useState('');
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const threadScrollRef = useRef<HTMLDivElement>(null);
 
     const handleSendReply = (e: React.FormEvent) => {
         e.preventDefault();
@@ -134,7 +150,9 @@ const ThreadView: React.FC<{ message: ChatMessage; onClose: () => void; onAddRep
     };
     
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+         if (threadScrollRef.current) {
+            threadScrollRef.current.scrollTop = threadScrollRef.current.scrollHeight;
+        }
     }, [message.thread]);
 
     return (
@@ -150,7 +168,7 @@ const ThreadView: React.FC<{ message: ChatMessage; onClose: () => void; onAddRep
                     </button>
                 </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={threadScrollRef}>
                 <div className="flex items-start space-i-3 py-2">
                     <img src={message.user.avatar} alt={message.user.name} className="w-10 h-10 rounded-full" />
                     <div className="flex-1">
@@ -168,7 +186,6 @@ const ThreadView: React.FC<{ message: ChatMessage; onClose: () => void; onAddRep
                         </div>
                     </div>
                 ))}
-                 <div ref={messagesEndRef} />
             </div>
             <div className="p-4 border-t dark:border-gray-700 flex-shrink-0">
                  <form onSubmit={handleSendReply}>
@@ -182,9 +199,10 @@ const ThreadView: React.FC<{ message: ChatMessage; onClose: () => void; onAddRep
 interface ChatProps {
     currentUser: User;
     onCreateTask: (text: string, authorName: string) => void;
+    onOpenReminderModal?: (data: any) => void;
 }
 
-const Chat: React.FC<ChatProps> = ({ currentUser, onCreateTask }) => {
+const Chat: React.FC<ChatProps> = ({ currentUser, onCreateTask, onOpenReminderModal }) => {
     // state ها باید از API یا WebSocket دریافت شوند
     const [channels, setChannels] = useState<ChatChannel[]>([]);
     const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
@@ -194,7 +212,7 @@ const Chat: React.FC<ChatProps> = ({ currentUser, onCreateTask }) => {
     const [activeThread, setActiveThread] = useState<ChatMessage | null>(null);
     const [newMessage, setNewMessage] = useState('');
     const [isChannelListOpen, setIsChannelListOpen] = useState(false);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
     
     useEffect(() => {
         /*
@@ -329,7 +347,9 @@ const Chat: React.FC<ChatProps> = ({ currentUser, onCreateTask }) => {
     };
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+        }
     }, [messages, activeChannelId]);
 
     const activeChannel = channels.find(c => c.id === activeChannelId);
@@ -348,9 +368,8 @@ const Chat: React.FC<ChatProps> = ({ currentUser, onCreateTask }) => {
                      <button onClick={() => setIsChannelListOpen(true)} className="md:hidden ml-4 p-1"><HamburgerIcon className="w-6 h-6" /></button>
                     <div><h3 className="font-bold text-xl"># {activeChannel?.name || 'گروهی را انتخاب کنید'}</h3><p className="text-sm text-gray-500">{activeChannel?.description}</p></div>
                 </div>
-                <div className="flex-1 overflow-y-auto p-4">
-                    {activeChannelId && messages[activeChannelId]?.map(msg => <Message key={msg.id} message={msg} onOpenThread={setActiveThread} users={users} onCreateTaskFromMessage={onCreateTask} />)}
-                    <div ref={messagesEndRef} />
+                <div className="flex-1 overflow-y-auto p-4" ref={scrollContainerRef}>
+                    {activeChannelId && messages[activeChannelId]?.map(msg => <Message key={msg.id} message={msg} onOpenThread={setActiveThread} users={users} onCreateTaskFromMessage={onCreateTask} onOpenReminderModal={onOpenReminderModal || (() => {})} />)}
                 </div>
                 <div className="p-4 border-t dark:border-gray-700 flex-shrink-0">
                     <form onSubmit={handleSendMessage}>

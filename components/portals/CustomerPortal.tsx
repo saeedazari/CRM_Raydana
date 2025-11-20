@@ -42,7 +42,7 @@ const CustomerPortal: React.FC<CustomerPortalProps> = (props) => {
         <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans">
             <header className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0">
                 <h1 className="text-xl sm:text-2xl font-semibold">
-                    پورتال مشتریان <span className="text-indigo-600 dark:text-indigo-400">| {props.customer.companyName}</span>
+                    پورتال مشتریان <span className="text-indigo-600 dark:text-indigo-400">| {props.customer.name}</span>
                 </h1>
                 <div className="flex items-center gap-4">
                     <ThemeToggle />

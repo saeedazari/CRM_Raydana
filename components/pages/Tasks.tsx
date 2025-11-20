@@ -1,3 +1,4 @@
+
 /* 
     === BACKEND SPEC ===
     توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
@@ -43,21 +44,20 @@ import { ChevronLeftIcon } from '../icons/ChevronLeftIcon';
 import { ChevronRightIcon } from '../icons/ChevronRightIcon';
 import { XMarkIcon } from '../icons/XMarkIcon';
 import { FilterIcon } from '../icons/FilterIcon';
+import { ClockIcon } from '../icons/ClockIcon';
 
 /*
     === REMOVE OR REPLACE MOCK DATA ===
     این داده‌ها موقتی هستند و باید از API دریافت شوند.
 */
-// // FIX: Removed 'email' property and added 'username' to align with the 'User' type definition.
 // const mockUsers: User[] = [
 //   { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
 //   { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
 // ];
 
-// // FIX: Added required 'username' property to align with the 'Customer' type definition.
 // const mockCustomers: Customer[] = [
-//   { id: 'C1', companyName: 'شرکت آلفا', contactPerson: 'آقای الف', username: 'alpha', email: 'alpha@co.com', phone: '021-123', status: 'فعال' },
-//   { id: 'C2', companyName: 'تجارت بتا', contactPerson: 'خانم ب', username: 'beta', email: 'beta@co.com', phone: '021-456', status: 'فعال' },
+//   { id: 'C1', name: 'شرکت آلفا', contacts: [{id: 'P1', name: 'آقای الف', isPrimary: true}], username: 'alpha', email: 'alpha@co.com', phone: '021-123', status: 'فعال' },
+//   { id: 'C2', name: 'تجارت بتا', contacts: [{id: 'P2', name: 'خانم ب', isPrimary: true}], username: 'beta', email: 'beta@co.com', phone: '021-456', status: 'فعال' },
 // ];
 
 // const mockTasks: Task[] = [
@@ -97,9 +97,10 @@ const initialNewTaskState: Omit<Task, 'id' | 'assignedTo' | 'customer' | 'create
 interface TasksProps {
     initialParams?: any;
     customers: Customer[];
+    onOpenReminderModal?: (data: any) => void;
 }
 
-const Tasks: React.FC<TasksProps> = ({ initialParams, customers }) => {
+const Tasks: React.FC<TasksProps> = ({ initialParams, customers, onOpenReminderModal }) => {
   // این state ها باید از API دریافت شوند
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -129,13 +130,13 @@ const Tasks: React.FC<TasksProps> = ({ initialParams, customers }) => {
       { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
     ];
     const mockCustomers: Customer[] = [
-      { id: 'C1', companyName: 'شرکت آلفا', contactPerson: 'آقای الف', username: 'alpha', email: 'alpha@co.com', phone: '021-123', status: 'فعال' },
-      { id: 'C2', companyName: 'تجارت بتا', contactPerson: 'خانم ب', username: 'beta', email: 'beta@co.com', phone: '021-456', status: 'فعال' },
+      { id: 'C1', name: 'شرکت آلفا', contacts: [{id: 'P1', name: 'آقای الف', isPrimary: true, phone: '09121112233'}], email: 'alpha@co.com', phone: '021-123', status: 'فعال' },
+      { id: 'C2', name: 'تجارت بتا', contacts: [{id: 'P2', name: 'خانم ب', isPrimary: true, phone: '09122223344'}], email: 'beta@co.com', phone: '021-456', status: 'فعال' },
     ];
     const mockTasks: Task[] = [
-        { id: 'TSK1', title: 'پیگیری تیکت #721', description: 'مشتری در مورد ورود به پنل کاربری مشکل دارد.', customer: mockCustomers[0], relatedTicketId: 'TKT-721', assignedTo: mockUsers[0], priority: 'بالا', status: 'در حال انجام', dueDate: '1403/05/10', createdAt: '1403/05/01' },
-        { id: 'TSK2', title: 'آماده‌سازی پیش‌فاکتور برای تجارت بتا', description: '', customer: mockCustomers[1], assignedTo: mockUsers[0], priority: 'متوسط', status: 'معلق', dueDate: '1403/05/15', createdAt: '1403/05/02' },
-        { id: 'TSK3', title: 'جلسه دمو با مشتری جدید', description: 'معرفی ویژگی‌های جدید محصول', assignedTo: mockUsers[1], priority: 'فوری', status: 'تکمیل شده', dueDate: '1403/04/30', createdAt: '1403/04/28' },
+        { id: 'TSK1', title: 'پیگیری تیکت #721', description: 'مشتری در مورد ورود به پنل کاربری مشکل دارد.', customer: mockCustomers[0], relatedTicketId: 'TKT-721', assignedTo: mockUsers[0], priority: 'بالا', status: 'در حال انجام', dueDate: new Date(Date.now() + 5 * 86400000).toISOString(), createdAt: new Date(Date.now() - 2 * 86400000).toISOString() },
+        { id: 'TSK2', title: 'آماده‌سازی پیش‌فاکتور برای تجارت بتا', description: '', customer: mockCustomers[1], assignedTo: mockUsers[0], priority: 'متوسط', status: 'معلق', dueDate: new Date(Date.now() + 10 * 86400000).toISOString(), createdAt: new Date(Date.now() - 1 * 86400000).toISOString() },
+        { id: 'TSK3', title: 'جلسه دمو با مشتری جدید', description: 'معرفی ویژگی‌های جدید محصول', assignedTo: mockUsers[1], priority: 'فوری', status: 'تکمیل شده', dueDate: new Date(Date.now() - 3 * 86400000).toISOString(), createdAt: new Date(Date.now() - 5 * 86400000).toISOString() },
     ];
     setTasks(mockTasks);
     setUsers(mockUsers);
@@ -166,7 +167,7 @@ const Tasks: React.FC<TasksProps> = ({ initialParams, customers }) => {
   const filteredTasks = useMemo(() => 
     tasks.filter(task =>
       (task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       (task.customer?.companyName || '').toLowerCase().includes(searchTerm.toLowerCase())) &&
+       (task.customer?.name || '').toLowerCase().includes(searchTerm.toLowerCase())) &&
       (statusFilter === 'all' || task.status === statusFilter) &&
       (priorityFilter === 'all' || task.priority === priorityFilter)
     ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
@@ -267,6 +268,18 @@ const Tasks: React.FC<TasksProps> = ({ initialParams, customers }) => {
        setTasks(tasks.filter(t => t.id !== taskId));
     }
   };
+  
+  const handleCreateReminder = (task: Task) => {
+      if (onOpenReminderModal) {
+          onOpenReminderModal({
+              title: `یادآوری وظیفه: ${task.title}`,
+              description: task.description || '',
+              sourceType: 'task',
+              sourceId: task.id,
+              sourcePreview: task.title
+          });
+      }
+  };
 
   const openPanel = (task: Task | null = null) => {
       setEditingTask(task);
@@ -324,7 +337,7 @@ const Tasks: React.FC<TasksProps> = ({ initialParams, customers }) => {
                     {paginatedTasks.map((task) => (
                         <tr key={task.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                             <td className={`px-4 py-3 font-medium text-gray-900 dark:text-white border-r-4 ${priorityColors[task.priority]}`}>{task.title}</td>
-                            <td className="px-4 py-3">{task.customer?.companyName || '-'}</td>
+                            <td className="px-4 py-3">{task.customer?.name || '-'}</td>
                             <td className="px-4 py-3">{task.assignedTo?.name || '-'}</td>
                             <td className="px-4 py-3">{task.dueDate ? new Date(task.dueDate).toLocaleDateString('fa-IR') : '-'}</td>
                             <td className="px-4 py-3 text-center">
@@ -332,6 +345,7 @@ const Tasks: React.FC<TasksProps> = ({ initialParams, customers }) => {
                             </td>
                             <td className="px-4 py-3 text-center">
                                 <div className="flex justify-center items-center gap-2">
+                                    <button onClick={() => handleCreateReminder(task)} className="p-1 text-gray-500 hover:text-indigo-600" title="ایجاد یادآور"><ClockIcon className="w-5 h-5" /></button>
                                     <button onClick={() => openPanel(task)} className="p-1 text-gray-500 hover:text-indigo-600"><PencilIcon className="w-5 h-5" /></button>
                                     <button onClick={() => handleDelete(task.id)} className="p-1 text-gray-500 hover:text-red-600"><TrashIcon className="w-5 h-5" /></button>
                                 </div>
@@ -364,7 +378,7 @@ const Tasks: React.FC<TasksProps> = ({ initialParams, customers }) => {
                         <label htmlFor="customerId" className="block mb-2 text-sm font-medium">مشتری مرتبط</label>
                         <select name="customerId" id="customerId" value={taskFormData.customerId} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700">
                             <option value="">هیچکدام</option>
-                            {customers.map(c => <option key={c.id} value={c.id}>{c.companyName}</option>)}
+                            {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                     </div>
                     <div>
@@ -382,7 +396,7 @@ const Tasks: React.FC<TasksProps> = ({ initialParams, customers }) => {
                     </div>
                     <div>
                         <label htmlFor="dueDate" className="block mb-2 text-sm font-medium">مهلت انجام</label>
-                        <input type="text" placeholder="مثلا: 1403/05/10" name="dueDate" id="dueDate" value={taskFormData.dueDate?.split('T')[0] || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" required />
+                        <input type="date" name="dueDate" id="dueDate" value={taskFormData.dueDate?.split('T')[0] || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" required />
                     </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -401,7 +415,7 @@ const Tasks: React.FC<TasksProps> = ({ initialParams, customers }) => {
                 </div>
             </div>
             <div className="flex items-center justify-end p-4 border-t dark:border-gray-700 space-i-3 flex-shrink-0">
-              <button type="button" onClick={closePanel} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400">انصراف</button>
+              <button type="button" onClick={closePanel} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400">انصراف</button>
               <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">ذخیره</button>
             </div>
           </form>
