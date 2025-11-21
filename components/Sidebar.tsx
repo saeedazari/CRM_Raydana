@@ -20,6 +20,7 @@ import { BuildingStorefrontIcon } from './icons/BuildingStorefrontIcon';
 import { ShoppingBagIcon } from './icons/ShoppingBagIcon';
 import { CalendarIcon } from './icons/CalendarIcon';
 import { ArchiveBoxIcon } from './icons/ArchiveBoxIcon';
+import { BriefcaseIcon } from './icons/BriefcaseIcon';
 
 interface SidebarProps {
   activePage: string;
@@ -44,6 +45,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, isOpen, se
     { id: 'invoices', icon: <CreditCardIcon className="w-6 h-6" />, name: 'فاکتورها' },
     { id: 'products', icon: <CubeIcon className="w-6 h-6" />, name: 'کالاها و خدمات' },
     
+    { isHeader: true, name: 'منابع انسانی' },
+    { id: 'personnel', icon: <BriefcaseIcon className="w-6 h-6" />, name: 'امور پرسنلی' },
+
     { isHeader: true, name: 'انبار و تدارکات' },
     { id: 'inventory', icon: <ArchiveBoxIcon className="w-6 h-6" />, name: 'انبار (موجودی)' },
     { id: 'vendors', icon: <BuildingStorefrontIcon className="w-6 h-6" />, name: 'تامین‌کنندگان' },

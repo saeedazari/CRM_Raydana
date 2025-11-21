@@ -9,6 +9,7 @@ import { PrinterIcon } from '../icons/PrinterIcon';
 import PrintableDocument from '../print/PrintableDocument';
 import { ArrowDownTrayIcon } from '../icons/ArrowDownTrayIcon';
 import { exportToCSV } from '../../utils/export';
+import { toShamsi } from '../../utils/date';
 
 interface QuotationsListProps {
     quotes: Quote[];
@@ -98,7 +99,7 @@ const QuotationsList: React.FC<QuotationsListProps> = ({ quotes, onCreateNew, on
                                 <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{quote.quoteNumber || quote.id}</td>
                                 <td className="px-4 py-3"><span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">Ver {quote.version}</span></td>
                                 <td className="px-4 py-3">{quote.customerName}</td>
-                                <td className="px-4 py-3">{quote.issueDate}</td>
+                                <td className="px-4 py-3">{toShamsi(quote.issueDate)}</td>
                                 <td className="px-4 py-3">{quote.totalAmount.toLocaleString('fa-IR')}</td>
                                 <td className="px-4 py-3 text-center">
                                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[quote.status]}`}>{quote.status}</span>

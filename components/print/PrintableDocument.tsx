@@ -3,6 +3,7 @@ import React, { useRef } from 'react';
 import { Invoice, Quote, PurchaseOrder, CompanyInfo, Customer, Vendor } from '../../types';
 import { XMarkIcon } from '../icons/XMarkIcon';
 import { PrinterIcon } from '../icons/PrinterIcon';
+import { toShamsi } from '../../utils/date';
 
 interface PrintableDocumentProps {
     isOpen: boolean;
@@ -38,7 +39,7 @@ const PrintableDocument: React.FC<PrintableDocumentProps> = ({ isOpen, onClose, 
 
     // Determine document ID and Date
     const docId = data ? ('quoteNumber' in data ? `${data.quoteNumber} (نسخه ${data.version})` : data.id) : '';
-    const docDate = data ? ('issueDate' in data ? data.issueDate : '') : '';
+    const docDate = data ? ('issueDate' in data ? toShamsi(data.issueDate) : '') : '';
     const items = data ? ('items' in data ? data.items : []) : [];
     
     // Determine specific fields
@@ -76,8 +77,8 @@ const PrintableDocument: React.FC<PrintableDocumentProps> = ({ isOpen, onClose, 
                         <div className="text-sm space-y-1 text-gray-900 print:text-black">
                             <p><span className="font-bold">شماره:</span> {docId}</p>
                             <p><span className="font-bold">تاریخ:</span> {docDate}</p>
-                            {type === 'invoice' && 'dueDate' in data && <p><span className="font-bold">سررسید:</span> {data.dueDate}</p>}
-                            {type === 'quote' && 'expiryDate' in data && <p><span className="font-bold">اعتبار تا:</span> {data.expiryDate}</p>}
+                            {type === 'invoice' && 'dueDate' in data && <p><span className="font-bold">سررسید:</span> {toShamsi(data.dueDate)}</p>}
+                            {type === 'quote' && 'expiryDate' in data && <p><span className="font-bold">اعتبار تا:</span> {toShamsi(data.expiryDate)}</p>}
                         </div>
                     </div>
                     <div className="flex flex-col items-end text-gray-900 print:text-black">

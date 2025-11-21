@@ -5,6 +5,7 @@ import { PlusIcon } from '../icons/PlusIcon';
 import { SearchIcon } from '../icons/SearchIcon';
 import { ArrowUpIcon } from '../icons/ArrowUpIcon';
 import { ArrowDownIcon } from '../icons/ArrowDownIcon';
+import { toShamsi } from '../../utils/date';
 
 interface PaymentsListProps {
     payments: Payment[];
@@ -68,7 +69,7 @@ const PaymentsList: React.FC<PaymentsListProps> = ({ payments, onRegisterPayment
                                 </td>
                                 <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{payment.partyName}</td>
                                 <td className="px-4 py-3 font-bold">{payment.amount.toLocaleString('fa-IR')}</td>
-                                <td className="px-4 py-3">{new Date(payment.date).toLocaleDateString('fa-IR')}</td>
+                                <td className="px-4 py-3">{toShamsi(payment.date)}</td>
                                 <td className="px-4 py-3">{payment.method}</td>
                                 <td className="px-4 py-3 text-xs font-mono">{payment.referenceId || '-'}</td>
                             </tr>

@@ -20,6 +20,7 @@ import InvoicesList from '../sales/InvoicesList';
 import PaymentsList from '../finance/PaymentsList';
 import FileUploader from '../FileUploader';
 import AttachmentList from '../AttachmentList';
+import { toShamsi } from '../../utils/date';
 
 
 const mockUsers: User[] = [
@@ -96,7 +97,7 @@ const TicketDetailEmbedded: React.FC<{ ticket: Ticket; onBack: () => void; curre
             authorType: 'User',
             authorName: currentUser.name,
             authorAvatar: currentUser.avatar,
-            createdAt: new Date().toLocaleString('fa-IR'),
+            createdAt: new Date().toISOString(),
             attachments: attachments
         };
         const updatedTicket = { ...ticket, replies: [...(ticket.replies || []), reply] };
@@ -137,7 +138,7 @@ const TicketDetailEmbedded: React.FC<{ ticket: Ticket; onBack: () => void; curre
                                     <AttachmentList attachments={reply.attachments} readonly={true} />
                                 </div>
                             )}
-                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{new Date(reply.createdAt).toLocaleDateString('fa-IR', { hour: '2-digit', minute: '2-digit' })}</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{toShamsi(reply.createdAt, "YYYY/MM/DD HH:mm")}</p>
                         </div>
                         {reply.authorType === 'Customer' && <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center font-bold text-sm order-2">{ticket.customer.name.charAt(0)}</div>}
                     </div>
@@ -355,7 +356,7 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                                                                 {interactionIcons[interaction.type]}
                                                             </div>
                                                             <p className="text-xs text-gray-400 dark:text-gray-500">
-                                                                {new Date(interaction.createdAt).toLocaleDateString('fa-IR', { hour: '2-digit', minute: '2-digit' })}
+                                                                {toShamsi(interaction.createdAt, "YYYY/MM/DD HH:mm")}
                                                                 {interaction.contactName && <span className="text-gray-500 dark:text-gray-400"> در ارتباط با <span className="font-medium">{interaction.contactName}</span></span>}
                                                             </p>
                                                         </div>
@@ -503,7 +504,7 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                                                     <span>اولویت: {ticket.priority}</span>
                                                     <span>دسته‌بندی: {ticket.category}</span>
                                                 </div>
-                                                <span>{new Date(ticket.createdAt).toLocaleDateString('fa-IR')}</span>
+                                                <span>{toShamsi(ticket.createdAt)}</span>
                                             </div>
                                         </div>
                                     ))
@@ -523,6 +524,7 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                             onEdit={onViewQuote}
                             onCreateInvoiceFromQuote={() => {}}
                             hideControls={true}
+                            companyInfo={{name: '', address: '', phone: '', email: '', website: ''}}
                         />
                      </div>
                 )}
@@ -532,6 +534,7 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                             invoices={customerInvoices} 
                             onEdit={onViewInvoice}
                             hideControls={true}
+                            companyInfo={{name: '', address: '', phone: '', email: '', website: ''}}
                         />
                      </div>
                 )}

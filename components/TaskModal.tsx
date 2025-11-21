@@ -1,6 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Task, User, Customer, TaskStatus, TaskPriority } from '../types';
 import { XMarkIcon } from './icons/XMarkIcon';
+import DatePicker from "react-multi-date-picker";
+import persian from "react-date-object/calendars/persian";
+import persian_fa from "react-date-object/locales/persian_fa";
+import { toIsoDate } from '../utils/date';
 
 interface TaskModalProps {
     isOpen: boolean;
@@ -37,13 +42,12 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, initialD
     useEffect(() => {
         if (isOpen) {
             if (initialData) {
-                 // If editing or prefilling, map the data correctly
                  setTaskFormData({
                     ...initialTaskState,
                     ...initialData,
-                    assignedToId: initialData.assignedTo?.id || initialData.assignedToId || '',
-                    customerId: initialData.customer?.id || initialData.customerId || '',
-                    dueDate: initialData.dueDate ? initialData.dueDate.split('T')[0] : '',
+                    assignedToId: initialData.assignedTo?.id || (initialData as any).assignedToId || '',
+                    customerId: initialData.customer?.id || (initialData as any).customerId || '',
+                    dueDate: initialData.dueDate || '',
                 });
             } else {
                 setTaskFormData(initialTaskState);
@@ -70,20 +74,18 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, initialD
             ...taskFormData,
             assignedTo,
             customer,
-            dueDate: taskFormData.dueDate ? new Date(taskFormData.dueDate).toISOString() : '',
+            dueDate: taskFormData.dueDate,
         } as any);
         onClose();
     };
 
     return (
         <div className={`fixed inset-0 z-50 ${isOpen ? '' : 'pointer-events-none'}`}>
-            {/* Overlay */}
             <div 
                 className={`absolute inset-0 bg-black transition-opacity duration-300 ${isOpen ? 'bg-opacity-50' : 'bg-opacity-0'}`} 
                 onClick={onClose}
             ></div>
             
-            {/* Sliding Panel */}
             <div className={`absolute inset-y-0 left-0 bg-white dark:bg-gray-800 h-full w-full max-w-lg shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="flex justify-between items-center p-4 border-b dark:border-gray-700 flex-shrink-0">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -126,8 +128,16 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, initialD
                                 </select>
                             </div>
                             <div>
-                                <label htmlFor="dueDate" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">مهلت انجام</label>
-                                <input type="date" name="dueDate" id="dueDate" value={taskFormData.dueDate} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white" required />
+                                <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">مهلت انجام</label>
+                                <DatePicker 
+                                    value={taskFormData.dueDate ? new Date(taskFormData.dueDate) : null}
+                                    onChange={(date) => setTaskFormData(prev => ({...prev, dueDate: toIsoDate(date)}))}
+                                    calendar={persian}
+                                    locale={persian_fa}
+                                    calendarPosition="bottom-right"
+                                    inputClass="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    placeholder="انتخاب تاریخ"
+                                />
                             </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

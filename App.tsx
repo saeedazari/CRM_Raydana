@@ -24,7 +24,7 @@ import ReminderModal from './components/ReminderModal';
 import TaskModal from './components/TaskModal';
 import NotificationToast from './components/NotificationToast';
 import HeaderNotifications from './components/HeaderNotifications';
-import { User, Customer, Ticket, Interaction, Lead, Opportunity, Product, Quote, Invoice, Role, KnowledgeBaseCategory, KnowledgeBaseArticle, Contact, Reminder, Task, Vendor, PurchaseOrder, Payment, InvoiceStatus, CompanyInfo, InventoryTransaction, InventoryTransactionType } from './types';
+import { User, Customer, Ticket, Interaction, Lead, Opportunity, Product, Quote, Invoice, Role, KnowledgeBaseCategory, KnowledgeBaseArticle, Contact, Reminder, Task, Vendor, PurchaseOrder, Payment, InvoiceStatus, CompanyInfo, InventoryTransaction, InventoryTransactionType, PersonnelRequest, RequestStatus } from './types';
 import { HamburgerIcon } from './components/icons/HamburgerIcon';
 import CustomerInteractions from './components/pages/CustomerInteractions';
 import UserProfile from './components/UserProfile';
@@ -39,6 +39,8 @@ import PaymentsList from './components/finance/PaymentsList';
 import PaymentModal from './components/finance/PaymentModal';
 import GlobalSearch from './components/GlobalSearch';
 import Inventory from './components/pages/Inventory';
+import Personnel from './components/pages/Personnel';
+import { toShamsi } from './utils/date';
 
 // --- MOCK DATA AGGREGATION ---
 // ... (Existing mock roles/users/customers/tickets/kb data from previous version)
@@ -48,10 +50,11 @@ const mockRoles: Role[] = [
     { id: 'R3', name: 'کارشناس فروش', permissions: 'view_customers,create_customers,view_sales,create_sales,edit_sales' },
 ];
 
+// Updated Mock Users with Hierarchy: U1 manages U2 and U3
 const mockUsers: User[] = [
   { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
-  { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
-  { id: 'U3', name: 'محمد کریمی', username: 'mohammad', roleId: 'R3', avatar: 'https://i.pravatar.cc/40?u=U3' },
+  { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2', managerId: 'U1' },
+  { id: 'U3', name: 'محمد کریمی', username: 'mohammad', roleId: 'R3', avatar: 'https://i.pravatar.cc/40?u=U3', managerId: 'U1' },
 ];
 
 const mockContacts: Record<string, Contact[]> = {
@@ -70,23 +73,27 @@ const mockContacts: Record<string, Contact[]> = {
     ]
 }
 
+// Helper to create ISO dates relative to now
+const daysAgo = (days: number) => new Date(Date.now() - days * 86400000).toISOString();
+const daysAhead = (days: number) => new Date(Date.now() + days * 86400000).toISOString();
+
 const mockCustomers: Customer[] = [
-  { id: 'C1', name: 'شرکت آلفا', contacts: mockContacts.C1, username: 'alpha', email: 'info@alpha.com', phone: '021-12345678', status: 'فعال', portalToken: 'alpha-secret-token-xyz', supportEndDate: '1404/05/01', economicCode: '123456', nationalId: '10101010' },
-  { id: 'C2', name: 'تجارت بتا', contacts: mockContacts.C2, username: 'beta', email: 'contact@beta.com', phone: '021-87654321', status: 'غیرفعال', portalToken: 'beta-secret-token-abc', supportEndDate: '1403/10/01' },
+  { id: 'C1', name: 'شرکت آلفا', contacts: mockContacts.C1, username: 'alpha', email: 'info@alpha.com', phone: '021-12345678', status: 'فعال', portalToken: 'alpha-secret-token-xyz', supportEndDate: daysAhead(365), economicCode: '123456', nationalId: '10101010' },
+  { id: 'C2', name: 'تجارت بتا', contacts: mockContacts.C2, username: 'beta', email: 'contact@beta.com', phone: '021-87654321', status: 'غیرفعال', portalToken: 'beta-secret-token-abc', supportEndDate: daysAgo(30) },
   { id: 'C3', name: 'صنایع گاما', contacts: mockContacts.C3, username: 'gamma', email: 'office@gamma.com', phone: '021-11223344', status: 'فعال' },
   { id: 'C4', name: 'راهکارهای دلتا', contacts: mockContacts.C4, username: 'delta', email: 'sales@delta.com', phone: '021-55667788', status: 'معلق' },
 ];
 
 const mockTicketsData: Ticket[] = [
-    { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', description: 'کاربر اعلام کرده نمی‌تواند وارد پنل شود.', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'در حال بررسی', priority: 'بالا', createdAt: '1403/05/01', category: 'فنی', replies: [
-        {id: 'R1', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', authorAvatar: mockUsers[0].avatar, text: 'در حال بررسی مشکل هستیم.', isInternal: false, createdAt: '1403/05/01 10:30'},
-        {id: 'R2', authorType: 'Customer', authorName: 'شرکت آلفا', text: 'ممنون از پیگیری شما.', isInternal: false, createdAt: '1403/05/01 10:35'},
-        {id: 'R3', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', authorAvatar: mockUsers[0].avatar, text: 'مشکل از سمت سرور بود، لطفا مجدد تست کنید.', isInternal: true, createdAt: '1403/05/01 11:00'},
+    { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', description: 'کاربر اعلام کرده نمی‌تواند وارد پنل شود.', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'در حال بررسی', priority: 'بالا', createdAt: daysAgo(1), category: 'فنی', replies: [
+        {id: 'R1', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', authorAvatar: mockUsers[0].avatar, text: 'در حال بررسی مشکل هستیم.', isInternal: false, createdAt: daysAgo(1)},
+        {id: 'R2', authorType: 'Customer', authorName: 'شرکت آلفا', text: 'ممنون از پیگیری شما.', isInternal: false, createdAt: daysAgo(0)},
+        {id: 'R3', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', authorAvatar: mockUsers[0].avatar, text: 'مشکل از سمت سرور بود، لطفا مجدد تست کنید.', isInternal: true, createdAt: daysAgo(0)},
     ]},
-    { id: 'TKT-720', subject: 'سوال در مورد صورتحساب', customer: mockCustomers[1], customerId: 'C2', assignee: mockUsers[1], assigneeId: 'U2', status: 'جدید', priority: 'متوسط', createdAt: '1403/05/01', category: 'مالی' },
-    { id: 'TKT-719', subject: 'گزارش باگ در ماژول گزارشات', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'حل شده', priority: 'بالا', createdAt: '1403/04/31', category: 'فنی', surveySubmitted: false },
-    { id: 'TKT-718', subject: 'درخواست افزودن ویژگی جدید', customer: mockCustomers[1], customerId: 'C2', status: 'در انتظار مشتری', priority: 'کم', createdAt: '1403/04/30', category: 'عمومی' },
-    { id: 'TKT-722', subject: 'نحوه کار با API', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[1], assigneeId: 'U2', status: 'بسته شده', priority: 'متوسط', createdAt: '1403/04/28', category: 'فنی', surveySubmitted: true, rating: 5, feedbackTags: ['پاسخ سریع', 'دانش فنی بالا'] },
+    { id: 'TKT-720', subject: 'سوال در مورد صورتحساب', customer: mockCustomers[1], customerId: 'C2', assignee: mockUsers[1], assigneeId: 'U2', status: 'جدید', priority: 'متوسط', createdAt: daysAgo(2), category: 'مالی' },
+    { id: 'TKT-719', subject: 'گزارش باگ در ماژول گزارشات', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'حل شده', priority: 'بالا', createdAt: daysAgo(5), category: 'فنی', surveySubmitted: false },
+    { id: 'TKT-718', subject: 'درخواست افزودن ویژگی جدید', customer: mockCustomers[1], customerId: 'C2', status: 'در انتظار مشتری', priority: 'کم', createdAt: daysAgo(7), category: 'عمومی' },
+    { id: 'TKT-722', subject: 'نحوه کار با API', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[1], assigneeId: 'U2', status: 'بسته شده', priority: 'متوسط', createdAt: daysAgo(10), category: 'فنی', surveySubmitted: true, rating: 5, feedbackTags: ['پاسخ سریع', 'دانش فنی بالا'] },
 ];
 
 const mockKbCategories: KnowledgeBaseCategory[] = [
@@ -97,25 +104,25 @@ const mockKbCategories: KnowledgeBaseCategory[] = [
 ];
 
 const mockKbArticles: KnowledgeBaseArticle[] = [
-    { id: 'KBA1', title: 'چگونه یک تیکت جدید ثبت کنیم؟', content: 'برای ثبت تیکت جدید، از منوی پورتال مشتریان گزینه تیکت‌ها را انتخاب کرده و روی دکمه <b>"تیکت جدید"</b> کلیک کنید... <br/> <img src="https://via.placeholder.com/400x200.png?text=Ticket+Example" alt="Example"/>', categoryId: 'KBC1', tags: ['تیکت', 'مشتری'], authorId: 'U1', createdAt: '1403/04/15', visibility: 'public' },
-    { id: 'KBA2', title: 'خطای 500 هنگام ورود به پنل', content: 'این خطا معمولا به دلیل مشکلات سمت سرور است. لطفاً ابتدا کش مرورگر خود را پاک کرده و مجددا تلاش کنید. در صورت عدم رفع مشکل، با <a href="mailto:support@example.com">پشتیبانی</a> تماس بگیرید.', categoryId: 'KBC2', tags: ['خطا', 'ورود', 'فنی'], authorId: 'U2', createdAt: '1403/04/20', visibility: 'public' },
-    { id: 'KBA3', title: 'راهنمای قیمت‌گذاری سرویس‌ها', content: 'این یک سند داخلی است و نباید در دسترس مشتری قرار گیرد. پلن‌های قیمت‌گذاری به شرح زیر است...', categoryId: 'KBC3', tags: ['قیمت', 'فروش'], authorId: 'U3', createdAt: '1403/05/01', visibility: 'internal' },
-    { id: 'KBA4', title: 'سیاست مرخصی کارکنان', content: 'هر کارمند در سال مجاز به استفاده از ۲۴ روز مرخصی با حقوق است...', categoryId: 'KBC4', tags: ['منابع انسانی', 'داخلی'], authorId: 'U1', createdAt: '1403/01/10', visibility: 'internal' },
+    { id: 'KBA1', title: 'چگونه یک تیکت جدید ثبت کنیم؟', content: 'برای ثبت تیکت جدید، از منوی پورتال مشتریان گزینه تیکت‌ها را انتخاب کرده و روی دکمه <b>"تیکت جدید"</b> کلیک کنید... <br/> <img src="https://via.placeholder.com/400x200.png?text=Ticket+Example" alt="Example"/>', categoryId: 'KBC1', tags: ['تیکت', 'مشتری'], authorId: 'U1', createdAt: daysAgo(30), visibility: 'public' },
+    { id: 'KBA2', title: 'خطای 500 هنگام ورود به پنل', content: 'این خطا معمولا به دلیل مشکلات سمت سرور است. لطفاً ابتدا کش مرورگر خود را پاک کرده و مجددا تلاش کنید. در صورت عدم رفع مشکل، با <a href="mailto:support@example.com">پشتیبانی</a> تماس بگیرید.', categoryId: 'KBC2', tags: ['خطا', 'ورود', 'فنی'], authorId: 'U2', createdAt: daysAgo(25), visibility: 'public' },
+    { id: 'KBA3', title: 'راهنمای قیمت‌گذاری سرویس‌ها', content: 'این یک سند داخلی است و نباید در دسترس مشتری قرار گیرد. پلن‌های قیمت‌گذاری به شرح زیر است...', categoryId: 'KBC3', tags: ['قیمت', 'فروش'], authorId: 'U3', createdAt: daysAgo(10), visibility: 'internal' },
+    { id: 'KBA4', title: 'سیاست مرخصی کارکنان', content: 'هر کارمند در سال مجاز به استفاده از ۲۴ روز مرخصی با حقوق است...', categoryId: 'KBC4', tags: ['منابع انسانی', 'داخلی'], authorId: 'U1', createdAt: daysAgo(60), visibility: 'internal' },
 ];
 
 const mockTasksData: Task[] = [
-    { id: 'TSK1', title: 'پیگیری تیکت #721', description: 'مشتری در مورد ورود به پنل کاربری مشکل دارد.', customer: mockCustomers[0], relatedTicketId: 'TKT-721', assignedTo: mockUsers[0], priority: 'بالا', status: 'در حال انجام', dueDate: new Date(Date.now() + 5 * 86400000).toISOString(), createdAt: new Date(Date.now() - 2 * 86400000).toISOString() },
-    { id: 'TSK2', title: 'آماده‌سازی پیش‌فاکتور برای تجارت بتا', description: '', customer: mockCustomers[1], assignedTo: mockUsers[0], priority: 'متوسط', status: 'معلق', dueDate: new Date(Date.now() + 10 * 86400000).toISOString(), createdAt: new Date(Date.now() - 1 * 86400000).toISOString() },
-    { id: 'TSK3', title: 'جلسه دمو با مشتری جدید', description: 'معرفی ویژگی‌های جدید محصول', assignedTo: mockUsers[1], priority: 'فوری', status: 'تکمیل شده', dueDate: new Date(Date.now() - 3 * 86400000).toISOString(), createdAt: new Date(Date.now() - 5 * 86400000).toISOString() },
+    { id: 'TSK1', title: 'پیگیری تیکت #721', description: 'مشتری در مورد ورود به پنل کاربری مشکل دارد.', customer: mockCustomers[0], relatedTicketId: 'TKT-721', assignedTo: mockUsers[0], priority: 'بالا', status: 'در حال انجام', dueDate: daysAhead(5), createdAt: daysAgo(2) },
+    { id: 'TSK2', title: 'آماده‌سازی پیش‌فاکتور برای تجارت بتا', description: '', customer: mockCustomers[1], assignedTo: mockUsers[0], priority: 'متوسط', status: 'معلق', dueDate: daysAhead(10), createdAt: daysAgo(1) },
+    { id: 'TSK3', title: 'جلسه دمو با مشتری جدید', description: 'معرفی ویژگی‌های جدید محصول', assignedTo: mockUsers[1], priority: 'فوری', status: 'تکمیل شده', dueDate: daysAgo(3), createdAt: daysAgo(5) },
 ];
 
 const mockQuotes: Quote[] = [
-    { id: 'Q-123', quoteNumber: '1001', version: 1, customerId: 'C1', customerName: 'شرکت آلفا', issueDate: '1403/05/01', expiryDate: '1403/05/15', status: 'تایید شده', items: [{ productId: 'P1', productName: 'سرویس پشتیبانی طلایی', quantity: 1, unitPrice: 10000000, totalPrice: 10000000, discountType: 'percent', discount: 10, totalAfterDiscount: 9000000, tax: 9, totalWithTax: 9810000 }], subtotal: 10000000, discountAmount: 1000000, taxAmount: 810000, totalAmount: 9810000 },
-    { id: 'Q-124', quoteNumber: '1002', version: 1, customerId: 'C2', customerName: 'تجارت بتا', issueDate: '1403/04/25', expiryDate: '1403/05/10', status: 'ارسال شده', items: [{ productId: 'P2', productName: 'سرویس پشتیبانی نقره‌ای', quantity: 2, unitPrice: 5000000, totalPrice: 10000000, discountType: 'amount', discount: 0, totalAfterDiscount: 10000000, tax: 9, totalWithTax: 10900000 }], subtotal: 10000000, discountAmount: 0, taxAmount: 900000, totalAmount: 10900000 },
+    { id: 'Q-123', quoteNumber: '1001', version: 1, customerId: 'C1', customerName: 'شرکت آلفا', issueDate: daysAgo(2), expiryDate: daysAhead(12), status: 'تایید شده', items: [{ productId: 'P1', productName: 'سرویس پشتیبانی طلایی', quantity: 1, unitPrice: 10000000, totalPrice: 10000000, discountType: 'percent', discount: 10, totalAfterDiscount: 9000000, tax: 9, totalWithTax: 9810000 }], subtotal: 10000000, discountAmount: 1000000, taxAmount: 810000, totalAmount: 9810000 },
+    { id: 'Q-124', quoteNumber: '1002', version: 1, customerId: 'C2', customerName: 'تجارت بتا', issueDate: daysAgo(10), expiryDate: daysAhead(5), status: 'ارسال شده', items: [{ productId: 'P2', productName: 'سرویس پشتیبانی نقره‌ای', quantity: 2, unitPrice: 5000000, totalPrice: 10000000, discountType: 'amount', discount: 0, totalAfterDiscount: 10000000, tax: 9, totalWithTax: 10900000 }], subtotal: 10000000, discountAmount: 0, taxAmount: 900000, totalAmount: 10900000 },
 ];
 
 const mockInvoices: Invoice[] = [
-    { id: 'INV-001', isOfficial: true, quoteId: 'Q-123', customerId: 'C1', customerName: 'شرکت آلفا', issueDate: '1403/05/02', dueDate: new Date(Date.now() + 5 * 86400000).toISOString(), status: 'ارسال شده', items: [{ productId: 'P1', productName: 'سرویس پشتیبانی طلایی', quantity: 1, unitPrice: 10000000, totalPrice: 10000000, discountType: 'percent', discount: 10, totalAfterDiscount: 9000000, tax: 9, totalWithTax: 9810000 }], subtotal: 10000000, discountAmount: 1000000, taxAmount: 810000, totalAmount: 9810000, amountPaid: 0 },
+    { id: 'INV-001', isOfficial: true, quoteId: 'Q-123', customerId: 'C1', customerName: 'شرکت آلفا', issueDate: daysAgo(1), dueDate: daysAhead(5), status: 'ارسال شده', items: [{ productId: 'P1', productName: 'سرویس پشتیبانی طلایی', quantity: 1, unitPrice: 10000000, totalPrice: 10000000, discountType: 'percent', discount: 10, totalAfterDiscount: 9000000, tax: 9, totalWithTax: 9810000 }], subtotal: 10000000, discountAmount: 1000000, taxAmount: 810000, totalAmount: 9810000, amountPaid: 0 },
 ];
 
 const mockVendors: Vendor[] = [
@@ -124,8 +131,8 @@ const mockVendors: Vendor[] = [
 ];
 
 const mockLeads: Lead[] = [
-    { id: 'L1', contactName: 'سارا محمدی', companyName: 'فروشگاه سارا', email: 'sara@shop.com', phone: '09121112233', source: 'وبسایت', status: 'جدید', score: 85, assignedToId: 'U1', assignedTo: mockUsers[0], createdAt: '1403/05/01', converted: false },
-    { id: 'L2', contactName: 'رضا قاسمی', companyName: 'خدمات رضا', email: 'reza@service.com', phone: '09124445566', source: 'ارجاعی', status: 'واجد شرایط', score: 70, assignedToId: 'U3', assignedTo: mockUsers[1], createdAt: '1403/04/28', converted: false },
+    { id: 'L1', contactName: 'سارا محمدی', companyName: 'فروشگاه سارا', email: 'sara@shop.com', phone: '09121112233', source: 'وبسایت', status: 'جدید', score: 85, assignedToId: 'U1', assignedTo: mockUsers[0], createdAt: daysAgo(2), converted: false },
+    { id: 'L2', contactName: 'رضا قاسمی', companyName: 'خدمات رضا', email: 'reza@service.com', phone: '09124445566', source: 'ارجاعی', status: 'واجد شرایط', score: 70, assignedToId: 'U3', assignedTo: mockUsers[1], createdAt: daysAgo(5), converted: false },
 ];
 
 const initialCompanyInfo: CompanyInfo = {
@@ -172,8 +179,10 @@ const MainApp: React.FC<{
     setProducts: React.Dispatch<React.SetStateAction<Product[]>>,
     inventoryTransactions: InventoryTransaction[],
     setInventoryTransactions: React.Dispatch<React.SetStateAction<InventoryTransaction[]>>,
+    personnelRequests: PersonnelRequest[],
+    setPersonnelRequests: React.Dispatch<React.SetStateAction<PersonnelRequest[]>>,
     onLogout: () => void 
-}> = ({ user, customers, setCustomers, kbCategories, setKbCategories, kbArticles, setKbArticles, reminders, setReminders, tasks, setTasks, quotes, setQuotes, invoices, setInvoices, vendors, setVendors, purchaseOrders, setPurchaseOrders, payments, setPayments, companyInfo, setCompanyInfo, products, setProducts, inventoryTransactions, setInventoryTransactions, onLogout }) => {
+}> = ({ user, customers, setCustomers, kbCategories, setKbCategories, kbArticles, setKbArticles, reminders, setReminders, tasks, setTasks, quotes, setQuotes, invoices, setInvoices, vendors, setVendors, purchaseOrders, setPurchaseOrders, payments, setPayments, companyInfo, setCompanyInfo, products, setProducts, inventoryTransactions, setInventoryTransactions, personnelRequests, setPersonnelRequests, onLogout }) => {
   const [activePage, setActivePage] = useState<PageState>({ name: 'dashboard' });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
@@ -197,6 +206,62 @@ const MainApp: React.FC<{
     setActivePage({ name, params });
     setIsSidebarOpen(false);
   };
+
+  // --- HELPER FOR NOTIFICATIONS ---
+  const addSystemNotification = (title: string, description: string = '', sourceType: Reminder['sourceType'] = 'manual', sourceId: string = '') => {
+      const newReminder: Reminder = {
+          id: `NOTIF-${Date.now()}`,
+          userId: user.id,
+          title: title,
+          description: description,
+          dueDateTime: new Date().toISOString(),
+          isCompleted: false,
+          isRead: false,
+          isNotified: false,
+          sourceType: sourceType,
+          sourceId: sourceId,
+          createdAt: new Date().toISOString()
+      };
+      setReminders(prev => [newReminder, ...prev]);
+      setActiveNotification(newReminder);
+  };
+
+  // --- PERSONNEL LOGIC ---
+  const handleAddRequest = (requestData: Omit<PersonnelRequest, 'id' | 'status' | 'createdAt' | 'userId' | 'managerId'>) => {
+      const newRequest: PersonnelRequest = {
+          id: `PR-${Date.now()}`,
+          userId: user.id,
+          user: user,
+          managerId: user.managerId, // Request goes to the manager
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+          ...requestData
+      };
+      setPersonnelRequests(prev => [newRequest, ...prev]);
+      
+      // Notify Manager (Mock)
+      if (user.managerId) {
+          // Ideally find the manager user object and trigger something, here we just simulate
+          console.log(`Notification sent to manager ${user.managerId}`);
+      }
+  };
+
+  const handleUpdateRequestStatus = (requestId: string, status: RequestStatus) => {
+      setPersonnelRequests(prev => prev.map(req => {
+          if (req.id === requestId) {
+              return { ...req, status: status };
+          }
+          return req;
+      }));
+      
+      // Notify requester
+      const req = personnelRequests.find(r => r.id === requestId);
+      if (req) {
+          const statusText = status === 'approved' ? 'تایید' : 'رد';
+          addSystemNotification(`درخواست ${statusText} شد`, `درخواست ${req.type} شما توسط مدیر ${statusText} شد.`, 'manual', requestId);
+      }
+  };
+
 
   // --- INVENTORY LOGIC ---
   const registerInventoryMovement = (
@@ -344,13 +409,27 @@ const MainApp: React.FC<{
 
   const saveTaskFromModal = (data: Omit<Task, 'id' | 'createdAt'>) => {
       if (activeTaskModal.editingTask) {
-          handleUpdateTask({ ...activeTaskModal.editingTask, ...data });
+          const oldTask = activeTaskModal.editingTask;
+          handleUpdateTask({ ...oldTask, ...data });
+          
+          // Notification: Task Re-assigned
+          if (oldTask.assignedTo.id !== data.assignedTo.id) {
+              addSystemNotification(`تغییر مسئول وظیفه: "${data.title}"`, `وظیفه به ${data.assignedTo.name} محول شد.`, 'task', oldTask.id);
+          }
       } else {
           handleAddTask(data);
+          // Notification: New Task Assigned
+          addSystemNotification(`وظیفه جدید: "${data.title}"`, `وظیفه جدیدی برای ${data.assignedTo.name} ایجاد شد.`, 'task');
       }
   };
   
   const handleUpdateTicket = (updatedTicket: Ticket) => {
+      // Check for assignee change
+      const oldTicket = tickets.find(t => t.id === updatedTicket.id);
+      if (oldTicket && oldTicket.assigneeId !== updatedTicket.assigneeId && updatedTicket.assignee) {
+          addSystemNotification(`تیکت ${updatedTicket.id} ارجاع شد`, `تیکت "${updatedTicket.subject}" به ${updatedTicket.assignee.name} ارجاع داده شد.`, 'manual', updatedTicket.id);
+      }
+
       setTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
   };
 
@@ -491,6 +570,7 @@ const MainApp: React.FC<{
     payments: 'امور مالی (دریافت و پرداخت)',
     vendors: 'تامین‌کنندگان',
     purchaseOrders: 'سفارشات خرید',
+    personnel: 'امور پرسنلی و مرخصی',
     chat: 'چت تیمی',
     reports: 'گزارش‌ها',
     settings: 'تنظیمات',
@@ -605,6 +685,13 @@ const MainApp: React.FC<{
       }
       case 'payments':
           return <PaymentsList payments={payments} onRegisterPayment={() => setIsPaymentModalOpen(true)} />;
+      case 'personnel':
+          return <Personnel 
+              currentUser={user}
+              requests={personnelRequests}
+              onAddRequest={handleAddRequest}
+              onUpdateRequestStatus={handleUpdateRequestStatus}
+          />;
       case 'chat':
         return <Chat 
             currentUser={user}
@@ -743,6 +830,7 @@ const App: React.FC = () => {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>(initialCompanyInfo);
+  const [personnelRequests, setPersonnelRequests] = useState<PersonnelRequest[]>([]);
   
   // Products State (Shared for PO and Quotes, now with Stock)
   const [products, setProducts] = useState<Product[]>([
@@ -767,8 +855,14 @@ const App: React.FC = () => {
         if (auth.type === 'user') {
             // Initial Data Fetching Logic
             setReminders([
-                { id: 'R1', userId: auth.entity!.id, title: 'تماس با شرکت آلفا', description: 'پیگیری قرارداد جدید', dueDateTime: new Date(Date.now() + 3600000).toISOString(), isCompleted: false, isRead: false, isNotified: false, sourceType: 'manual', createdAt: new Date().toISOString() },
-                 { id: 'R2', userId: auth.entity!.id, title: 'ارسال فاکتور بتا', description: '', dueDateTime: new Date(Date.now() - 86400000).toISOString(), isCompleted: false, isRead: false, isNotified: true, sourceType: 'manual', createdAt: new Date().toISOString() }
+                { id: 'R1', userId: auth.entity!.id, title: 'تماس با شرکت آلفا', description: 'پیگیری قرارداد جدید', dueDateTime: daysAhead(1), isCompleted: false, isRead: false, isNotified: false, sourceType: 'manual', createdAt: new Date().toISOString() },
+                 { id: 'R2', userId: auth.entity!.id, title: 'ارسال فاکتور بتا', description: '', dueDateTime: daysAgo(1), isCompleted: false, isRead: false, isNotified: true, sourceType: 'manual', createdAt: new Date().toISOString() }
+            ]);
+            
+            // Mock Personnel Data
+            setPersonnelRequests([
+                { id: 'PR1', userId: 'U2', user: mockUsers[1], managerId: 'U1', type: 'leave_hourly', startDate: new Date().toISOString(), startTime: '08:00', endTime: '10:00', description: 'کار اداری', status: 'pending', createdAt: daysAgo(1) },
+                { id: 'PR2', userId: 'U3', user: mockUsers[2], managerId: 'U1', type: 'mission', startDate: daysAhead(2), description: 'جلسه با مشتری', destination: 'اصفهان', status: 'approved', createdAt: daysAgo(2) }
             ]);
         }
     }, [auth]);
@@ -863,6 +957,8 @@ const App: React.FC = () => {
             setProducts={setProducts}
             inventoryTransactions={inventoryTransactions}
             setInventoryTransactions={setInventoryTransactions}
+            personnelRequests={personnelRequests}
+            setPersonnelRequests={setPersonnelRequests}
             onLogout={handleLogout} 
         />;
 };

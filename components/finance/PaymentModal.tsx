@@ -2,6 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Payment, Customer, Vendor, Invoice, PurchaseOrder, PaymentMethod, PaymentType } from '../../types';
 import { XMarkIcon } from '../icons/XMarkIcon';
+import DatePicker from "react-multi-date-picker";
+import persian from "react-date-object/calendars/persian";
+import persian_fa from "react-date-object/locales/persian_fa";
+import { toIsoDate } from '../../utils/date';
 
 interface PaymentModalProps {
     isOpen: boolean;
@@ -19,7 +23,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSave, cu
     const [partyId, setPartyId] = useState('');
     const [referenceId, setReferenceId] = useState('');
     const [amount, setAmount] = useState<number>(0);
-    const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+    const [date, setDate] = useState(new Date().toISOString());
     const [method, setMethod] = useState<PaymentMethod>('واریز بانکی');
     const [description, setDescription] = useState('');
 
@@ -31,6 +35,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSave, cu
             setReferenceId('');
             setAmount(0);
             setDescription('');
+            setDate(new Date().toISOString());
         }
     }, [isOpen]);
 
@@ -140,7 +145,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSave, cu
                         <div className="grid grid-cols-2 gap-4">
                              <div>
                                 <label className="block mb-2 text-sm font-medium">تاریخ</label>
-                                <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required />
+                                <DatePicker 
+                                    value={new Date(date)}
+                                    onChange={(d) => setDate(toIsoDate(d))}
+                                    calendar={persian}
+                                    locale={persian_fa}
+                                    calendarPosition="top-right"
+                                    inputClass="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                                />
                             </div>
                              <div>
                                 <label className="block mb-2 text-sm font-medium">روش پرداخت</label>

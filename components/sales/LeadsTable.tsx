@@ -1,15 +1,18 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
-import { Lead, LeadStatus, LeadSource, User } from '../../types';
+import { Lead, LeadStatus, User } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
 import { SearchIcon } from '../icons/SearchIcon';
 import { PencilIcon } from '../icons/PencilIcon';
 import { TrashIcon } from '../icons/TrashIcon';
-import { ChevronLeftIcon } from '../icons/ChevronLeftIcon';
-import { ChevronRightIcon } from '../icons/ChevronRightIcon';
 import { XMarkIcon } from '../icons/XMarkIcon';
 import { LightBulbIcon } from '../icons/LightBulbIcon';
 import { CheckBadgeIcon } from '../icons/CheckBadgeIcon';
 import { ArrowPathIcon } from '../icons/ArrowPathIcon';
+import { toShamsi, toIsoDate } from '../../utils/date';
+import DatePicker from "react-multi-date-picker";
+import persian from "react-date-object/calendars/persian";
+import persian_fa from "react-date-object/locales/persian_fa";
 
 const statusColors: { [key in LeadStatus]: string } = {
     'جدید': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
@@ -30,7 +33,7 @@ const initialLeadState: Omit<Lead, 'id' | 'assignedTo'> = {
     status: 'جدید',
     score: 50,
     assignedToId: '',
-    createdAt: new Date().toLocaleDateString('fa-IR-u-nu-latn'),
+    createdAt: new Date().toISOString(),
     converted: false,
 };
 
@@ -62,9 +65,9 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ leads, onConvertLead, onAddLead
         if (editingLead) {
             setLeadFormData(editingLead);
         } else {
-            setLeadFormData(initialLeadState);
+            setLeadFormData({ ...initialLeadState, createdAt: new Date().toISOString() });
         }
-    }, [editingLead]);
+    }, [editingLead, isPanelOpen]);
 
     const filteredLeads = useMemo(() =>
         leads.filter(lead =>
@@ -72,7 +75,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ leads, onConvertLead, onAddLead
             (lead.companyName || '').toLowerCase().includes(searchTerm.toLowerCase())) &&
             (statusFilter === 'all' || lead.status === statusFilter) &&
             (sourceFilter === 'all' || lead.source === sourceFilter)
-        ).sort((a, b) => new Date(b.createdAt.replace(/(\d{4})\/(\d{2})\/(\d{2})/, '$1-$2-$3')).getTime() - new Date(a.createdAt.replace(/(\d{4})\/(\d{2})\/(\d{2})/, '$1-$2-$3')).getTime()),
+        ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
         [searchTerm, statusFilter, sourceFilter, leads]
     );
 
@@ -160,6 +163,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ leads, onConvertLead, onAddLead
                             <th scope="col" className="px-4 py-3">منبع</th>
                             <th scope="col" className="px-4 py-3 text-center">امتیاز</th>
                             <th scope="col" className="px-4 py-3">کارشناس</th>
+                            <th scope="col" className="px-4 py-3">تاریخ ایجاد</th>
                             <th scope="col" className="px-4 py-3 text-center">وضعیت</th>
                             <th scope="col" className="px-4 py-3 text-center">عملیات</th>
                         </tr>
@@ -172,6 +176,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ leads, onConvertLead, onAddLead
                                 <td className="px-4 py-3">{lead.source}</td>
                                 <td className="px-4 py-3 text-center">{lead.score}</td>
                                 <td className="px-4 py-3">{lead.assignedTo?.name}</td>
+                                <td className="px-4 py-3 text-xs">{toShamsi(lead.createdAt)}</td>
                                 <td className="px-4 py-3 text-center">
                                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[lead.status]}`}>{lead.status}</span>
                                 </td>
@@ -237,6 +242,17 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ leads, onConvertLead, onAddLead
                                 <select name="status" value={leadFormData.status} onChange={handleFormChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700">
                                     {Object.keys(statusColors).map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
+                            </div>
+                            <div>
+                                <label className="block mb-2 text-sm">تاریخ ایجاد / پیگیری</label>
+                                <DatePicker 
+                                    value={leadFormData.createdAt ? new Date(leadFormData.createdAt) : new Date()}
+                                    onChange={(date) => setLeadFormData(prev => ({ ...prev, createdAt: toIsoDate(date) }))}
+                                    calendar={persian}
+                                    locale={persian_fa}
+                                    calendarPosition="bottom-right"
+                                    inputClass="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700"
+                                />
                             </div>
                             <div>
                                 <label htmlFor="assignedToId" className="block mb-2 text-sm">کارشناس</label>

@@ -9,6 +9,7 @@ import { CheckCircleIcon } from '../icons/CheckCircleIcon';
 import { ChatBubbleLeftRightIcon } from '../icons/ChatBubbleLeftRightIcon';
 import { ClipboardDocumentListIcon } from '../icons/ClipboardDocumentListIcon';
 import { ClipboardDocumentCheckIcon } from '../icons/ClipboardDocumentCheckIcon';
+import { toShamsi } from '../../utils/date';
 
 interface RemindersPageProps {
     reminders: Reminder[];
@@ -48,8 +49,8 @@ const Reminders: React.FC<RemindersPageProps> = ({ reminders, onAddReminder, onE
         const now = new Date();
         const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
         
-        const timeStr = date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
-        const dateStr = date.toLocaleDateString('fa-IR', { weekday: 'long', day: 'numeric', month: 'long' });
+        const timeStr = toShamsi(isoString, "HH:mm");
+        const dateStr = toShamsi(isoString, "dddd DD MMMM");
 
         return (
             <div className="flex flex-col items-end">

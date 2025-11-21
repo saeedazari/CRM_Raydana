@@ -6,14 +6,18 @@ import { ArrowRightIcon } from '../icons/ArrowRightIcon';
 import { DocumentDuplicateIcon } from '../icons/DocumentDuplicateIcon';
 import { PrinterIcon } from '../icons/PrinterIcon';
 import PrintableDocument from '../print/PrintableDocument';
+import DatePicker from "react-multi-date-picker";
+import persian from "react-date-object/calendars/persian";
+import persian_fa from "react-date-object/locales/persian_fa";
+import { toShamsi } from '../../utils/date';
 
 const initialQuoteState: Omit<Quote, 'id'> = {
     quoteNumber: '',
     version: 1,
     customerId: '',
     customerName: '',
-    issueDate: new Date().toLocaleDateString('fa-IR-u-nu-latn'),
-    expiryDate: new Date(new Date().setDate(new Date().getDate() + 14)).toLocaleDateString('fa-IR-u-nu-latn'),
+    issueDate: toShamsi(new Date()),
+    expiryDate: toShamsi(new Date(new Date().setDate(new Date().getDate() + 14))),
     status: 'پیش‌نویس',
     items: [],
     subtotal: 0,
@@ -37,13 +41,11 @@ const QuoteEditor: React.FC<{
     const [isPrintOpen, setIsPrintOpen] = useState(false);
     const [initialQuoteSnapshot, setInitialQuoteSnapshot] = useState<string>('');
 
-    // Capture initial state for comparison
     useEffect(() => {
         setInitialQuoteSnapshot(JSON.stringify(quoteData || initialQuoteState));
-    }, []); // Run once on mount
+    }, []);
     
     useEffect(() => {
-        // Recalculate totals whenever items change
         let newSubtotal = 0;
         let newDiscountAmount = 0;
         let newTaxAmount = 0;
@@ -72,9 +74,6 @@ const QuoteEditor: React.FC<{
             };
         });
 
-        // Only update state if values actually change to avoid infinite loop, 
-        // but here we rely on `items` change trigger.
-        // We need to update the parent quote object's summary fields
         setQuote(q => ({
             ...q,
             items: updatedItems,
@@ -83,9 +82,8 @@ const QuoteEditor: React.FC<{
             taxAmount: newTaxAmount,
             totalAmount: newSubtotal - newDiscountAmount + newTaxAmount
         }));
-    }, [items]); // Logic runs when 'items' structural changes or quantity/price/etc inside them changes (if reference changes)
+    }, [items]);
 
-    // Need a separate handler to update specific item fields without triggering full re-calc loop prematurely
     const handleItemChange = (index: number, field: keyof QuoteItem, value: any) => {
         const newItems = [...items];
         const item = { ...newItems[index] };
@@ -197,11 +195,27 @@ const QuoteEditor: React.FC<{
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">تاریخ صدور</label>
-                        <input type="text" value={quote.issueDate} placeholder="مثلا: 1403/05/01" onChange={e => setQuote({...quote, issueDate: e.target.value})} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white" disabled={isQuoteApproved} />
+                        <DatePicker 
+                            value={quote.issueDate}
+                            onChange={(date) => setQuote({...quote, issueDate: date?.toString() || ''})}
+                            calendar={persian}
+                            locale={persian_fa}
+                            calendarPosition="bottom-right"
+                            inputClass="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white"
+                            disabled={isQuoteApproved}
+                        />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">تاریخ انقضا</label>
-                        <input type="text" value={quote.expiryDate} placeholder="مثلا: 1403/05/15" onChange={e => setQuote({...quote, expiryDate: e.target.value})} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white" disabled={isQuoteApproved} />
+                        <DatePicker 
+                            value={quote.expiryDate}
+                            onChange={(date) => setQuote({...quote, expiryDate: date?.toString() || ''})}
+                            calendar={persian}
+                            locale={persian_fa}
+                            calendarPosition="bottom-right"
+                            inputClass="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white"
+                            disabled={isQuoteApproved}
+                        />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">وضعیت</label>

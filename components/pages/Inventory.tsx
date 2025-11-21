@@ -8,6 +8,10 @@ import { ArrowDownIcon } from '../icons/ArrowDownIcon';
 import { ArrowUpIcon } from '../icons/ArrowUpIcon';
 import { XMarkIcon } from '../icons/XMarkIcon';
 import { EyeIcon } from '../icons/EyeIcon';
+import DatePicker from "react-multi-date-picker";
+import persian from "react-date-object/calendars/persian";
+import persian_fa from "react-date-object/locales/persian_fa";
+import { toShamsi, toIsoDate } from '../../utils/date';
 
 interface InventoryProps {
     products: Product[];
@@ -31,7 +35,7 @@ const Inventory: React.FC<InventoryProps> = ({ products, transactions, onAddTran
         productId: '',
         type: 'receipt',
         quantity: 1,
-        date: new Date().toISOString().slice(0, 10),
+        date: new Date().toISOString(),
         description: ''
     });
 
@@ -68,7 +72,7 @@ const Inventory: React.FC<InventoryProps> = ({ products, transactions, onAddTran
             productId: '',
             type: 'receipt',
             quantity: 1,
-            date: new Date().toISOString().slice(0, 10),
+            date: new Date().toISOString(),
             description: ''
         });
     };
@@ -211,12 +215,13 @@ const Inventory: React.FC<InventoryProps> = ({ products, transactions, onAddTran
                             </div>
                             <div>
                                 <label className="block text-sm font-medium mb-1">تاریخ</label>
-                                <input 
-                                    type="date" 
-                                    value={newTransaction.date} 
-                                    onChange={e => setNewTransaction({...newTransaction, date: e.target.value})} 
-                                    className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                                    required
+                                <DatePicker 
+                                    value={new Date(newTransaction.date)}
+                                    onChange={(d) => setNewTransaction(prev => ({...prev, date: toIsoDate(d)}))}
+                                    calendar={persian}
+                                    locale={persian_fa}
+                                    calendarPosition="top-right"
+                                    inputClass="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
                                 />
                             </div>
                         </div>
@@ -271,7 +276,7 @@ const Inventory: React.FC<InventoryProps> = ({ products, transactions, onAddTran
                                     const isAdd = ['receipt', 'sales_return'].includes(t.type);
                                     return (
                                         <tr key={t.id} className="border-b dark:border-gray-700">
-                                            <td className="px-2 py-3">{new Date(t.date).toLocaleDateString('fa-IR')}</td>
+                                            <td className="px-2 py-3">{toShamsi(t.date)}</td>
                                             <td className="px-2 py-3">
                                                 <span className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs w-fit ${typeInfo.color}`}>
                                                     {getTypeIcon(t.type)}

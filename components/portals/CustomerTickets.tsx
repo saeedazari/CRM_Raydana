@@ -10,6 +10,7 @@ import SatisfactionSurvey from './SatisfactionSurvey';
 import { LockClosedIcon } from '../icons/LockClosedIcon';
 import AttachmentList from '../AttachmentList';
 import FileUploader from '../FileUploader';
+import { toShamsi } from '../../utils/date';
 
 // Re-defining colors here to keep component self-contained
 const statusColors: { [key in TicketStatus]: string } = {
@@ -61,7 +62,7 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; onUpdate:
             authorName: ticket.customer.name,
             authorType: 'Customer',
             text: newReply,
-            createdAt: new Date().toLocaleString('fa-IR-u-nu-latn'),
+            createdAt: new Date().toISOString(),
             isInternal: false,
             attachments: attachments,
         };
@@ -99,7 +100,7 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; onUpdate:
                                             <AttachmentList attachments={ticket.attachments} readonly={true} />
                                         </div>
                                      )}
-                                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{new Date(ticket.createdAt).toLocaleDateString('fa-IR')}</p>
+                                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{toShamsi(ticket.createdAt, "YYYY/MM/DD HH:mm")}</p>
                                  </div>
                              </div>
                          )}
@@ -119,7 +120,7 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; onUpdate:
                                             <AttachmentList attachments={reply.attachments} readonly={true} />
                                         </div>
                                     )}
-                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{reply.createdAt}</p>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{toShamsi(reply.createdAt, "YYYY/MM/DD HH:mm")}</p>
                                 </div>
                                 {reply.authorType === 'Customer' && <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center font-bold text-sm order-2">{ticket.customer.name.charAt(0)}</div>}
                             </div>
@@ -188,7 +189,7 @@ const CustomerTickets: React.FC<CustomerTicketsProps> = ({ customer, tickets, on
     onAddTicket({ 
         ...newTicket, 
         customerId: customer.id, 
-        createdAt: new Date().toLocaleDateString('fa-IR-u-nu-latn'),
+        createdAt: new Date().toISOString(),
         attachments: newTicketAttachments // Pass attachments to the parent handler
     } as any);
     closePanel();
@@ -255,7 +256,7 @@ const CustomerTickets: React.FC<CustomerTicketsProps> = ({ customer, tickets, on
                       <tr key={ticket.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                           <td className={`px-4 py-3 font-medium text-gray-900 dark:text-white border-r-4 ${priorityColors[ticket.priority]}`}>{ticket.id}</td>
                           <td className="px-4 py-3">{ticket.subject}</td>
-                          <td className="px-4 py-3">{ticket.createdAt}</td>
+                          <td className="px-4 py-3">{toShamsi(ticket.createdAt)}</td>
                           <td className="px-4 py-3 text-center">
                               <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[ticket.status]}`}>{ticket.status}</span>
                           </td>

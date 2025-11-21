@@ -5,12 +5,16 @@ import { TrashIcon } from '../icons/TrashIcon';
 import { ArrowRightIcon } from '../icons/ArrowRightIcon';
 import { PrinterIcon } from '../icons/PrinterIcon';
 import PrintableDocument from '../print/PrintableDocument';
+import DatePicker from "react-multi-date-picker";
+import persian from "react-date-object/calendars/persian";
+import persian_fa from "react-date-object/locales/persian_fa";
+import { toShamsi } from '../../utils/date';
 
 const initialInvoiceState: Omit<Invoice, 'id'> = {
     customerId: '',
     customerName: '',
-    issueDate: new Date().toLocaleDateString('fa-IR-u-nu-latn'),
-    dueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toLocaleDateString('fa-IR-u-nu-latn'),
+    issueDate: toShamsi(new Date()),
+    dueDate: toShamsi(new Date(new Date().setDate(new Date().getDate() + 30))),
     status: 'پیش‌نویس',
     isOfficial: false,
     items: [],
@@ -150,7 +154,7 @@ const InvoiceEditor: React.FC<{
                 quoteId: selectedQuote.id,
                 customerId: selectedQuote.customerId,
                 customerName: customer?.name || '',
-                items: selectedQuote.items, // Assuming structure is compatible or mapped
+                items: selectedQuote.items, 
                 subtotal: selectedQuote.subtotal,
                 discountAmount: selectedQuote.discountAmount,
                 taxAmount: selectedQuote.taxAmount,
@@ -210,11 +214,25 @@ const InvoiceEditor: React.FC<{
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">تاریخ صدور</label>
-                        <input type="text" value={invoice.issueDate} placeholder="مثلا: 1403/05/01" onChange={e => setInvoice({...invoice, issueDate: e.target.value})} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white" />
+                        <DatePicker 
+                            value={invoice.issueDate}
+                            onChange={(date) => setInvoice({...invoice, issueDate: date?.toString() || ''})}
+                            calendar={persian}
+                            locale={persian_fa}
+                            calendarPosition="bottom-right"
+                            inputClass="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">تاریخ سررسید</label>
-                        <input type="text" value={invoice.dueDate} placeholder="مثلا: 1403/06/01" onChange={e => setInvoice({...invoice, dueDate: e.target.value})} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white" />
+                        <DatePicker 
+                            value={invoice.dueDate}
+                            onChange={(date) => setInvoice({...invoice, dueDate: date?.toString() || ''})}
+                            calendar={persian}
+                            locale={persian_fa}
+                            calendarPosition="bottom-right"
+                            inputClass="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
                     </div>
                 </div>
 

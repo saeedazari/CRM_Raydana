@@ -17,7 +17,7 @@ const initialNewChannelState: Omit<ChatChannel, 'id' | 'members'> = {
 };
 
 const ChannelManagement: React.FC<ChannelManagementProps> = ({ channels, setChannels, users }) => {
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isPanelOpen, setIsPanelOpen] = useState(false);
     const [isEditing, setIsEditing] = useState<ChatChannel | null>(null);
     const [newChannel, setNewChannel] = useState(initialNewChannelState);
     const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
@@ -43,10 +43,10 @@ const ChannelManagement: React.FC<ChannelManagementProps> = ({ channels, setChan
             };
             setChannels(prev => [...prev, newChannelWithId]);
         }
-        closeModal();
+        closePanel();
     };
 
-    const openModal = (channel: ChatChannel | null = null) => {
+    const openPanel = (channel: ChatChannel | null = null) => {
         if (channel) {
             setIsEditing(channel);
             setNewChannel({ name: channel.name, description: channel.description });
@@ -56,11 +56,11 @@ const ChannelManagement: React.FC<ChannelManagementProps> = ({ channels, setChan
             setNewChannel(initialNewChannelState);
             setSelectedMembers([]);
         }
-        setIsModalOpen(true);
+        setIsPanelOpen(true);
     };
 
-    const closeModal = () => {
-        setIsModalOpen(false);
+    const closePanel = () => {
+        setIsPanelOpen(false);
         setIsEditing(null);
     };
 
@@ -74,7 +74,7 @@ const ChannelManagement: React.FC<ChannelManagementProps> = ({ channels, setChan
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold">مدیریت گروه‌های چت</h2>
-                <button onClick={() => openModal()} className="flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                <button onClick={() => openPanel()} className="flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
                     <PlusIcon className="w-5 h-5 ml-2" />
                     <span>گروه جدید</span>
                 </button>
@@ -97,56 +97,59 @@ const ChannelManagement: React.FC<ChannelManagementProps> = ({ channels, setChan
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button onClick={() => openModal(channel)} className="p-2 text-gray-500 hover:text-indigo-600"><PencilIcon className="w-5 h-5" /></button>
+                            <button onClick={() => openPanel(channel)} className="p-2 text-gray-500 hover:text-indigo-600"><PencilIcon className="w-5 h-5" /></button>
                             <button className="p-2 text-gray-500 hover:text-red-600"><TrashIcon className="w-5 h-5" /></button>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {isModalOpen && (
-                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50" onClick={closeModal}>
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg m-4" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
-                            <h3 className="text-lg font-semibold">{isEditing ? 'ویرایش گروه' : 'ایجاد گروه جدید'}</h3>
-                            <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><XMarkIcon className="w-6 h-6" /></button>
-                        </div>
-                        <form onSubmit={handleAddChannel}>
-                            <div className="p-6 space-y-4">
-                                <div>
-                                    <label htmlFor="name" className="block mb-2 text-sm font-medium">نام گروه</label>
-                                    <input type="text" name="name" id="name" value={newChannel.name} onChange={(e) => setNewChannel({...newChannel, name: e.target.value})} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" required />
-                                </div>
-                                <div>
-                                    <label htmlFor="description" className="block mb-2 text-sm font-medium">توضیحات</label>
-                                    <input type="text" name="description" id="description" value={newChannel.description} onChange={(e) => setNewChannel({...newChannel, description: e.target.value})} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" />
-                                </div>
-                                <div>
-                                    <h4 className="block mb-2 text-sm font-medium">افزودن اعضا</h4>
-                                    <div className="max-h-48 overflow-y-auto border dark:border-gray-600 rounded-lg p-2 space-y-2">
-                                        {users.map(user => (
-                                            <label key={user.id} className="flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
-                                                <input
-                                                    type="checkbox"
-                                                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                                    checked={selectedMembers.includes(user.id)}
-                                                    onChange={() => handleMemberToggle(user.id)}
-                                                />
-                                                <img src={user.avatar} className="w-6 h-6 rounded-full mr-3 ml-2" />
-                                                <span className="text-sm text-gray-700 dark:text-gray-300">{user.name}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-end p-4 border-t dark:border-gray-700">
-                                <button type="button" onClick={closeModal} className="px-4 py-2 ml-3 text-sm font-medium text-gray-700 bg-white border rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400">انصراف</button>
-                                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">ذخیره</button>
-                            </div>
-                        </form>
+            {/* Side Panel (Drawer) */}
+            <div className={`fixed inset-0 z-50 ${isPanelOpen ? '' : 'pointer-events-none'}`}>
+                <div className={`absolute inset-0 bg-black transition-opacity duration-300 ${isPanelOpen ? 'bg-opacity-50' : 'bg-opacity-0'}`} onClick={closePanel}></div>
+                <div className={`absolute inset-y-0 left-0 bg-white dark:bg-gray-800 h-full w-full max-w-md shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out ${isPanelOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                    <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{isEditing ? 'ویرایش گروه' : 'ایجاد گروه جدید'}</h3>
+                        <button onClick={closePanel} className="p-1 rounded-full text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700">
+                            <XMarkIcon className="w-6 h-6" />
+                        </button>
                     </div>
+                    
+                    <form onSubmit={handleAddChannel} className="flex flex-col flex-grow overflow-hidden">
+                        <div className="p-6 space-y-6 overflow-y-auto flex-grow">
+                            <div>
+                                <label htmlFor="name" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">نام گروه</label>
+                                <input type="text" name="name" id="name" value={newChannel.name} onChange={(e) => setNewChannel({...newChannel, name: e.target.value})} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required />
+                            </div>
+                            <div>
+                                <label htmlFor="description" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">توضیحات</label>
+                                <input type="text" name="description" id="description" value={newChannel.description} onChange={(e) => setNewChannel({...newChannel, description: e.target.value})} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
+                            </div>
+                            <div>
+                                <h4 className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">افزودن اعضا</h4>
+                                <div className="max-h-64 overflow-y-auto border dark:border-gray-600 rounded-lg p-2 space-y-2">
+                                    {users.map(user => (
+                                        <label key={user.id} className="flex items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                checked={selectedMembers.includes(user.id)}
+                                                onChange={() => handleMemberToggle(user.id)}
+                                            />
+                                            <img src={user.avatar} className="w-8 h-8 rounded-full mr-3 ml-2" />
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">{user.name}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-end p-4 border-t dark:border-gray-700">
+                            <button type="button" onClick={closePanel} className="px-4 py-2 ml-3 text-sm font-medium text-gray-700 bg-white border rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700">انصراف</button>
+                            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">ذخیره</button>
+                        </div>
+                    </form>
                 </div>
-            )}
+            </div>
         </div>
     );
 };

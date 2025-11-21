@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { User, ChatChannel, ChatMessage, Attachment } from '../../types';
 import { XMarkIcon } from '../icons/XMarkIcon';
@@ -8,6 +7,7 @@ import { ClipboardDocumentCheckIcon } from '../icons/ClipboardDocumentCheckIcon'
 import { ClockIcon } from '../icons/ClockIcon';
 import { PaperClipIcon } from '../icons/PaperClipIcon';
 import AttachmentList from '../AttachmentList';
+import { toShamsi } from '../../utils/date';
 
 const renderMessageText = (text: string, users: User[]) => {
   const userNames = users.map(u => u.name);
@@ -45,11 +45,11 @@ const Message: React.FC<{ message: ChatMessage; onOpenThread: (message: ChatMess
         <div className={messageContainerClasses}>
             <img src={message.user.avatar} alt={message.user.name} className="w-10 h-10 rounded-full" />
             <div className="flex-1">
-                <div className="flex items-baseline">
-                    <span className="font-bold mr-2 text-gray-800 dark:text-gray-100">{message.user.name}</span>
-                    <span className="text-xs text-gray-400 dark:text-gray-500">{new Date(message.timestamp).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit'})}</span>
+                <div className="flex items-baseline gap-2">
+                    <span className="font-bold text-gray-800 dark:text-gray-100">{message.user.name}</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 dir-ltr">{toShamsi(message.timestamp, "YYYY/MM/DD HH:mm")}</span>
                 </div>
-                <div className="text-gray-700 dark:text-gray-300 break-words">{renderMessageText(message.text, users)}</div>
+                <div className="text-gray-700 dark:text-gray-300 break-words mt-1">{renderMessageText(message.text, users)}</div>
                  {message.attachments && message.attachments.length > 0 && (
                     <div className="mt-2">
                         <AttachmentList attachments={message.attachments} readonly={true} />
@@ -111,8 +111,11 @@ const ThreadView: React.FC<{ message: ChatMessage; onClose: () => void; onAddRep
                 <div className="flex items-start space-i-3 py-2">
                     <img src={message.user.avatar} alt={message.user.name} className="w-10 h-10 rounded-full" />
                     <div className="flex-1">
-                        <div className="flex items-baseline"><span className="font-bold mr-2">{message.user.name}</span><span className="text-xs text-gray-400">{new Date(message.timestamp).toLocaleTimeString('fa-IR')}</span></div>
-                        <p>{renderMessageText(message.text, users)}</p>
+                        <div className="flex items-baseline gap-2">
+                            <span className="font-bold">{message.user.name}</span>
+                            <span className="text-xs text-gray-400">{toShamsi(message.timestamp, "YYYY/MM/DD HH:mm")}</span>
+                        </div>
+                        <p className="mt-1">{renderMessageText(message.text, users)}</p>
                         {message.attachments && message.attachments.length > 0 && (
                             <div className="mt-2">
                                 <AttachmentList attachments={message.attachments} readonly={true} />
@@ -125,8 +128,11 @@ const ThreadView: React.FC<{ message: ChatMessage; onClose: () => void; onAddRep
                      <div key={replyMsg.id} className="flex items-start space-i-3 py-2">
                         <img src={replyMsg.user.avatar} alt={replyMsg.user.name} className="w-8 h-8 rounded-full" />
                         <div className="flex-1">
-                            <div className="flex items-baseline"><span className="font-bold mr-2 text-sm">{replyMsg.user.name}</span><span className="text-xs text-gray-400">{new Date(replyMsg.timestamp).toLocaleTimeString('fa-IR')}</span></div>
-                            <p className="text-sm">{renderMessageText(replyMsg.text, users)}</p>
+                            <div className="flex items-baseline gap-2">
+                                <span className="font-bold text-sm">{replyMsg.user.name}</span>
+                                <span className="text-xs text-gray-400">{toShamsi(replyMsg.timestamp, "YYYY/MM/DD HH:mm")}</span>
+                            </div>
+                            <p className="text-sm mt-1">{renderMessageText(replyMsg.text, users)}</p>
                         </div>
                     </div>
                 ))}

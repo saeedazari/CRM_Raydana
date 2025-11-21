@@ -14,6 +14,7 @@ import { LockClosedIcon } from '../icons/LockClosedIcon';
 import { PaperClipIcon } from '../icons/PaperClipIcon';
 import AttachmentList from '../AttachmentList';
 import FileUploader from '../FileUploader';
+import { toShamsi } from '../../utils/date';
 
 const statusColors: { [key in TicketStatus]: string } = {
   'جدید': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
@@ -73,7 +74,7 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; users: Us
             authorType: 'User',
             authorName: currentUser.name,
             authorAvatar: currentUser.avatar,
-            createdAt: new Date().toLocaleString('fa-IR'),
+            createdAt: new Date().toISOString(),
             attachments: attachments
         };
         const updatedTicket = { ...ticket, replies: [...(ticket.replies || []), reply] };
@@ -132,7 +133,7 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; users: Us
                                             <AttachmentList attachments={ticket.attachments} readonly={true} />
                                         </div>
                                      )}
-                                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{new Date(ticket.createdAt).toLocaleDateString('fa-IR')}</p>
+                                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{toShamsi(ticket.createdAt, "YYYY/MM/DD HH:mm")}</p>
                                  </div>
                              </div>
                          )}
@@ -157,7 +158,7 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; users: Us
                                             <AttachmentList attachments={reply.attachments} readonly={true} />
                                         </div>
                                     )}
-                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{new Date(reply.createdAt).toLocaleDateString('fa-IR', { hour: '2-digit', minute: '2-digit' })}</p>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{toShamsi(reply.createdAt, "YYYY/MM/DD HH:mm")}</p>
                                 </div>
                                 {reply.authorType === 'Customer' && <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center font-bold text-sm order-2">{ticket.customer.name.charAt(0)}</div>}
                             </div>
@@ -177,7 +178,7 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; users: Us
                         <div className="flex justify-between"><span>کارشناس:</span><span className="font-semibold">{ticket.assignee?.name || 'تخصیص نیافته'}</span></div>
                         <div className="flex justify-between"><span>اولویت:</span><span className="font-semibold">{ticket.priority}</span></div>
                         <div className="flex justify-between"><span>دسته‌بندی:</span><span className="font-semibold">{ticket.category}</span></div>
-                        <div className="flex justify-between"><span>تاریخ ایجاد:</span><span className="font-semibold">{new Date(ticket.createdAt).toLocaleDateString('fa-IR')}</span></div>
+                        <div className="flex justify-between"><span>تاریخ ایجاد:</span><span className="font-semibold">{toShamsi(ticket.createdAt)}</span></div>
                     </div>
                     <div className="border-t pt-4 space-y-3">
                          <div className="flex justify-between items-center">
@@ -227,9 +228,12 @@ const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) 
       { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
       { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
     ];
+    // Mock data usually fetched from API
     const mockTickets: Ticket[] = [
-        { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', description: 'کاربر اعلام کرده نمی‌تواند وارد پنل شود.', customer: customers[0] || {id: 'C1', name: 'مشتری نمونه', contacts: []}, customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'در حال بررسی', priority: 'بالا', createdAt: '1403/05/01', category: 'فنی', replies: [
-            {id: 'R1', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', text: 'در حال بررسی مشکل هستیم.', isInternal: false, createdAt: '1403/05/01 10:30', authorAvatar: mockUsers[0].avatar},
+        { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', description: 'کاربر اعلام کرده نمی‌تواند وارد پنل شود.', 
+        customer: customers[0] || {id: 'C1', name: 'مشتری نمونه', contacts: [], phone: '', status: 'فعال'}, 
+        customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'در حال بررسی', priority: 'بالا', createdAt: new Date(Date.now() - 86400000).toISOString(), category: 'فنی', replies: [
+            {id: 'R1', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', text: 'در حال بررسی مشکل هستیم.', isInternal: false, createdAt: new Date(Date.now() - 43200000).toISOString(), authorAvatar: mockUsers[0].avatar},
         ]},
     ];
     setTickets(mockTickets);
@@ -243,7 +247,10 @@ const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) 
        ticket.id.toLowerCase().includes(searchTerm.toLowerCase())) &&
       (statusFilter === 'all' || ticket.status === statusFilter) &&
       (priorityFilter === 'all' || ticket.priority === priorityFilter)
-    ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    ).sort((a, b) => {
+        // Handle comparison for ISO strings
+        return (b.createdAt || '').localeCompare(a.createdAt || '');
+    }),
     [searchTerm, statusFilter, priorityFilter, tickets]
   );
 
@@ -271,7 +278,7 @@ const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) 
         status: 'جدید',
         ...newTicketData,
         customer,
-        createdAt: new Date().toLocaleDateString('fa-IR'),
+        createdAt: new Date().toISOString(),
         attachments: newTicketAttachments, // Attach files
     };
     setTickets(prev => [newTicket, ...prev]);
@@ -357,7 +364,7 @@ const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) 
                                 {users.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
                             </select>
                           </td>
-                          <td className="px-4 py-3">{new Date(ticket.createdAt).toLocaleDateString('fa-IR')}</td>
+                          <td className="px-4 py-3">{toShamsi(ticket.createdAt)}</td>
                           <td className="px-4 py-3 text-center">
                               <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[ticket.status]}`}>{ticket.status}</span>
                           </td>

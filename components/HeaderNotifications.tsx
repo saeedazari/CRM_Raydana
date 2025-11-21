@@ -4,6 +4,7 @@ import { Reminder } from '../types';
 import { BellIcon } from './icons/BellIcon';
 import { CheckCircleIcon } from './icons/CheckCircleIcon';
 import { ClockIcon } from './icons/ClockIcon';
+import { formatTime } from '../utils/date';
 
 interface HeaderNotificationsProps {
     reminders: Reminder[];
@@ -46,7 +47,8 @@ const HeaderNotifications: React.FC<HeaderNotificationsProps> = ({ reminders, on
             </button>
 
             {isOpen && (
-                <div className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-80 origin-top-right bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50 max-h-96 overflow-y-auto">
+                /* FIX: Changed positioning from right-0 to left-0 to align with the button on the left side of the header */
+                <div className="absolute left-0 mt-2 w-80 origin-top-left bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50 max-h-96 overflow-y-auto">
                     <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center sticky top-0 bg-white dark:bg-gray-800 z-10">
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white">اعلان‌ها ({unreadCount})</h3>
                     </div>
@@ -64,7 +66,7 @@ const HeaderNotifications: React.FC<HeaderNotificationsProps> = ({ reminders, on
                                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{reminder.description}</p>
                                             <div className="flex items-center mt-2 text-xs text-indigo-500 dark:text-indigo-400">
                                                 <ClockIcon className="w-3 h-3 mr-1" />
-                                                {new Date(reminder.dueDateTime).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}
+                                                {formatTime(reminder.dueDateTime)}
                                             </div>
                                         </div>
                                         <button
@@ -73,7 +75,7 @@ const HeaderNotifications: React.FC<HeaderNotificationsProps> = ({ reminders, on
                                                 onMarkAsRead(reminder.id);
                                             }}
                                             title="علامت به عنوان خوانده شده"
-                                            className="text-gray-300 hover:text-green-600 dark:text-gray-600 dark:hover:text-green-400 transition-colors"
+                                            className="text-gray-300 hover:text-green-600 dark:text-gray-600 dark:hover:text-green-400 transition-colors flex-shrink-0 p-1"
                                         >
                                             <CheckCircleIcon className="w-5 h-5" />
                                         </button>

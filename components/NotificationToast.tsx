@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { BellIcon } from './icons/BellIcon';
 import { XMarkIcon } from './icons/XMarkIcon';
 import { Reminder } from '../types';
+import { formatTime } from '../utils/date';
 
 interface NotificationToastProps {
     reminder: Reminder | null;
@@ -39,7 +40,7 @@ const NotificationToast: React.FC<NotificationToastProps> = ({ reminder, onClose
                     <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{reminder.title}</p>
                     {reminder.dueDateTime && (
                         <p className="mt-1 text-xs text-gray-400">
-                            {new Date(reminder.dueDateTime).toLocaleTimeString('fa-IR', {hour: '2-digit', minute: '2-digit'})}
+                            {formatTime(reminder.dueDateTime)}
                         </p>
                     )}
                 </div>

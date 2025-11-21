@@ -183,10 +183,21 @@ export interface Invoice {
 
 // Settings & User Management Types
 export type Permission = 
+    // Customers
     'view_customers' | 'create_customers' | 'edit_customers' | 'delete_customers' |
+    // Tickets
     'view_tickets' | 'create_tickets' | 'edit_tickets' | 'delete_tickets' |
+    // Sales
     'view_sales' | 'create_sales' | 'edit_sales' | 'delete_sales' |
+    // Personnel
+    'view_personnel_requests' | 'create_personnel_requests' | 'approve_personnel_requests' |
+    // Inventory & Purchasing
+    'view_inventory' | 'create_inventory_txn' | 'view_vendors' | 'manage_purchases' |
+    // Finance
+    'view_finance' | 'create_payment' |
+    // Reports
     'view_reports' |
+    // Settings
     'manage_users' | 'manage_roles';
 
 
@@ -204,6 +215,7 @@ export interface User {
     role?: Role; // Populated by API
     avatar?: string;
     password?: string; // For create/edit forms
+    managerId?: string; // For Personnel Hierarchy
 }
 
 
@@ -383,4 +395,30 @@ export interface CompanyInfo {
     logoUrl?: string;
     economicCode?: string;
     nationalId?: string;
+}
+
+// Personnel Module
+export type PersonnelRequestType = 'leave_hourly' | 'leave_daily' | 'mission' | 'overtime' | 'remote_work';
+export type LeaveType = 'estihghaghi' | 'estelaji' | 'bedoon_hoghoogh'; // Paid, Sick, Unpaid
+export type RequestStatus = 'pending' | 'approved' | 'rejected';
+
+export interface PersonnelRequest {
+    id: string;
+    userId: string;
+    user?: User; // Populated
+    type: PersonnelRequestType;
+    leaveType?: LeaveType; // Only for leaves
+    destination?: string; // Only for missions
+    
+    startDate: string; // ISO Date
+    endDate?: string; // ISO Date (for daily leave or range)
+    
+    startTime?: string; // "08:00"
+    endTime?: string; // "10:00"
+    
+    description?: string;
+    
+    status: RequestStatus;
+    managerId?: string; // The manager who needs to approve
+    createdAt: string;
 }

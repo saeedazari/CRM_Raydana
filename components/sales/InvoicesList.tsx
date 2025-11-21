@@ -8,6 +8,7 @@ import { PrinterIcon } from '../icons/PrinterIcon';
 import PrintableDocument from '../print/PrintableDocument';
 import { ArrowDownTrayIcon } from '../icons/ArrowDownTrayIcon';
 import { exportToCSV } from '../../utils/export';
+import { toShamsi } from '../../utils/date';
 
 interface InvoicesListProps {
     invoices: Invoice[];
@@ -88,7 +89,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ invoices, onCreateNew, onEd
                             <tr key={invoice.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                                 <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{invoice.id}</td>
                                 <td className="px-4 py-3">{invoice.customerName}</td>
-                                <td className="px-4 py-3">{invoice.dueDate}</td>
+                                <td className="px-4 py-3">{toShamsi(invoice.dueDate)}</td>
                                 <td className="px-4 py-3">{invoice.totalAmount.toLocaleString('fa-IR')}</td>
                                 <td className="px-4 py-3 text-center">
                                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[invoice.status]}`}>{invoice.status}</span>

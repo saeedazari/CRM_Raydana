@@ -6,6 +6,10 @@ import { ChevronRightIcon } from '../icons/ChevronRightIcon';
 import { ClockIcon } from '../icons/ClockIcon';
 import { ClipboardDocumentCheckIcon } from '../icons/ClipboardDocumentCheckIcon';
 import { CreditCardIcon } from '../icons/CreditCardIcon';
+import DateObject from "react-date-object";
+import persian from "react-date-object/calendars/persian";
+import persian_fa from "react-date-object/locales/persian_fa";
+import { toShamsi, toPersianDigits } from '../../utils/date';
 
 interface CalendarProps {
     tasks: Task[];
@@ -20,21 +24,15 @@ type EventType = 'task' | 'reminder' | 'invoice';
 
 interface CalendarEvent {
     id: string;
-    date: Date;
+    date: string; // ISO String
     title: string;
     type: EventType;
     data: any;
 }
 
 const Calendar: React.FC<CalendarProps> = ({ tasks, reminders, invoices, onOpenTaskModal, onOpenReminderModal, onViewInvoice }) => {
-    const [currentDate, setCurrentDate] = useState(new Date());
-
-    // Helper to normalize dates to midnight for comparison
-    const normalizeDate = (dateStr: string) => {
-        const d = new Date(dateStr);
-        d.setHours(0, 0, 0, 0);
-        return d;
-    };
+    // Use DateObject with Persian calendar for the view state
+    const [currentDate, setCurrentDate] = useState(new DateObject({ calendar: persian, locale: persian_fa }));
 
     const events = useMemo(() => {
         const allEvents: CalendarEvent[] = [];
@@ -43,7 +41,7 @@ const Calendar: React.FC<CalendarProps> = ({ tasks, reminders, invoices, onOpenT
             if (task.dueDate) {
                 allEvents.push({
                     id: task.id,
-                    date: normalizeDate(task.dueDate),
+                    date: task.dueDate,
                     title: task.title,
                     type: 'task',
                     data: task
@@ -55,7 +53,7 @@ const Calendar: React.FC<CalendarProps> = ({ tasks, reminders, invoices, onOpenT
             if (reminder.dueDateTime) {
                 allEvents.push({
                     id: reminder.id,
-                    date: normalizeDate(reminder.dueDateTime),
+                    date: reminder.dueDateTime,
                     title: reminder.title,
                     type: 'reminder',
                     data: reminder
@@ -65,54 +63,48 @@ const Calendar: React.FC<CalendarProps> = ({ tasks, reminders, invoices, onOpenT
 
         invoices.forEach(invoice => {
             if (invoice.dueDate) {
-                const d = new Date(invoice.dueDate);
-                // Simple check to ensure valid date object
-                if (!isNaN(d.getTime())) {
-                     allEvents.push({
-                        id: invoice.id,
-                        date: normalizeDate(invoice.dueDate),
-                        title: `فاکتور ${invoice.customerName}`,
-                        type: 'invoice',
-                        data: invoice
-                    });
-                }
+                 allEvents.push({
+                    id: invoice.id,
+                    date: invoice.dueDate,
+                    title: `فاکتور ${invoice.customerName}`,
+                    type: 'invoice',
+                    data: invoice
+                });
             }
         });
 
         return allEvents;
     }, [tasks, reminders, invoices]);
 
-    const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
-    const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay(); // 0 = Sunday, 6 = Saturday
-
-    const daysInMonth = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
-    const startDay = getFirstDayOfMonth(currentDate.getFullYear(), currentDate.getMonth());
-    
-    // Adjust for Saturday start (Saturday = 0 in our grid logic, but Date.getDay() returns 6 for Sat)
-    // Map: Sat(6)->0, Sun(0)->1, Mon(1)->2, ... Fri(5)->6
-    // (day + 1) % 7
-    const offset = (startDay + 1) % 7; 
-
+    // Logic to generate Persian Calendar Grid
     const days = [];
-    // Empty slots for previous month
-    for (let i = 0; i < offset; i++) {
+    
+    // Create a copy to calculate the start of the month
+    const firstDayOfMonth = new DateObject(currentDate).toFirstOfMonth();
+    const dayOfWeek = firstDayOfMonth.weekDay.index; // 0 = Saturday in Persian Calendar with react-date-object locale fa
+    
+    // Offset for empty cells before the 1st of the month
+    for (let i = 0; i < dayOfWeek; i++) {
         days.push(null);
     }
+
     // Days of current month
-    for (let i = 1; i <= daysInMonth; i++) {
-        days.push(new Date(currentDate.getFullYear(), currentDate.getMonth(), i));
+    // month.length gives days in that persian month
+    for (let i = 1; i <= currentDate.month.length; i++) {
+        const dayDate = new DateObject(firstDayOfMonth).setDay(i);
+        days.push(dayDate);
     }
 
     const nextMonth = () => {
-        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+        setCurrentDate(new DateObject(currentDate).add(1, "month"));
     };
 
     const prevMonth = () => {
-        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+        setCurrentDate(new DateObject(currentDate).subtract(1, "month"));
     };
     
     const goToToday = () => {
-        setCurrentDate(new Date());
+        setCurrentDate(new DateObject({ calendar: persian, locale: persian_fa }));
     };
 
     const weekDays = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه'];
@@ -141,12 +133,18 @@ const Calendar: React.FC<CalendarProps> = ({ tasks, reminders, invoices, onOpenT
         if (event.type === 'invoice') onViewInvoice(event.data);
     };
 
+    // Helper to check if two dates are same day
+    const isSameDay = (date1: DateObject, date2Str: string) => {
+        const d2 = new DateObject(new Date(date2Str)).convert(persian, persian_fa);
+        return date1.year === d2.year && date1.month.number === d2.month.number && date1.day === d2.day;
+    };
+
     return (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md h-full flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
                 <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                    {currentDate.toLocaleDateString('fa-IR', { month: 'long', year: 'numeric' })}
+                    {currentDate.format("MMMM YYYY")}
                 </h2>
                 <div className="flex items-center gap-2">
                     <button onClick={goToToday} className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300">امروز</button>
@@ -172,21 +170,18 @@ const Calendar: React.FC<CalendarProps> = ({ tasks, reminders, invoices, onOpenT
 
             {/* Calendar Grid */}
             <div className="grid grid-cols-7 flex-grow auto-rows-fr">
-                {days.map((date, index) => {
-                    if (!date) return <div key={`empty-${index}`} className="border-b border-l dark:border-gray-700 bg-gray-50/30 dark:bg-gray-800/30"></div>;
+                {days.map((dateObj, index) => {
+                    if (!dateObj) return <div key={`empty-${index}`} className="border-b border-l dark:border-gray-700 bg-gray-50/30 dark:bg-gray-800/30"></div>;
                     
-                    const dayEvents = events.filter(e => 
-                        e.date.getDate() === date.getDate() && 
-                        e.date.getMonth() === date.getMonth() && 
-                        e.date.getFullYear() === date.getFullYear()
-                    );
+                    const dayEvents = events.filter(e => isSameDay(dateObj, e.date));
                     
-                    const isToday = new Date().setHours(0,0,0,0) === date.getTime();
+                    const todayObj = new DateObject({ calendar: persian, locale: persian_fa });
+                    const isToday = dateObj.year === todayObj.year && dateObj.month.number === todayObj.month.number && dateObj.day === todayObj.day;
 
                     return (
                         <div key={index} className={`border-b border-l dark:border-gray-700 p-2 min-h-[100px] overflow-hidden relative group transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/30 ${isToday ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''}`}>
                             <span className={`text-sm font-medium inline-block w-7 h-7 leading-7 text-center rounded-full ${isToday ? 'bg-indigo-600 text-white' : 'text-gray-700 dark:text-gray-300'}`}>
-                                {date.getDate().toLocaleString('fa-IR')}
+                                {toPersianDigits(dateObj.format("D"))}
                             </span>
                             <div className="mt-1 space-y-1 max-h-24 overflow-y-auto custom-scrollbar">
                                 {dayEvents.map(event => (

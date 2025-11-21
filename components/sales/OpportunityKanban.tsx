@@ -1,8 +1,10 @@
+
 import React from 'react';
 import { Opportunity, OpportunityStage } from '../../types';
 import { UserCircleIcon } from '../icons/UserCircleIcon';
 import { CurrencyDollarIcon } from '../icons/CurrencyDollarIcon';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { toShamsi } from '../../utils/date';
 
 
 const stages: OpportunityStage[] = ['شناسایی', 'واجد شرایط', 'ارائه پیشنهاد', 'مذاکره', 'موفق', 'ناموفق'];
@@ -26,7 +28,7 @@ const OpportunityCard: React.FC<{ opportunity: Opportunity }> = ({ opportunity }
             <span className="text-xs mr-1">تومان</span>
         </div>
         <div className="flex items-center text-xs text-gray-400 dark:text-gray-500 mt-2">
-            <span>تاریخ بستن: {new Date(opportunity.closeDate).toLocaleDateString('fa-IR')}</span>
+            <span>تاریخ بستن: {toShamsi(opportunity.closeDate)}</span>
         </div>
         <div className="flex items-center mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
             {opportunity.assignedTo?.avatar ? (
@@ -52,7 +54,6 @@ const OpportunityKanban: React.FC<OpportunityKanbanProps> = ({ opportunities, on
             return;
         }
         const newStage = destination.droppableId as OpportunityStage;
-        // این تابع در کامپوننت والد (Opportunities.tsx) تعریف شده و باید API call را انجام دهد.
         onUpdateOpportunity(draggableId, { stage: newStage });
     };
 
