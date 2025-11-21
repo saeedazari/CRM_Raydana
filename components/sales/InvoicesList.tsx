@@ -6,6 +6,8 @@ import { PencilIcon } from '../icons/PencilIcon';
 import { SearchIcon } from '../icons/SearchIcon';
 import { PrinterIcon } from '../icons/PrinterIcon';
 import PrintableDocument from '../print/PrintableDocument';
+import { ArrowDownTrayIcon } from '../icons/ArrowDownTrayIcon';
+import { exportToCSV } from '../../utils/export';
 
 interface InvoicesListProps {
     invoices: Invoice[];
@@ -53,12 +55,21 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ invoices, onCreateNew, onEd
                     </div>
                 </div>
 
-                {!hideControls && onCreateNew && (
-                    <button onClick={onCreateNew} className="flex items-center justify-center w-full md:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-                        <PlusIcon className="w-5 h-5 ml-2" />
-                        <span>فاکتور جدید</span>
+                <div className="flex gap-2 w-full md:w-auto">
+                    <button 
+                        onClick={() => exportToCSV(filteredInvoices, 'invoices')}
+                        className="flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 transition"
+                        title="خروجی اکسل"
+                    >
+                        <ArrowDownTrayIcon className="w-5 h-5" />
                     </button>
-                )}
+                    {!hideControls && onCreateNew && (
+                        <button onClick={onCreateNew} className="flex items-center justify-center flex-grow md:flex-grow-0 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                            <PlusIcon className="w-5 h-5 ml-2" />
+                            <span>فاکتور جدید</span>
+                        </button>
+                    )}
+                </div>
             </div>
             <div className="overflow-x-auto flex-1">
                 <table className="w-full text-sm text-right text-gray-500 dark:text-gray-400">

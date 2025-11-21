@@ -1,9 +1,7 @@
 
 /* 
     === BACKEND SPEC ===
-    توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
-    این کامپوننت مسئولیت مدیریت مشتریان (CRUD) را بر عهده دارد.
-    ... (Same as before)
+    ...
 */
 import React, { useState, useMemo, useEffect } from 'react';
 import { Customer, CustomerType, User, Contact } from '../../types';
@@ -17,6 +15,8 @@ import { XMarkIcon } from '../icons/XMarkIcon';
 import { EyeIcon } from '../icons/EyeIcon';
 import { getJwtExpiry } from '../../utils/jwt';
 import { StarIcon } from '../icons/StarIcon';
+import { ArrowDownTrayIcon } from '../icons/ArrowDownTrayIcon'; // Import Icon
+import { exportToCSV } from '../../utils/export'; // Import Utility
 
 const ITEMS_PER_PAGE = 8;
 
@@ -168,14 +168,24 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
               <SearchIcon className="w-5 h-5 text-gray-400" />
             </div>
           </div>
-          <button 
-            onClick={() => openPanel()}
-            className="flex items-center justify-center w-full md:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
-            <PlusIcon className="w-5 h-5 ml-2" />
-            <span>افزودن مشتری</span>
-          </button>
+          <div className="flex gap-2 w-full md:w-auto">
+              <button 
+                onClick={() => exportToCSV(filteredCustomers, 'customers')}
+                className="flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 transition"
+                title="خروجی اکسل"
+              >
+                <ArrowDownTrayIcon className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={() => openPanel()}
+                className="flex items-center justify-center flex-grow md:flex-grow-0 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition">
+                <PlusIcon className="w-5 h-5 ml-2" />
+                <span>افزودن مشتری</span>
+              </button>
+          </div>
         </div>
 
+        {/* ... (Table and Pagination - same as before) ... */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-right text-gray-500 dark:text-gray-400">
               <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -236,6 +246,7 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
         )}
       </div>
 
+      {/* Modal Code ... (unchanged) */}
       <div className={`fixed inset-0 z-50 ${isPanelOpen ? '' : 'pointer-events-none'}`}>
         <div className={`absolute inset-0 bg-black transition-opacity duration-300 ${isPanelOpen ? 'bg-opacity-50' : 'bg-opacity-0'}`} onClick={closePanel}></div>
         <div className={`absolute inset-y-0 left-0 bg-white dark:bg-gray-800 h-full w-full max-w-2xl shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out ${isPanelOpen ? 'translate-x-0' : '-translate-x-full'}`}>
@@ -355,7 +366,7 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
   );
 };
 
-
+// ContactManager component remains the same
 const ContactManager: React.FC<{ contacts: Contact[], setContacts: (contacts: Contact[]) => void }> = ({ contacts, setContacts }) => {
     const handleContactChange = (index: number, field: keyof Omit<Contact, 'id' | 'isPrimary'>, value: string) => {
         const newContacts = [...contacts];
@@ -421,6 +432,5 @@ const ContactManager: React.FC<{ contacts: Contact[], setContacts: (contacts: Co
         </div>
     );
 };
-
 
 export default Customers;
