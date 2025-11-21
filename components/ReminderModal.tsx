@@ -2,6 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { Reminder } from '../types';
 import { XMarkIcon } from './icons/XMarkIcon';
+import { CalendarIcon } from './icons/CalendarIcon';
+import DatePicker from "react-multi-date-picker";
+import persian from "react-date-object/calendars/persian";
+import persian_fa from "react-date-object/locales/persian_fa";
+import TimePicker from "react-multi-date-picker/plugins/time_picker";
 
 interface ReminderModalProps {
     isOpen: boolean;
@@ -14,34 +19,38 @@ interface ReminderModalProps {
 const ReminderModal: React.FC<ReminderModalProps> = ({ isOpen, onClose, onSave, initialData, isEditing }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [dueDateTime, setDueDateTime] = useState('');
+    const [dueDateTime, setDueDateTime] = useState<Date | null>(null);
 
     useEffect(() => {
         if (isOpen) {
             setTitle(initialData?.title || '');
             setDescription(initialData?.description || '');
-            // Convert ISO string to datetime-local input format (YYYY-MM-DDTHH:mm)
+            
             if (initialData?.dueDateTime) {
-                const date = new Date(initialData.dueDateTime);
-                // Adjust for timezone offset to show correct local time in input
-                const localIso = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
-                setDueDateTime(localIso);
+                setDueDateTime(new Date(initialData.dueDateTime));
             } else {
                 // Default to 1 hour from now
                 const now = new Date();
                 now.setHours(now.getHours() + 1);
-                const localIso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
-                setDueDateTime(localIso);
+                setDueDateTime(now);
             }
         }
     }, [isOpen, initialData]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (!dueDateTime) {
+            alert('لطفا تاریخ و زمان را انتخاب کنید.');
+            return;
+        }
+
+        // Convert date object (which react-multi-date-picker manages) to ISO string
+        const dateToSave = new Date(dueDateTime);
+
         onSave({
             title,
             description,
-            dueDateTime: new Date(dueDateTime).toISOString(),
+            dueDateTime: dateToSave.toISOString(),
             sourceType: initialData?.sourceType || 'manual',
             sourceId: initialData?.sourceId,
             sourcePreview: initialData?.sourcePreview
@@ -91,16 +100,33 @@ const ReminderModal: React.FC<ReminderModalProps> = ({ isOpen, onClose, onSave, 
                             />
                         </div>
                         <div>
-                            <label htmlFor="dueDateTime" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">زمان یادآوری</label>
-                            <input 
-                                type="datetime-local" 
-                                id="dueDateTime" 
-                                value={dueDateTime} 
-                                onChange={(e) => setDueDateTime(e.target.value)} 
-                                className="w-full p-2.5 bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" 
-                                required 
-                            />
-                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">تاریخ و زمان به وقت محلی سیستم</p>
+                            <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">زمان یادآوری</label>
+                            <div className="relative">
+                                <DatePicker 
+                                    value={dueDateTime}
+                                    onChange={(date: any) => {
+                                        // react-multi-date-picker returns a generic object, need to convert to standard JS Date
+                                        if (date) {
+                                            setDueDateTime(date.toDate ? date.toDate() : new Date(date));
+                                        } else {
+                                            setDueDateTime(null);
+                                        }
+                                    }}
+                                    calendar={persian}
+                                    locale={persian_fa}
+                                    calendarPosition="bottom-right"
+                                    format="YYYY/MM/DD HH:mm"
+                                    plugins={[
+                                        <TimePicker position="bottom" />
+                                    ]}
+                                    inputClass="w-full p-2.5 pl-10 bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                                    containerClassName="w-full"
+                                    placeholder="انتخاب تاریخ و ساعت"
+                                />
+                                <div className="absolute left-3 top-3 pointer-events-none">
+                                    <CalendarIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                                </div>
+                            </div>
                         </div>
                         <div>
                             <label htmlFor="description" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">توضیحات (اختیاری)</label>

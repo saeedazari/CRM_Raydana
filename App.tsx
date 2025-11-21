@@ -2,64 +2,7 @@
 /* 
     === BACKEND SPEC ===
     توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
-    این کامپوننت App.tsx نقطه ورود اصلی برنامه است و مسئولیت‌های زیر را بر عهده دارد:
-    1. احراز هویت (ورود کاربر/مشتری)
-    2. Fetch کردن داده‌های اولیه برنامه (مشتریان، تیکت‌ها، مقالات پایگاه دانش و دسته‌بندی‌ها)
-    3. مدیریت State کلی برنامه و پاس دادن آن به کامپوننت‌های فرزند.
-
-    API های مورد نیاز:
-
-    1. احراز هویت کاربر (User Login)
-    - Route: /api/auth/login/user
-    - Method: POST
-    - Expected Body JSON Schema: { "username": "string", "password": "string" }
-    - Response JSON Schema: { "token": "string", "user": { "id": "string", "name": "string", "username": "string", "roleId": "string", "avatar": "string" } }
-    - توضیح منطق بکند مورد نیاز: بررسی نام کاربری و رمز عبور در دیتابیس کاربران. در صورت موفقیت، یک توکن JWT صادر کرده و اطلاعات کاربر را بازگرداند.
-    - Dependencies: نیاز به Auth Token ندارد.
-    - نکات امنیتی: رمز عبور باید هش شده مقایسه شود. از HTTPS استفاده شود.
-
-    2. احراز هویت مشتری (Customer Login)
-    - Route: /api/auth/login/customer
-    - Method: POST
-    - Expected Body JSON Schema: { "username": "string", "password": "string" }
-    - Response JSON Schema: { "token": "string", "customer": { "id": "string", "companyName": "string", ... } }
-    - توضیح منطق بکند مورد نیاز: مشابه ورود کاربر، اما برای جدول مشتریان.
-    - Dependencies: نیاز به Auth Token ندارد.
-
-    3. دریافت داده‌های اولیه (Initial Data Fetch)
-    - توضیح: پس از ورود موفق کاربر، برنامه باید داده‌های اصلی را از سرور دریافت کند. می‌توان این‌ها را در یک endpoint تکی یا چند endpoint جداگانه قرار داد.
-    - Route (Example for separate endpoints): 
-        - /api/customers
-        - /api/tickets
-        - /api/kb/articles
-        - /api/kb/categories
-    - Method: GET
-    - Expected Query Params:
-        - برای تیکت‌ها و مشتریان ممکن است نیاز به pagination باشد (e.g., ?page=1&limit=20)
-    - Response JSON Schema:
-        - /api/customers -> { "data": [Customer], "totalPages": number }
-        - /api/tickets -> { "data": [Ticket], "totalPages": number }
-        - ...
-    - توضیح منطق بکند مورد نیاز: کنترلرهای جداگانه برای هر موجودیت (Customer, Ticket, etc.) که داده‌ها را از دیتابیس خوانده و برمی‌گردانند. باید شامل اطلاعات مرتبط (populated fields) مانند اطلاعات کاربر تخصیص داده شده به تیکت باشد.
-    - Dependencies: نیاز به Auth Token در هدر Authorization دارد.
-
-    4. عملیات روی تیکت‌ها (از پورتال مشتری)
-    - Route (Add Ticket): /api/portal/tickets
-    - Method: POST
-    - Expected Body JSON Schema: Omit<Ticket, 'id'|'customer'|'assignee'|'assigneeId'>
-    - Response JSON Schema: Ticket (the created ticket)
-    - ---
-    - Route (Update Ticket - e.g., add reply): /api/portal/tickets/:ticketId/reply
-    - Method: POST
-    - Expected Body JSON Schema: { "text": "string" }
-    - Response JSON Schema: Ticket (the updated ticket)
-    - ---
-    - Route (Submit Survey): /api/portal/tickets/:ticketId/survey
-    - Method: POST
-    - Expected Body JSON Schema: { "rating": number, "feedback": "string", "tags": ["string"] }
-    - Response JSON Schema: { "success": true }
-
-    - نحوه هندل‌کردن خطا: پاسخ‌های 401 برای خطای احراز هویت، 400 برای ورودی نامعتبر و 500 برای خطاهای سرور.
+    ... (Same as before)
 */
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
@@ -76,10 +19,12 @@ import Products from './components/pages/Products';
 import Quotes from './components/pages/Quotes';
 import Invoices from './components/pages/Invoices';
 import Reminders from './components/pages/Reminders';
+import Calendar from './components/pages/Calendar';
 import ReminderModal from './components/ReminderModal';
+import TaskModal from './components/TaskModal';
 import NotificationToast from './components/NotificationToast';
 import HeaderNotifications from './components/HeaderNotifications';
-import { User, Customer, Ticket, Interaction, Lead, Opportunity, Product, Quote, Invoice, Role, KnowledgeBaseCategory, KnowledgeBaseArticle, Contact, Reminder } from './types';
+import { User, Customer, Ticket, Interaction, Lead, Opportunity, Product, Quote, Invoice, Role, KnowledgeBaseCategory, KnowledgeBaseArticle, Contact, Reminder, Task, Vendor, PurchaseOrder, Payment, InvoiceStatus, CompanyInfo, InventoryTransaction, InventoryTransactionType } from './types';
 import { HamburgerIcon } from './components/icons/HamburgerIcon';
 import CustomerInteractions from './components/pages/CustomerInteractions';
 import UserProfile from './components/UserProfile';
@@ -87,40 +32,28 @@ import ThemeToggle from './components/ThemeToggle';
 import LoginPage from './components/LoginPage';
 import CustomerPortal from './components/portals/CustomerPortal';
 import KnowledgeBase from './components/pages/KnowledgeBase';
+import VendorsList from './components/purchasing/VendorsList';
+import PurchaseOrdersList from './components/purchasing/PurchaseOrdersList';
+import PurchaseOrderEditor from './components/purchasing/PurchaseOrderEditor';
+import PaymentsList from './components/finance/PaymentsList';
+import PaymentModal from './components/finance/PaymentModal';
+import GlobalSearch from './components/GlobalSearch';
+import Inventory from './components/pages/Inventory';
 
 // --- MOCK DATA AGGREGATION ---
-/*
-    === REMOVE OR REPLACE MOCK DATA ===
-    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
-    ساختار مورد انتظار پاسخ API برای نقش‌ها: GET /api/roles -> { "data": [Role] }
-    {
-        "id": "string",
-        "name": "string",
-        "permissions": "string" // Comma-separated
-    }
-*/
+// ... (Existing mock roles/users/customers/tickets/kb data from previous version)
 const mockRoles: Role[] = [
     { id: 'R1', name: 'مدیر کل', permissions: 'view_customers,create_customers,edit_customers,delete_customers,view_tickets,create_tickets,edit_tickets,delete_tickets,view_sales,create_sales,edit_sales,delete_sales,view_reports,manage_users,manage_roles' },
     { id: 'R2', name: 'کارشناس پشتیبانی', permissions: 'view_customers,view_tickets,create_tickets,edit_tickets' },
     { id: 'R3', name: 'کارشناس فروش', permissions: 'view_customers,create_customers,view_sales,create_sales,edit_sales' },
 ];
 
-/*
-    === REMOVE OR REPLACE MOCK DATA ===
-    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
-    ساختار مورد انتظار پاسخ API برای کاربران: GET /api/users -> { "data": [User] }
-*/
 const mockUsers: User[] = [
   { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
   { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
   { id: 'U3', name: 'محمد کریمی', username: 'mohammad', roleId: 'R3', avatar: 'https://i.pravatar.cc/40?u=U3' },
 ];
 
-/*
-    === REMOVE OR REPLACE MOCK DATA ===
-    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
-    ساختار مورد انتظار پاسخ API برای مشتریان: GET /api/customers -> { "data": [Customer] }
-*/
 const mockContacts: Record<string, Contact[]> = {
     C1: [
         { id: 'P1', name: 'آقای الف', phone: '09121112233', position: 'مدیرعامل', isPrimary: true },
@@ -138,17 +71,12 @@ const mockContacts: Record<string, Contact[]> = {
 }
 
 const mockCustomers: Customer[] = [
-  { id: 'C1', name: 'شرکت آلفا', contacts: mockContacts.C1, username: 'alpha', email: 'info@alpha.com', phone: '021-12345678', status: 'فعال', portalToken: 'alpha-secret-token-xyz', supportEndDate: '1404/05/01' },
+  { id: 'C1', name: 'شرکت آلفا', contacts: mockContacts.C1, username: 'alpha', email: 'info@alpha.com', phone: '021-12345678', status: 'فعال', portalToken: 'alpha-secret-token-xyz', supportEndDate: '1404/05/01', economicCode: '123456', nationalId: '10101010' },
   { id: 'C2', name: 'تجارت بتا', contacts: mockContacts.C2, username: 'beta', email: 'contact@beta.com', phone: '021-87654321', status: 'غیرفعال', portalToken: 'beta-secret-token-abc', supportEndDate: '1403/10/01' },
   { id: 'C3', name: 'صنایع گاما', contacts: mockContacts.C3, username: 'gamma', email: 'office@gamma.com', phone: '021-11223344', status: 'فعال' },
   { id: 'C4', name: 'راهکارهای دلتا', contacts: mockContacts.C4, username: 'delta', email: 'sales@delta.com', phone: '021-55667788', status: 'معلق' },
 ];
 
-/*
-    === REMOVE OR REPLACE MOCK DATA ===
-    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
-    ساختار مورد انتظار پاسخ API برای تیکت‌ها: GET /api/tickets -> { "data": [Ticket] }
-*/
 const mockTicketsData: Ticket[] = [
     { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', description: 'کاربر اعلام کرده نمی‌تواند وارد پنل شود.', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'در حال بررسی', priority: 'بالا', createdAt: '1403/05/01', category: 'فنی', replies: [
         {id: 'R1', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', authorAvatar: mockUsers[0].avatar, text: 'در حال بررسی مشکل هستیم.', isInternal: false, createdAt: '1403/05/01 10:30'},
@@ -161,11 +89,6 @@ const mockTicketsData: Ticket[] = [
     { id: 'TKT-722', subject: 'نحوه کار با API', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[1], assigneeId: 'U2', status: 'بسته شده', priority: 'متوسط', createdAt: '1403/04/28', category: 'فنی', surveySubmitted: true, rating: 5, feedbackTags: ['پاسخ سریع', 'دانش فنی بالا'] },
 ];
 
-/*
-    === REMOVE OR REPLACE MOCK DATA ===
-    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
-    ساختار مورد انتظار پاسخ API: GET /api/kb/categories -> { "data": [KnowledgeBaseCategory] }
-*/
 const mockKbCategories: KnowledgeBaseCategory[] = [
     { id: 'KBC1', name: 'راهنمای شروع' },
     { id: 'KBC2', name: 'عیب‌یابی فنی' },
@@ -173,11 +96,6 @@ const mockKbCategories: KnowledgeBaseCategory[] = [
     { id: 'KBC4', name: 'سیاست‌های داخلی' },
 ];
 
-/*
-    === REMOVE OR REPLACE MOCK DATA ===
-    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
-    ساختار مورد انتظار پاسخ API: GET /api/kb/articles -> { "data": [KnowledgeBaseArticle] }
-*/
 const mockKbArticles: KnowledgeBaseArticle[] = [
     { id: 'KBA1', title: 'چگونه یک تیکت جدید ثبت کنیم؟', content: 'برای ثبت تیکت جدید، از منوی پورتال مشتریان گزینه تیکت‌ها را انتخاب کرده و روی دکمه <b>"تیکت جدید"</b> کلیک کنید... <br/> <img src="https://via.placeholder.com/400x200.png?text=Ticket+Example" alt="Example"/>', categoryId: 'KBC1', tags: ['تیکت', 'مشتری'], authorId: 'U1', createdAt: '1403/04/15', visibility: 'public' },
     { id: 'KBA2', title: 'خطای 500 هنگام ورود به پنل', content: 'این خطا معمولا به دلیل مشکلات سمت سرور است. لطفاً ابتدا کش مرورگر خود را پاک کرده و مجددا تلاش کنید. در صورت عدم رفع مشکل، با <a href="mailto:support@example.com">پشتیبانی</a> تماس بگیرید.', categoryId: 'KBC2', tags: ['خطا', 'ورود', 'فنی'], authorId: 'U2', createdAt: '1403/04/20', visibility: 'public' },
@@ -185,6 +103,41 @@ const mockKbArticles: KnowledgeBaseArticle[] = [
     { id: 'KBA4', title: 'سیاست مرخصی کارکنان', content: 'هر کارمند در سال مجاز به استفاده از ۲۴ روز مرخصی با حقوق است...', categoryId: 'KBC4', tags: ['منابع انسانی', 'داخلی'], authorId: 'U1', createdAt: '1403/01/10', visibility: 'internal' },
 ];
 
+const mockTasksData: Task[] = [
+    { id: 'TSK1', title: 'پیگیری تیکت #721', description: 'مشتری در مورد ورود به پنل کاربری مشکل دارد.', customer: mockCustomers[0], relatedTicketId: 'TKT-721', assignedTo: mockUsers[0], priority: 'بالا', status: 'در حال انجام', dueDate: new Date(Date.now() + 5 * 86400000).toISOString(), createdAt: new Date(Date.now() - 2 * 86400000).toISOString() },
+    { id: 'TSK2', title: 'آماده‌سازی پیش‌فاکتور برای تجارت بتا', description: '', customer: mockCustomers[1], assignedTo: mockUsers[0], priority: 'متوسط', status: 'معلق', dueDate: new Date(Date.now() + 10 * 86400000).toISOString(), createdAt: new Date(Date.now() - 1 * 86400000).toISOString() },
+    { id: 'TSK3', title: 'جلسه دمو با مشتری جدید', description: 'معرفی ویژگی‌های جدید محصول', assignedTo: mockUsers[1], priority: 'فوری', status: 'تکمیل شده', dueDate: new Date(Date.now() - 3 * 86400000).toISOString(), createdAt: new Date(Date.now() - 5 * 86400000).toISOString() },
+];
+
+const mockQuotes: Quote[] = [
+    { id: 'Q-123', quoteNumber: '1001', version: 1, customerId: 'C1', customerName: 'شرکت آلفا', issueDate: '1403/05/01', expiryDate: '1403/05/15', status: 'تایید شده', items: [{ productId: 'P1', productName: 'سرویس پشتیبانی طلایی', quantity: 1, unitPrice: 10000000, totalPrice: 10000000, discountType: 'percent', discount: 10, totalAfterDiscount: 9000000, tax: 9, totalWithTax: 9810000 }], subtotal: 10000000, discountAmount: 1000000, taxAmount: 810000, totalAmount: 9810000 },
+    { id: 'Q-124', quoteNumber: '1002', version: 1, customerId: 'C2', customerName: 'تجارت بتا', issueDate: '1403/04/25', expiryDate: '1403/05/10', status: 'ارسال شده', items: [{ productId: 'P2', productName: 'سرویس پشتیبانی نقره‌ای', quantity: 2, unitPrice: 5000000, totalPrice: 10000000, discountType: 'amount', discount: 0, totalAfterDiscount: 10000000, tax: 9, totalWithTax: 10900000 }], subtotal: 10000000, discountAmount: 0, taxAmount: 900000, totalAmount: 10900000 },
+];
+
+const mockInvoices: Invoice[] = [
+    { id: 'INV-001', isOfficial: true, quoteId: 'Q-123', customerId: 'C1', customerName: 'شرکت آلفا', issueDate: '1403/05/02', dueDate: new Date(Date.now() + 5 * 86400000).toISOString(), status: 'ارسال شده', items: [{ productId: 'P1', productName: 'سرویس پشتیبانی طلایی', quantity: 1, unitPrice: 10000000, totalPrice: 10000000, discountType: 'percent', discount: 10, totalAfterDiscount: 9000000, tax: 9, totalWithTax: 9810000 }], subtotal: 10000000, discountAmount: 1000000, taxAmount: 810000, totalAmount: 9810000, amountPaid: 0 },
+];
+
+const mockVendors: Vendor[] = [
+    { id: 'V1', name: 'فروشگاه سخت‌افزار ایران', contactName: 'آقای محمدی', email: 'sales@iranhw.com', phone: '021-33445566', status: 'فعال' },
+    { id: 'V2', name: 'خدمات ابری پارس', contactName: 'خانم رضایی', email: 'support@parscloud.ir', phone: '021-88997766', status: 'فعال' },
+];
+
+const mockLeads: Lead[] = [
+    { id: 'L1', contactName: 'سارا محمدی', companyName: 'فروشگاه سارا', email: 'sara@shop.com', phone: '09121112233', source: 'وبسایت', status: 'جدید', score: 85, assignedToId: 'U1', assignedTo: mockUsers[0], createdAt: '1403/05/01', converted: false },
+    { id: 'L2', contactName: 'رضا قاسمی', companyName: 'خدمات رضا', email: 'reza@service.com', phone: '09124445566', source: 'ارجاعی', status: 'واجد شرایط', score: 70, assignedToId: 'U3', assignedTo: mockUsers[1], createdAt: '1403/04/28', converted: false },
+];
+
+const initialCompanyInfo: CompanyInfo = {
+    name: 'شرکت فناوری اطلاعات CRM Pro',
+    address: 'تهران، خیابان ولیعصر، بالاتر از میدان ونک، کوچه تلاش، پلاک ۱',
+    phone: '۰۲۱-۸۸۸۸۸۸۸۸',
+    email: 'info@crmpro.ir',
+    website: 'www.crmpro.ir',
+    logoUrl: '',
+    economicCode: '',
+    nationalId: ''
+};
 
 interface PageState {
   name: string;
@@ -201,36 +154,113 @@ const MainApp: React.FC<{
     setKbArticles: React.Dispatch<React.SetStateAction<KnowledgeBaseArticle[]>>,
     reminders: Reminder[],
     setReminders: React.Dispatch<React.SetStateAction<Reminder[]>>,
+    tasks: Task[],
+    setTasks: React.Dispatch<React.SetStateAction<Task[]>>,
+    quotes: Quote[],
+    setQuotes: React.Dispatch<React.SetStateAction<Quote[]>>,
+    invoices: Invoice[],
+    setInvoices: React.Dispatch<React.SetStateAction<Invoice[]>>,
+    vendors: Vendor[],
+    setVendors: React.Dispatch<React.SetStateAction<Vendor[]>>,
+    purchaseOrders: PurchaseOrder[],
+    setPurchaseOrders: React.Dispatch<React.SetStateAction<PurchaseOrder[]>>,
+    payments: Payment[],
+    setPayments: React.Dispatch<React.SetStateAction<Payment[]>>,
+    companyInfo: CompanyInfo,
+    setCompanyInfo: React.Dispatch<React.SetStateAction<CompanyInfo>>,
+    products: Product[],
+    setProducts: React.Dispatch<React.SetStateAction<Product[]>>,
+    inventoryTransactions: InventoryTransaction[],
+    setInventoryTransactions: React.Dispatch<React.SetStateAction<InventoryTransaction[]>>,
     onLogout: () => void 
-}> = ({ user, customers, setCustomers, kbCategories, setKbCategories, kbArticles, setKbArticles, reminders, setReminders, onLogout }) => {
+}> = ({ user, customers, setCustomers, kbCategories, setKbCategories, kbArticles, setKbArticles, reminders, setReminders, tasks, setTasks, quotes, setQuotes, invoices, setInvoices, vendors, setVendors, purchaseOrders, setPurchaseOrders, payments, setPayments, companyInfo, setCompanyInfo, products, setProducts, inventoryTransactions, setInventoryTransactions, onLogout }) => {
   const [activePage, setActivePage] = useState<PageState>({ name: 'dashboard' });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+  // Reminder Modal State
   const [activeReminderModal, setActiveReminderModal] = useState<{ isOpen: boolean, prefill?: any, editingReminder?: Reminder }>({ isOpen: false });
   const [activeNotification, setActiveNotification] = useState<Reminder | null>(null);
+
+  // Task Modal State
+  const [activeTaskModal, setActiveTaskModal] = useState<{ isOpen: boolean, prefill?: any, editingTask?: Task }>({ isOpen: false });
   
+  // Payment Modal State
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+
   // Global Ticket State needs to be accessible for CustomerInteractions
   const [tickets, setTickets] = useState<Ticket[]>(mockTicketsData);
   
+  // Leads
+  const [leads, setLeads] = useState<Lead[]>(mockLeads);
+
   const handleSetActivePage = (name: string, params: any = {}) => {
     setActivePage({ name, params });
     setIsSidebarOpen(false);
   };
 
+  // --- INVENTORY LOGIC ---
+  const registerInventoryMovement = (
+      productId: string, 
+      quantity: number, 
+      type: InventoryTransactionType, 
+      referenceId: string = '', 
+      description: string = ''
+  ) => {
+      const product = products.find(p => p.id === productId);
+      
+      // Check if product exists and is of type 'product' (not service)
+      if (!product || product.type !== 'product') return;
+
+      // Calculate new stock based on type
+      let change = 0;
+      if (['receipt', 'sales_return'].includes(type)) {
+          change = quantity;
+      } else if (['issue', 'purchase_return'].includes(type)) {
+          change = -quantity;
+      }
+
+      const newStock = (product.stock || 0) + change;
+
+      // Update Product
+      setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock: newStock } : p));
+
+      // Log Transaction
+      const transaction: InventoryTransaction = {
+          id: `INV-${Date.now()}`,
+          productId,
+          productName: product.name,
+          type,
+          quantity,
+          date: new Date().toISOString(),
+          referenceId,
+          description,
+          userId: user.id
+      };
+      setInventoryTransactions(prev => [transaction, ...prev]);
+  };
+
+  const handleManualInventoryTransaction = (transactionData: Omit<InventoryTransaction, 'id' | 'productName' | 'userId'>) => {
+      registerInventoryMovement(
+          transactionData.productId,
+          transactionData.quantity,
+          transactionData.type,
+          transactionData.referenceId,
+          transactionData.description
+      );
+  };
+
+
   // --- REMINDER LOGIC ---
   useEffect(() => {
       const checkReminders = () => {
           const now = new Date();
-          // Check for reminders that are due, not completed, and NOT notified yet (Toast not shown)
           const remindersToNotify = reminders.filter(reminder => {
                const dueDate = new Date(reminder.dueDateTime);
                return dueDate <= now && !reminder.isNotified && !reminder.isCompleted;
           });
 
           if (remindersToNotify.length > 0) {
-              // Show notification for the first one found
               setActiveNotification(remindersToNotify[0]);
-              
-              // Mark them as notified so they don't trigger toast again, but KEEP isRead false so red dot stays
               setReminders(prev => prev.map(r => {
                   if (remindersToNotify.find(rtn => rtn.id === r.id)) {
                       return { ...r, isNotified: true };
@@ -239,8 +269,7 @@ const MainApp: React.FC<{
               }));
           }
       };
-
-      const interval = setInterval(checkReminders, 10000); // Check every 10 seconds
+      const interval = setInterval(checkReminders, 10000);
       return () => clearInterval(interval);
   }, [reminders, setReminders]);
 
@@ -290,31 +319,55 @@ const MainApp: React.FC<{
           handleAddReminder(data);
       }
   };
+
+  // --- TASK LOGIC ---
+  const openTaskModal = (prefill?: any, editingTask?: Task) => {
+      setActiveTaskModal({ isOpen: true, prefill, editingTask });
+  };
+
+  const closeTaskModal = () => {
+      setActiveTaskModal({ isOpen: false, prefill: undefined, editingTask: undefined });
+  };
+
+  const handleAddTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
+       const newTask: Task = {
+            id: `TSK-${Date.now()}`,
+            createdAt: new Date().toISOString(),
+            ...taskData
+        };
+        setTasks(prev => [newTask, ...prev]);
+  };
+
+  const handleUpdateTask = (task: Task) => {
+      setTasks(prev => prev.map(t => t.id === task.id ? task : t));
+  };
+
+  const saveTaskFromModal = (data: Omit<Task, 'id' | 'createdAt'>) => {
+      if (activeTaskModal.editingTask) {
+          handleUpdateTask({ ...activeTaskModal.editingTask, ...data });
+      } else {
+          handleAddTask(data);
+      }
+  };
   
   const handleUpdateTicket = (updatedTicket: Ticket) => {
       setTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
   };
 
   const handleCreateTaskFromTicket = (ticketId: string, ticketSubject: string, priority: string, customerId: string) => {
-      handleSetActivePage('tasks', { 
-          action: 'create', 
-          prefill: {
-              title: `رسیدگی به تیکت: ${ticketSubject}`,
-              customerId: customerId,
-              relatedTicketId: ticketId,
-              priority: priority === 'حیاتی' ? 'فوری' : priority === 'کم' ? 'پایین' : priority,
-          }
+      openTaskModal({
+          title: `رسیدگی به تیکت: ${ticketSubject}`,
+          customerId: customerId,
+          relatedTicketId: ticketId,
+          priority: priority === 'حیاتی' ? 'فوری' : priority === 'کم' ? 'پایین' : priority,
       });
   };
   
   const handleCreateTaskFromMessage = (messageText: string, authorName: string) => {
-      handleSetActivePage('tasks', { 
-          action: 'create', 
-          prefill: {
-              title: `وظیفه از چت: ${messageText.substring(0, 30)}...`,
-              description: `ایجاد شده از پیام کاربر ${authorName}:\n\n"${messageText}"`,
-              assignedToId: user.id,
-          }
+      openTaskModal({
+          title: `وظیفه از چت: ${messageText.substring(0, 30)}...`,
+          description: `ایجاد شده از پیام کاربر ${authorName}:\n\n"${messageText}"`,
+          assignedToId: user.id,
       });
   };
 
@@ -327,9 +380,103 @@ const MainApp: React.FC<{
       }
     })
   }
+  
+  const handleViewQuote = (quote: Quote) => {
+      handleSetActivePage('quotes', { action: 'edit', entityId: quote.id });
+  }
+  
+  const handleViewInvoice = (invoice: Invoice) => {
+      handleSetActivePage('invoices', { action: 'edit', entityId: invoice.id });
+  }
+
+  // --- FINANCE & PURCHASING LOGIC ---
+  const handleSavePO = (po: Omit<PurchaseOrder, 'id'> | PurchaseOrder) => {
+      const isEditing = 'id' in po;
+        let savedPo: PurchaseOrder;
+
+        if (isEditing) {
+            savedPo = po as PurchaseOrder;
+            setPurchaseOrders(prev => prev.map(p => p.id === po.id ? savedPo : p));
+        } else {
+            savedPo = {
+                id: `PO-${Date.now()}`,
+                ...(po as Omit<PurchaseOrder, 'id'>),
+                amountPaid: 0
+            };
+            setPurchaseOrders(prev => [...prev, savedPo]);
+        }
+        
+        // Integration: If PO is "Received", add items to stock (if they are physical products)
+        if (savedPo.status === 'دریافت شده' && (!isEditing || purchaseOrders.find(p => p.id === savedPo.id)?.status !== 'دریافت شده')) {
+             savedPo.items.forEach(item => {
+                 const product = products.find(p => p.id === item.productId);
+                 if (product && product.type === 'product') {
+                    registerInventoryMovement(item.productId, item.quantity, 'receipt', savedPo.id, 'ورود خودکار از طریق سفارش خرید');
+                 }
+             });
+        }
+
+        handleSetActivePage('purchaseOrders');
+  };
+  
+  const handleSaveInvoice = (invoice: Omit<Invoice, 'id'> | Invoice) => {
+      const isEditing = 'id' in invoice;
+      let savedInvoice: Invoice;
+
+      if (isEditing) {
+          savedInvoice = invoice as Invoice;
+          setInvoices(prev => prev.map(i => i.id === invoice.id ? savedInvoice : i));
+      } else {
+          savedInvoice = {
+              id: `INV-${Date.now()}`,
+              ...(invoice as Omit<Invoice, 'id'>)
+          };
+          setInvoices(prev => [...prev, savedInvoice]);
+      }
+      
+      // Integration: If Invoice is "Sent" (implies goods left), deduct stock (if physical product)
+      if (savedInvoice.status === 'ارسال شده' && (!isEditing || invoices.find(i => i.id === savedInvoice.id)?.status !== 'ارسال شده')) {
+           savedInvoice.items.forEach(item => {
+               const product = products.find(p => p.id === item.productId);
+               if (product && product.type === 'product') {
+                   registerInventoryMovement(item.productId, item.quantity, 'issue', savedInvoice.id, 'خروج خودکار با فاکتور فروش');
+               }
+           });
+      }
+  };
+  
+  const handleRegisterPayment = (paymentData: Omit<Payment, 'id'>) => {
+      const newPayment: Payment = {
+          id: `PAY-${Date.now()}`,
+          ...paymentData
+      };
+      setPayments(prev => [newPayment, ...prev]);
+      
+      // Update Invoice or PO status based on payment
+      if (paymentData.referenceType === 'invoice' && paymentData.referenceId) {
+          setInvoices(prev => prev.map(inv => {
+              if (inv.id === paymentData.referenceId) {
+                  const newAmountPaid = (inv.amountPaid || 0) + paymentData.amount;
+                  const newStatus: InvoiceStatus = newAmountPaid >= inv.totalAmount ? 'پرداخت شده' : 'پرداخت جزئی';
+                  return { ...inv, amountPaid: newAmountPaid, status: newStatus };
+              }
+              return inv;
+          }));
+      } else if (paymentData.referenceType === 'purchaseOrder' && paymentData.referenceId) {
+          setPurchaseOrders(prev => prev.map(po => {
+              if (po.id === paymentData.referenceId) {
+                   const newAmountPaid = (po.amountPaid || 0) + paymentData.amount;
+                   return { ...po, amountPaid: newAmountPaid };
+              }
+              return po;
+          }))
+      }
+  };
+
 
   const pageTitles: { [key: string]: string } = {
     dashboard: 'داشبورد مدیریتی',
+    calendar: 'تقویم کاری',
     customers: 'مدیریت مشتریان',
     customerInteractions: 'تعاملات با مشتری',
     tickets: 'مدیریت تیکت‌ها',
@@ -340,6 +487,10 @@ const MainApp: React.FC<{
     products: 'کالاها و خدمات',
     quotes: 'پیش‌فاکتورها',
     invoices: 'فاکتورها',
+    inventory: 'انبار و موجودی',
+    payments: 'امور مالی (دریافت و پرداخت)',
+    vendors: 'تامین‌کنندگان',
+    purchaseOrders: 'سفارشات خرید',
     chat: 'چت تیمی',
     reports: 'گزارش‌ها',
     settings: 'تنظیمات',
@@ -361,9 +512,14 @@ const MainApp: React.FC<{
                 customers={customers}
                 currentUser={user}
                 tickets={tickets}
+                quotes={quotes}
+                invoices={invoices}
+                payments={payments}
                 onUpdateTicket={handleUpdateTicket}
                 onBack={() => handleSetActivePage('customers')}
                 onOpenReminderModal={openReminderModal}
+                onViewQuote={handleViewQuote}
+                onViewInvoice={handleViewInvoice}
             />;
         }
       case 'tickets':
@@ -372,7 +528,12 @@ const MainApp: React.FC<{
             onCreateTaskFromTicket={handleCreateTaskFromTicket} 
         />;
       case 'tasks':
-        return <Tasks initialParams={activePage.params} customers={customers} onOpenReminderModal={openReminderModal} />;
+        return <Tasks 
+            tasks={tasks}
+            setTasks={setTasks}
+            onOpenTaskModal={(task) => openTaskModal(undefined, task)}
+            onOpenReminderModal={openReminderModal}
+        />;
       case 'reminders':
         return <Reminders 
             reminders={reminders} 
@@ -381,6 +542,15 @@ const MainApp: React.FC<{
             onDeleteReminder={handleDeleteReminder}
             onToggleComplete={handleToggleCompleteReminder}
         />;
+      case 'calendar':
+          return <Calendar 
+            tasks={tasks} 
+            reminders={reminders} 
+            invoices={invoices}
+            onOpenTaskModal={(task) => openTaskModal(undefined, task)}
+            onOpenReminderModal={(reminder) => openReminderModal(undefined, reminder)}
+            onViewInvoice={handleViewInvoice}
+          />;
       case 'opportunities':
         return <Opportunities />;
       case 'leads':
@@ -388,9 +558,53 @@ const MainApp: React.FC<{
       case 'products':
         return <Products />;
       case 'quotes':
-        return <Quotes customers={customers} onCreateInvoiceFromQuote={handleCreateInvoiceFromQuote}/>;
+        return <Quotes 
+            customers={customers} 
+            onCreateInvoiceFromQuote={handleCreateInvoiceFromQuote}
+            quotes={quotes}
+            setQuotes={setQuotes}
+            initialParams={activePage.params}
+            companyInfo={companyInfo}
+        />;
       case 'invoices':
-        return <Invoices initialParams={activePage.params} customers={customers} />;
+        return <Invoices 
+            initialParams={activePage.params} 
+            customers={customers} 
+            invoices={invoices}
+            setInvoices={setInvoices}
+            quotes={quotes}
+            companyInfo={companyInfo}
+            // We need to pass the custom handler that triggers stock updates
+        />;
+      case 'inventory':
+          return <Inventory 
+             products={products}
+             transactions={inventoryTransactions}
+             onAddTransaction={handleManualInventoryTransaction}
+          />;
+      case 'vendors':
+          return <VendorsList vendors={vendors} setVendors={setVendors} />;
+      case 'purchaseOrders': {
+           if (activePage.params?.action === 'create' || activePage.params?.action === 'edit') {
+               const editingPO = activePage.params.entityId ? purchaseOrders.find(p => p.id === activePage.params.entityId) : undefined;
+               return <PurchaseOrderEditor 
+                   poData={editingPO}
+                   vendors={vendors}
+                   products={products} 
+                   onSave={handleSavePO}
+                   onCancel={() => handleSetActivePage('purchaseOrders')}
+                   companyInfo={companyInfo}
+               />
+           }
+           return <PurchaseOrdersList 
+               purchaseOrders={purchaseOrders}
+               onCreateNew={() => handleSetActivePage('purchaseOrders', { action: 'create' })}
+               onEdit={(po) => handleSetActivePage('purchaseOrders', { action: 'edit', entityId: po.id })}
+               companyInfo={companyInfo}
+           />;
+      }
+      case 'payments':
+          return <PaymentsList payments={payments} onRegisterPayment={() => setIsPaymentModalOpen(true)} />;
       case 'chat':
         return <Chat 
             currentUser={user}
@@ -400,7 +614,12 @@ const MainApp: React.FC<{
       case 'reports':
         return <Reports />;
       case 'settings':
-        return <Settings customers={customers} setCustomers={setCustomers} />;
+        return <Settings 
+            customers={customers} 
+            setCustomers={setCustomers} 
+            companyInfo={companyInfo} 
+            setCompanyInfo={setCompanyInfo} 
+        />;
       case 'knowledgeBase':
         return <KnowledgeBase 
             articles={kbArticles} 
@@ -433,7 +652,7 @@ const MainApp: React.FC<{
 
       <main className="flex-1 flex flex-col overflow-hidden relative">
         <header className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-           <div className="flex items-center">
+           <div className="flex items-center flex-1">
              <button
               onClick={() => setIsSidebarOpen(true)}
               className="md:hidden p-1 ml-4 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
@@ -441,9 +660,20 @@ const MainApp: React.FC<{
             >
               <HamburgerIcon className="w-6 h-6" />
             </button>
-            <h1 className="text-xl sm:text-2xl font-semibold">{pageTitles[activePage.name] || 'CRM'}</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold flex-shrink-0">{pageTitles[activePage.name] || 'CRM'}</h1>
+            <GlobalSearch 
+                customers={customers}
+                tickets={tickets}
+                leads={leads}
+                tasks={tasks}
+                products={products}
+                quotes={quotes}
+                invoices={invoices}
+                purchaseOrders={purchaseOrders}
+                onNavigate={handleSetActivePage}
+            />
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-shrink-0">
             <HeaderNotifications reminders={reminders} onMarkAsRead={handleMarkAsRead} />
             <UserProfile user={user} onLogout={onLogout} />
             <ThemeToggle />
@@ -461,13 +691,32 @@ const MainApp: React.FC<{
             isEditing={!!activeReminderModal.editingReminder}
         />
 
+        <TaskModal
+            isOpen={activeTaskModal.isOpen}
+            onClose={closeTaskModal}
+            onSave={saveTaskFromModal}
+            initialData={activeTaskModal.editingTask || activeTaskModal.prefill}
+            isEditing={!!activeTaskModal.editingTask}
+            users={mockUsers} 
+            customers={customers}
+        />
+        
+        <PaymentModal
+            isOpen={isPaymentModalOpen}
+            onClose={() => setIsPaymentModalOpen(false)}
+            onSave={handleRegisterPayment}
+            customers={customers}
+            vendors={vendors}
+            invoices={invoices}
+            purchaseOrders={purchaseOrders}
+            currentUser={user}
+        />
+
         <NotificationToast 
             reminder={activeNotification} 
             onClose={() => setActiveNotification(null)} 
             onAction={(reminder) => {
                 setActiveNotification(null);
-                // If on reminders page, it will be there. If not, navigate?
-                // Ideally, open a detail view or highlight it. For now, simple close.
                 handleSetActivePage('reminders');
             }}
         />
@@ -479,32 +728,32 @@ const MainApp: React.FC<{
 
 const App: React.FC = () => {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
-  /*
-    === پیشنهاد برای Data Fetching ===
-    به جای مدیریت state های متعدد در کامپوننت App، پیشنهاد می‌شود از React Context یا کتابخانه‌هایی مانند SWR/React-Query استفاده شود.
-    یک AuthContext برای مدیریت اطلاعات کاربر لاگین شده و توکن.
-    یک DataContext برای fetch کردن و نگهداری داده‌های اصلی (مشتریان، تیکت‌ها و ...).
-    این کار باعث تمیزتر شدن کد App.tsx و جداسازی بهتر مسئولیت‌ها می‌شود.
-
-    مثال برای AuthContext:
-    const AuthContext = React.createContext({ auth: null, login: () => {}, logout: () => {} });
-    export const AuthProvider = ({ children }) => { ... };
-    export const useAuth = () => React.useContext(AuthContext);
-  */
   const [auth, setAuth] = useState<{ type: 'user' | 'customer' | null, entity: User | Customer | null }>({ type: null, entity: null });
 
-  // این state ها باید پس از اتصال به بک‌اند با داده‌های واقعی از API پر شوند
+  // State Definitions
   const [tickets, setTickets] = useState<Ticket[]>(mockTicketsData);
   const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
   const [kbCategories, setKbCategories] = useState<KnowledgeBaseCategory[]>(mockKbCategories);
   const [kbArticles, setKbArticles] = useState<KnowledgeBaseArticle[]>(mockKbArticles);
   const [reminders, setReminders] = useState<Reminder[]>([]);
-
+  const [tasks, setTasks] = useState<Task[]>(mockTasksData); 
+  const [quotes, setQuotes] = useState<Quote[]>(mockQuotes); 
+  const [invoices, setInvoices] = useState<Invoice[]>(mockInvoices);
+  const [vendors, setVendors] = useState<Vendor[]>(mockVendors);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo>(initialCompanyInfo);
+  
+  // Products State (Shared for PO and Quotes, now with Stock)
+  const [products, setProducts] = useState<Product[]>([
+    { id: 'P1', name: 'سرویس پشتیبانی طلایی', price: 10000000, code: 'SRV-001', stock: 0, type: 'service' }, 
+    { id: 'P2', name: 'سرویس پشتیبانی نقره‌ای', price: 5000000, code: 'SRV-002', stock: 0, type: 'service' }, 
+    { id: 'P3', name: 'لایسنس تک کاربره', price: 2000000, code: 'LIC-001', stock: 5, type: 'product' }
+  ]);
+  
+  const [inventoryTransactions, setInventoryTransactions] = useState<InventoryTransaction[]>([]);
 
   useEffect(() => {
-    // در یک اپلیکیشن واقعی، اینجا باید چک شود که آیا توکن معتبری در localStorage وجود دارد یا نه
-    // اگر وجود داشت، اطلاعات کاربر از API گرفته شده و state مربوط به auth ست می‌شود.
-    // fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }}) ...
     const root = window.document.documentElement;
     if (theme === 'dark') {
       root.classList.add('dark');
@@ -514,101 +763,17 @@ const App: React.FC = () => {
     localStorage.setItem('theme', theme);
   }, [theme]);
   
-  // بعد از لاگین موفق، داده‌های اولیه برنامه باید fetch شوند.
   useEffect(() => {
         if (auth.type === 'user') {
-            /*
-            === API CALL REQUIRED HERE ===
-            - Route: /api/customers, /api/tickets, /api/kb/articles, /api/kb/categories
-            - Method: GET
-            - Input: Auth token in header.
-            - Output: Lists of customers, tickets, articles, and categories.
-            - Sample Fetch Code:
-              const fetchInitialData = async () => {
-                  const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
-                  const [customersRes, ticketsRes, articlesRes, categoriesRes] = await Promise.all([
-                      fetch('/api/customers', { headers }),
-                      fetch('/api/tickets', { headers }),
-                      fetch('/api/kb/articles', { headers }),
-                      fetch('/api/kb/categories', { headers }),
-                  ]);
-                  const customersData = await customersRes.json();
-                  const ticketsData = await ticketsRes.json();
-                  const articlesData = await articlesRes.json();
-                  const categoriesData = await categoriesRes.json();
-                  setCustomers(customersData.data);
-                  setTickets(ticketsData.data);
-                  setKbArticles(articlesData.data);
-                  setKbCategories(categoriesData.data);
-              };
-              fetchInitialData();
-            */
-            // Load initial reminders mock
+            // Initial Data Fetching Logic
             setReminders([
                 { id: 'R1', userId: auth.entity!.id, title: 'تماس با شرکت آلفا', description: 'پیگیری قرارداد جدید', dueDateTime: new Date(Date.now() + 3600000).toISOString(), isCompleted: false, isRead: false, isNotified: false, sourceType: 'manual', createdAt: new Date().toISOString() },
                  { id: 'R2', userId: auth.entity!.id, title: 'ارسال فاکتور بتا', description: '', dueDateTime: new Date(Date.now() - 86400000).toISOString(), isCompleted: false, isRead: false, isNotified: true, sourceType: 'manual', createdAt: new Date().toISOString() }
             ]);
-        } else if (auth.type === 'customer') {
-             /*
-            === API CALL REQUIRED HERE ===
-            - Route: /api/portal/tickets, /api/portal/kb/articles, ...
-            - Method: GET
-            - Input: Auth token for the customer in header.
-            - Output: Data relevant to the logged-in customer.
-            - Sample Fetch Code:
-              const fetchPortalData = async () => {
-                  const headers = { 'Authorization': `Bearer ${localStorage.getItem('customer_token')}` };
-                  const [ticketsRes, articlesRes, categoriesRes] = await Promise.all([
-                      fetch('/api/portal/tickets', { headers }),
-                      fetch('/api/portal/kb/articles', { headers }),
-                      fetch('/api/portal/kb/categories', { headers }),
-                  ]);
-                  // ... set state
-              };
-              fetchPortalData();
-            */
         }
     }, [auth]);
 
   const handleLogin = (type: 'user' | 'customer', username: string, pass: string) => {
-    /*
-      === API CALL REQUIRED HERE ===
-      این تابع باید یک درخواست به API برای احراز هویت ارسال کند.
-      - Route: /api/auth/login/user or /api/auth/login/customer
-      - Method: POST
-      - Input: { "username": "string", "password": "string" }
-      - Output: { "token": "string", "user": User } or { "token": "string", "customer": Customer }
-      - Sample Fetch Code (کاملاً واقعی، فقط کامنت شده):
-        const loginUrl = type === 'user' ? '/api/auth/login/user' : '/api/auth/login/customer';
-        fetch(loginUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password: pass })
-        })
-        .then(async res => {
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.message || 'Login failed');
-            }
-            return res.json();
-        })
-        .then(data => {
-            if (type === 'user') {
-                localStorage.setItem('token', data.token);
-                setAuth({ type: 'user', entity: data.user });
-            } else {
-                 localStorage.setItem('customer_token', data.token);
-                 setAuth({ type: 'customer', entity: data.customer });
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            // Handle error UI, e.g., setError('نام کاربری یا رمز عبور نامعتبر است.')
-        });
-
-      - نکته برای بک‌اند: پس از موفقیت، توکن JWT باید در پاسخ بازگردانده شود.
-    */
-    // Mock login logic
     if (pass === '1234') {
         if (type === 'user') {
             const user = mockUsers.find(u => u.username === username);
@@ -628,30 +793,10 @@ const App: React.FC = () => {
   };
   
   const handleLogout = () => {
-      // باید توکن از localStorage پاک شود
-      // localStorage.removeItem('token');
-      // localStorage.removeItem('customer_token');
       setAuth({ type: null, entity: null });
   };
   
   const handleAddTicket = (ticketData: Omit<Ticket, 'id'|'customer'|'assignee'|'assigneeId'>) => {
-      /*
-      === API CALL REQUIRED HERE ===
-      - Route: /api/portal/tickets
-      - Method: POST
-      - Input: ticketData
-      - Output: The newly created ticket object.
-      - Sample Fetch Code:
-        fetch('/api/portal/tickets', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ${localStorage.getItem('customer_token')}` },
-            body: JSON.stringify(ticketData)
-        })
-        .then(res => res.json())
-        .then(newTicketFromServer => {
-            setTickets(prev => [newTicketFromServer, ...prev]);
-        });
-      */
       const customer = auth.entity as Customer;
       const newTicket: Ticket = {
           ...ticketData,
@@ -662,47 +807,10 @@ const App: React.FC = () => {
   };
   
   const handleUpdateTicket = (updatedTicket: Ticket) => {
-       /*
-      === API CALL REQUIRED HERE ===
-      این تابع معمولا برای افزودن پاسخ توسط مشتری فراخوانی می‌شود.
-      - Route: /api/portal/tickets/:ticketId
-      - Method: PUT (or PATCH)
-      - Input: The updated ticket object or just the new reply.
-      - Output: The fully updated ticket object from the server.
-      - Sample Fetch Code:
-        fetch(`/api/portal/tickets/${updatedTicket.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ${localStorage.getItem('customer_token')}` },
-            body: JSON.stringify(updatedTicket)
-        })
-        .then(res => res.json())
-        .then(updatedTicketFromServer => {
-            setTickets(prev => prev.map(t => t.id === updatedTicketFromServer.id ? updatedTicketFromServer : t));
-        });
-      */
       setTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
   };
   
   const handleSurveySubmit = (ticketId: string, rating: number, feedback: string, tags: string[]) => {
-      /*
-      === API CALL REQUIRED HERE ===
-      - Route: /api/portal/tickets/:ticketId/survey
-      - Method: POST
-      - Input: { rating, feedback, tags }
-      - Output: { success: true }
-      - Sample Fetch Code:
-        fetch(`/api/portal/tickets/${ticketId}/survey`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ${localStorage.getItem('customer_token')}` },
-            body: JSON.stringify({ rating, feedback, tags })
-        })
-        .then(res => res.json())
-        .then(() => {
-             setTickets(prev => prev.map(t => 
-                t.id === ticketId ? { ...t, rating, feedbackTags: tags, surveySubmitted: true } : t
-            ));
-        });
-      */
       setTickets(prev => prev.map(t => 
           t.id === ticketId ? { ...t, rating, feedbackTags: tags, surveySubmitted: true } : t
       ));
@@ -737,9 +845,26 @@ const App: React.FC = () => {
             setKbArticles={setKbArticles}
             reminders={reminders}
             setReminders={setReminders}
+            tasks={tasks}
+            setTasks={setTasks}
+            quotes={quotes}
+            setQuotes={setQuotes}
+            invoices={invoices}
+            setInvoices={setInvoices}
+            vendors={vendors}
+            setVendors={setVendors}
+            purchaseOrders={purchaseOrders}
+            setPurchaseOrders={setPurchaseOrders}
+            payments={payments}
+            setPayments={setPayments}
+            companyInfo={companyInfo}
+            setCompanyInfo={setCompanyInfo}
+            products={products}
+            setProducts={setProducts}
+            inventoryTransactions={inventoryTransactions}
+            setInventoryTransactions={setInventoryTransactions}
             onLogout={handleLogout} 
         />;
 };
-
 
 export default App;

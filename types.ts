@@ -12,6 +12,15 @@ export interface FunnelStage {
 
 export type TicketStatus = 'جدید' | 'در حال بررسی' | 'بسته شده' | 'در انتظار مشتری' | 'حل شده' | 'بازگشایی شده';
 
+export interface Attachment {
+    id: string;
+    name: string;
+    size: number;
+    type: string;
+    url: string;
+    uploadedAt: string;
+}
+
 export interface TicketReply {
     id: string;
     authorId?: string; // User ID if author is an agent
@@ -21,6 +30,7 @@ export interface TicketReply {
     createdAt: string;
     authorName?: string; // Not in schema, but useful for display
     authorAvatar?: string; // Not in schema, but useful for display
+    attachments?: Attachment[];
 }
 
 
@@ -40,6 +50,7 @@ export interface Ticket {
   rating?: number;
   surveySubmitted?: boolean;
   feedbackTags?: string[]; // Stored as comma-separated string in DB
+  attachments?: Attachment[];
 }
 
 export type CustomerType = 'شرکتی' | 'شخصی' | 'کسب و کار';
@@ -58,8 +69,10 @@ export interface Customer {
   contacts: Contact[];
   username?: string;
   password?: string;
-  email: string;
+  email?: string; // Optional
   phone: string;
+  economicCode?: string; // Added
+  nationalId?: string; // Added
   status: 'فعال' | 'غیرفعال' | 'معلق';
   mobile?: string;
   city?: string;
@@ -72,6 +85,7 @@ export interface Customer {
   internalNotes?: string;
   portalToken?: string;
   supportEndDate?: string;
+  documents?: Attachment[];
 }
 
 export type LeadStatus = 'جدید' | 'تماس گرفته شده' | 'واجد شرایط' | 'تبدیل شده' | 'از دست رفته';
@@ -112,7 +126,9 @@ export interface Product {
     code?: string;
     name: string;
     description?: string;
+    type: 'product' | 'service'; // Added: Distinguish between physical goods and services
     price: number;
+    stock: number; // Added stock field
 }
 
 export type QuoteStatus = 'پیش‌نویس' | 'ارسال شده' | 'تایید شده' | 'رد شده';
@@ -121,12 +137,17 @@ export interface QuoteItem {
     productName: string;
     quantity: number;
     unitPrice: number;
-    discount: number; // Percentage
+    totalPrice: number; // quantity * unitPrice
+    discountType: 'percent' | 'amount';
+    discount: number; // Value based on type
+    totalAfterDiscount: number;
     tax: number; // Percentage
-    total: number;
+    totalWithTax: number; // Final row total
 }
 export interface Quote {
     id: string;
+    quoteNumber: string; // For grouping versions
+    version: number;
     customerId: string;
     customerName: string;
     issueDate: string;
@@ -139,16 +160,9 @@ export interface Quote {
     totalAmount: number;
 }
 
-export type InvoiceStatus = 'پیش‌نویس' | 'ارسال شده' | 'پرداخت شده' | 'سررسید گذشته';
-export interface InvoiceItem {
-    productId: string;
-    productName: string;
-    quantity: number;
-    unitPrice: number;
-    discount: number; // Percentage
-    tax: number; // Percentage
-    total: number;
-}
+export type InvoiceStatus = 'پیش‌نویس' | 'ارسال شده' | 'پرداخت جزئی' | 'پرداخت شده' | 'سررسید گذشته';
+export interface InvoiceItem extends QuoteItem {} // Same structure
+
 export interface Invoice {
     id: string;
     quoteId?: string;
@@ -157,11 +171,13 @@ export interface Invoice {
     issueDate: string;
     dueDate: string;
     status: InvoiceStatus;
+    isOfficial: boolean; // Added
     items: InvoiceItem[];
     subtotal: number;
     discountAmount: number;
     taxAmount: number;
     totalAmount: number;
+    amountPaid?: number; // Track partial payments
 }
 
 
@@ -215,6 +231,7 @@ export interface ChatMessage {
     text: string;
     timestamp: string; // Should be ISO string
     thread?: ChatMessage[];
+    attachments?: Attachment[];
 }
 
 export interface ChatChannel {
@@ -290,4 +307,80 @@ export interface Reminder {
     sourceId?: string; // ID of related item
     sourcePreview?: string; // Snippet of text from source
     createdAt: string;
+}
+
+// Purchasing & Finance Types
+export interface Vendor {
+    id: string;
+    name: string;
+    contactName: string;
+    email?: string;
+    phone: string;
+    address?: string;
+    website?: string;
+    economicCode?: string; // Added
+    nationalId?: string; // Added
+    postalCode?: string; // Added
+    status: 'فعال' | 'غیرفعال';
+}
+
+export type PurchaseOrderStatus = 'پیش‌نویس' | 'سفارش داده شده' | 'دریافت شده' | 'لغو شده';
+
+export interface PurchaseOrder {
+    id: string;
+    vendorId: string;
+    vendorName: string;
+    issueDate: string;
+    deliveryDate?: string;
+    status: PurchaseOrderStatus;
+    items: QuoteItem[]; // Reusing QuoteItem as structure is same
+    subtotal: number;
+    taxAmount: number;
+    totalAmount: number;
+    amountPaid?: number;
+}
+
+export type PaymentType = 'دریافت' | 'پرداخت';
+export type PaymentMethod = 'نقد' | 'کارت به کارت' | 'چک' | 'واریز بانکی';
+
+export interface Payment {
+    id: string;
+    type: PaymentType;
+    amount: number;
+    date: string;
+    method: PaymentMethod;
+    referenceId?: string; // Invoice ID or PO ID
+    referenceType: 'invoice' | 'purchaseOrder';
+    partyId: string; // Customer ID or Vendor ID
+    partyName: string;
+    description?: string;
+    recordedBy: string; // User ID
+}
+
+// Inventory Types
+export type InventoryTransactionType = 'receipt' | 'issue' | 'purchase_return' | 'sales_return';
+
+export interface InventoryTransaction {
+    id: string;
+    productId: string;
+    productName: string;
+    type: InventoryTransactionType;
+    quantity: number;
+    date: string;
+    referenceId?: string; // Invoice ID, PO ID or manual ref
+    description?: string;
+    userId: string; // Created By
+}
+
+// Company Info for Print
+export interface CompanyInfo {
+    name: string;
+    address: string;
+    postalCode?: string;
+    phone: string;
+    email: string;
+    website: string;
+    logoUrl?: string;
+    economicCode?: string;
+    nationalId?: string;
 }

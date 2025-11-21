@@ -1,95 +1,61 @@
-/* 
-    === BACKEND SPEC ===
-    توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
-    این کامپوننت مسئولیت مدیریت پیش‌فاکتورها (Quotes) را دارد و بین نمایش لیست و ویرایشگر سوئیچ می‌کند.
 
-    1. دریافت لیست پیش‌فاکتورها (Read)
-    - Route: /api/quotes
-    - Method: GET
-    - Response JSON Schema: { "data": [Quote] }
-
-    2. افزودن/ویرایش پیش‌فاکتور (Create/Update)
-    - Route (Create): /api/quotes
-    - Method (Create): POST
-    - Expected Body JSON Schema (Create): Omit<Quote, 'id'>
-    - ---
-    - Route (Update): /api/quotes/:id
-    - Method (Update): PUT
-    - Expected Body JSON Schema (Update): Quote
-    - Response JSON Schema: Quote (پیش‌فاکتور ایجاد یا ویرایش شده)
-    - توضیح منطق بکند مورد نیاز: محاسبات سمت سرور (subtotal, totalAmount و ...) باید دوباره انجام شود تا از صحت داده‌ها اطمینان حاصل شود.
-
-    3. دریافت لیست مشتریان و محصولات (برای ویرایشگر)
-    - Route: /api/customers, /api/products
-    - Method: GET
-    - Response JSON Schema: { "data": [Customer] }, { "data": [Product] }
-
-    - Dependencies: تمام endpoint ها نیاز به Auth Token دارند.
-*/
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import QuotationsList from '../sales/QuotationsList';
 import QuoteEditor from '../sales/QuoteEditor';
-import { Quote, Customer, Product } from '../../types';
-
-/*
-    === REMOVE OR REPLACE MOCK DATA ===
-    این داده‌ها موقتی هستند و باید از API دریافت شوند.
-*/
-// // FIX: Added required 'username' property to align with the 'Customer' type definition.
-// const mockCustomers: Customer[] = [
-//   { id: 'C1', companyName: 'شرکت آلفا', contactPerson: 'آقای الف', username: 'alpha', email: 'alpha@co.com', phone: '021-123', status: 'فعال' },
-//   { id: 'C2', companyName: 'تجارت بتا', contactPerson: 'خانم ب', username: 'beta', email: 'beta@co.com', phone: '021-456', status: 'فعال' },
-// ];
-// const mockProducts: Product[] = [
-//     { id: 'P1', name: 'سرویس پشتیبانی طلایی', price: 10000000 },
-//     { id: 'P2', name: 'سرویس پشتیبانی نقره‌ای', price: 5000000 },
-//     { id: 'P3', name: 'لایسنس تک کاربره', price: 2000000 },
-// ];
-// const mockQuotes: Quote[] = [
-//     { id: 'Q-123', customerId: 'C1', customerName: 'شرکت آلفا', issueDate: '1403/05/01', expiryDate: '1403/05/15', status: 'تایید شده', items: [{ productId: 'P1', productName: 'سرویس پشتیبانی طلایی', quantity: 1, unitPrice: 10000000, discount: 10, tax: 9, total: 9000000 }], subtotal: 10000000, discountAmount: 1000000, taxAmount: 810000, totalAmount: 9810000 },
-//     { id: 'Q-124', customerId: 'C2', customerName: 'تجارت بتا', issueDate: '1403/04/25', expiryDate: '1403/05/10', status: 'ارسال شده', items: [{ productId: 'P2', productName: 'سرویس پشتیبانی نقره‌ای', quantity: 2, unitPrice: 5000000, discount: 0, tax: 9, total: 10000000 }], subtotal: 10000000, discountAmount: 0, taxAmount: 900000, totalAmount: 10900000 },
-// ];
-
+import { Quote, Customer, Product, CompanyInfo } from '../../types';
 
 interface QuotesProps {
     customers: Customer[];
     onCreateInvoiceFromQuote: (quoteId: string, customerId: string) => void;
+    quotes: Quote[];
+    setQuotes: React.Dispatch<React.SetStateAction<Quote[]>>;
+    initialParams?: any;
+    companyInfo: CompanyInfo;
 }
 
-const Quotes: React.FC<QuotesProps> = ({ customers, onCreateInvoiceFromQuote }) => {
+const Quotes: React.FC<QuotesProps> = ({ customers, onCreateInvoiceFromQuote, quotes, setQuotes, initialParams, companyInfo }) => {
     const [view, setView] = useState<{ action: 'list' | 'create' | 'edit', entityId?: string }>({ action: 'list' });
     
-    // state ها باید از API دریافت شوند
-    const [quotes, setQuotes] = useState<Quote[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
 
-    React.useEffect(() => {
-        /*
-          === API CALL REQUIRED HERE ===
-          - Route: /api/quotes, /api/products
-          - Method: GET
-          - Output: Lists of quotes and products.
-        */
+    useEffect(() => {
         const mockProducts: Product[] = [
-            { id: 'P1', name: 'سرویس پشتیبانی طلایی', price: 10000000 }, { id: 'P2', name: 'سرویس پشتیبانی نقره‌ای', price: 5000000 },
-            { id: 'P3', name: 'لایسنس تک کاربره', price: 2000000 },
+            { id: 'P1', name: 'سرویس پشتیبانی طلایی', price: 10000000, stock: 100, type: 'service' }, 
+            { id: 'P2', name: 'سرویس پشتیبانی نقره‌ای', price: 5000000, stock: 50, type: 'service' },
+            { id: 'P3', name: 'لایسنس تک کاربره', price: 2000000, stock: 20, type: 'product' },
         ];
-        const mockQuotes: Quote[] = [
-            { id: 'Q-123', customerId: 'C1', customerName: 'شرکت آلفا', issueDate: '1403/05/01', expiryDate: '1403/05/15', status: 'تایید شده', items: [{ productId: 'P1', productName: 'سرویس پشتیبانی طلایی', quantity: 1, unitPrice: 10000000, discount: 10, tax: 9, total: 9000000 }], subtotal: 10000000, discountAmount: 1000000, taxAmount: 810000, totalAmount: 9810000 },
-            { id: 'Q-124', customerId: 'C2', customerName: 'تجارت بتا', issueDate: '1403/04/25', expiryDate: '1403/05/10', status: 'ارسال شده', items: [{ productId: 'P2', productName: 'سرویس پشتیبانی نقره‌ای', quantity: 2, unitPrice: 5000000, discount: 0, tax: 9, total: 10000000 }], subtotal: 10000000, discountAmount: 0, taxAmount: 900000, totalAmount: 10900000 },
-        ];
-        setQuotes(mockQuotes);
         setProducts(mockProducts);
     }, []);
+    
+    useEffect(() => {
+        if (initialParams?.action) {
+          setView({
+            action: initialParams.action,
+            entityId: initialParams.entityId,
+          });
+        }
+    }, [initialParams]);
 
     const handleSaveQuote = (quote: Omit<Quote, 'id'> | Quote) => {
-        /* === API CALL REQUIRED HERE (in QuoteEditor.tsx) === */
         const isEditing = 'id' in quote;
+        
         if (isEditing) {
-            setQuotes(quotes.map(q => q.id === quote.id ? quote as Quote : q));
+            // Logic for Versioning:
+            // Instead of updating, we create a NEW quote with same quoteNumber but incremented version
+            const currentQuote = quote as Quote;
+            const newQuote: Quote = {
+                ...currentQuote,
+                id: `Q-${Date.now()}`, // New ID
+                version: currentQuote.version + 1, // Increment Version
+            };
+            setQuotes(prev => [...prev, newQuote]);
         } else {
+            // New Quote
+            const quoteNumber = `100${quotes.length + 1}`; // Simple generation
             const newQuote: Quote = {
                 id: `Q-${Date.now()}`,
+                quoteNumber: quoteNumber,
+                version: 1,
                 ...(quote as Omit<Quote, 'id'>)
             };
             setQuotes(prev => [...prev, newQuote]);
@@ -107,6 +73,7 @@ const Quotes: React.FC<QuotesProps> = ({ customers, onCreateInvoiceFromQuote }) 
             onCreateNew={handleCreate}
             onEdit={handleEdit}
             onCreateInvoiceFromQuote={(quote) => onCreateInvoiceFromQuote(quote.id, quote.customerId)}
+            companyInfo={companyInfo}
         />;
     }
 
@@ -119,6 +86,7 @@ const Quotes: React.FC<QuotesProps> = ({ customers, onCreateInvoiceFromQuote }) 
         onSave={handleSaveQuote}
         onCancel={handleCancel}
         onCreateInvoiceFromQuote={(quote) => onCreateInvoiceFromQuote(quote.id, quote.customerId)}
+        companyInfo={companyInfo}
     />;
 };
 

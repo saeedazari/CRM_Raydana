@@ -1,3 +1,4 @@
+
 /* 
     === BACKEND SPEC ===
     توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
@@ -18,15 +19,17 @@
     - توضیح منطق بکند مورد نیاز: این داده‌ها به کامپوننت‌های فرزند پاس داده می‌شوند تا در آنجا عملیات CRUD انجام شود.
 */
 import React, { useState } from 'react';
-import { User, Role, Customer } from '../../types';
+import { User, Role, Customer, CompanyInfo } from '../../types';
 import UserManagement from '../settings/UserManagement';
 import RoleManagement from '../settings/RoleManagement';
 import ChannelManagement from '../settings/ChannelManagement';
 import CustomerUserManagement from '../settings/CustomerUserManagement';
+import GeneralSettings from '../settings/GeneralSettings';
 import { UsersIcon } from '../icons/UsersIcon';
 import { ShieldCheckIcon } from '../icons/ShieldCheckIcon';
 import { ChatBubbleLeftRightIcon } from '../icons/ChatBubbleLeftRightIcon';
 import { KeyIcon } from '../icons/KeyIcon';
+import { SettingsIcon } from '../icons/SettingsIcon';
 
 /*
     === REMOVE OR REPLACE MOCK DATA ===
@@ -50,15 +53,17 @@ import { KeyIcon } from '../icons/KeyIcon';
 //   { id: 'U3', name: 'محمد کریمی', username: 'mohammad', roleId: 'R3', avatar: 'https://i.pravatar.cc/40?u=U3' },
 // ];
 
-type ActiveTab = 'users' | 'customerUsers' | 'roles' | 'channels';
+type ActiveTab = 'general' | 'users' | 'customerUsers' | 'roles' | 'channels';
 
 interface SettingsProps {
     customers: Customer[];
     setCustomers: React.Dispatch<React.SetStateAction<Customer[]>>;
+    companyInfo: CompanyInfo;
+    setCompanyInfo: (info: CompanyInfo) => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ customers, setCustomers }) => {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('users');
+const Settings: React.FC<SettingsProps> = ({ customers, setCustomers, companyInfo, setCompanyInfo }) => {
+  const [activeTab, setActiveTab] = useState<ActiveTab>('general');
   // این state ها باید از API دریافت شوند.
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -98,6 +103,7 @@ const Settings: React.FC<SettingsProps> = ({ customers, setCustomers }) => {
   }, []);
 
   const tabs: { id: ActiveTab; name: string; icon: React.ReactNode }[] = [
+    { id: 'general', name: 'تنظیمات عمومی', icon: <SettingsIcon className="w-5 h-5" /> },
     { id: 'users', name: 'مدیریت کاربران داخلی', icon: <UsersIcon className="w-5 h-5" /> },
     { id: 'customerUsers', name: 'مدیریت کاربران مشتریان', icon: <KeyIcon className="w-5 h-5" /> },
     { id: 'roles', name: 'نقش‌ها و دسترسی‌ها', icon: <ShieldCheckIcon className="w-5 h-5" /> },
@@ -106,6 +112,8 @@ const Settings: React.FC<SettingsProps> = ({ customers, setCustomers }) => {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'general':
+        return <GeneralSettings companyInfo={companyInfo} setCompanyInfo={setCompanyInfo} />;
       case 'users':
         return <UserManagement users={users} roles={roles} setUsers={setUsers} />;
       case 'customerUsers':

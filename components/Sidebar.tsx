@@ -15,6 +15,11 @@ import { CreditCardIcon } from './icons/CreditCardIcon';
 import { CubeIcon } from './icons/CubeIcon';
 import { AcademicCapIcon } from './icons/AcademicCapIcon';
 import { ClockIcon } from './icons/ClockIcon';
+import { BanknotesIcon } from './icons/BanknotesIcon';
+import { BuildingStorefrontIcon } from './icons/BuildingStorefrontIcon';
+import { ShoppingBagIcon } from './icons/ShoppingBagIcon';
+import { CalendarIcon } from './icons/CalendarIcon';
+import { ArchiveBoxIcon } from './icons/ArchiveBoxIcon';
 
 interface SidebarProps {
   activePage: string;
@@ -26,16 +31,28 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ activePage, setActivePage, isOpen, setIsOpen }) => {
   const menuItems = [
     { id: 'dashboard', icon: <DashboardIcon className="w-6 h-6" />, name: 'داشبورد' },
+    { id: 'calendar', icon: <CalendarIcon className="w-6 h-6" />, name: 'تقویم کاری' },
     { id: 'customers', icon: <CustomersIcon className="w-6 h-6" />, name: 'مشتریان' },
     { id: 'tickets', icon: <TicketsIcon className="w-6 h-6" />, name: 'تیکت‌ها' },
     { id: 'tasks', icon: <ClipboardDocumentCheckIcon className="w-6 h-6" />, name: 'مدیریت وظایف' },
     { id: 'reminders', icon: <ClockIcon className="w-6 h-6" />, name: 'یادآورها' },
+    
     { isHeader: true, name: 'فروش' },
     { id: 'opportunities', icon: <SalesIcon className="w-6 h-6" />, name: 'فرصت‌ها' },
     { id: 'leads', icon: <LightBulbIcon className="w-6 h-6" />, name: 'سرنخ‌ها' },
     { id: 'quotes', icon: <DocumentDuplicateIcon className="w-6 h-6" />, name: 'پیش‌فاکتورها' },
     { id: 'invoices', icon: <CreditCardIcon className="w-6 h-6" />, name: 'فاکتورها' },
     { id: 'products', icon: <CubeIcon className="w-6 h-6" />, name: 'کالاها و خدمات' },
+    
+    { isHeader: true, name: 'انبار و تدارکات' },
+    { id: 'inventory', icon: <ArchiveBoxIcon className="w-6 h-6" />, name: 'انبار (موجودی)' },
+    { id: 'vendors', icon: <BuildingStorefrontIcon className="w-6 h-6" />, name: 'تامین‌کنندگان' },
+    { id: 'purchaseOrders', icon: <ShoppingBagIcon className="w-6 h-6" />, name: 'سفارشات خرید' },
+    
+    { isHeader: true, name: 'امور مالی' },
+    { id: 'payments', icon: <BanknotesIcon className="w-6 h-6" />, name: 'دریافت و پرداخت' },
+
+
     { isHeader: true, name: 'ابزارها' },
     { id: 'knowledgeBase', icon: <AcademicCapIcon className="w-6 h-6" />, name: 'پایگاه دانش' },
     { id: 'chat', icon: <ChatBubbleLeftRightIcon className="w-6 h-6" />, name: 'چت تیمی' },

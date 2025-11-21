@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Customer, Interaction, User, Contact, Ticket, TicketReply } from '../../types';
+import { Customer, Interaction, User, Contact, Ticket, TicketReply, Quote, Invoice, Attachment, Payment } from '../../types';
 import { ArrowRightIcon } from '../icons/ArrowRightIcon';
 import { PhoneIcon } from '../icons/PhoneIcon';
 import { EnvelopeIcon } from '../icons/EnvelopeIcon';
@@ -11,16 +11,20 @@ import { TrashIcon } from '../icons/TrashIcon';
 import { ClockIcon } from '../icons/ClockIcon';
 import { TicketsIcon } from '../icons/TicketsIcon';
 import { LockClosedIcon } from '../icons/LockClosedIcon';
+import { DocumentDuplicateIcon } from '../icons/DocumentDuplicateIcon';
+import { CreditCardIcon } from '../icons/CreditCardIcon';
+import { DocumentIcon } from '../icons/DocumentIcon';
+import { BanknotesIcon } from '../icons/BanknotesIcon';
+import QuotationsList from '../sales/QuotationsList';
+import InvoicesList from '../sales/InvoicesList';
+import PaymentsList from '../finance/PaymentsList';
+import FileUploader from '../FileUploader';
+import AttachmentList from '../AttachmentList';
 
 
 const mockUsers: User[] = [
   { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
   { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
-];
-
-const alphaContacts: Contact[] = [
-    { id: 'P1', name: 'آقای الف', phone: '09121112233', position: 'مدیرعامل', isPrimary: true },
-    { id: 'P2', name: 'خانم ب', phone: '09122223344', position: 'مدیر فنی', isPrimary: false },
 ];
 
 const mockInteractions: Interaction[] = [
@@ -35,9 +39,14 @@ interface CustomerInteractionsProps {
     customers: Customer[];
     currentUser: User;
     tickets?: Ticket[];
+    quotes?: Quote[];
+    invoices?: Invoice[];
+    payments?: Payment[];
     onUpdateTicket?: (ticket: Ticket) => void;
     onBack: () => void;
     onOpenReminderModal?: (data: any) => void;
+    onViewQuote: (quote: Quote) => void;
+    onViewInvoice: (invoice: Invoice) => void;
 }
 
 const interactionIcons: Record<Interaction['type'], React.ReactNode> = {
@@ -47,7 +56,7 @@ const interactionIcons: Record<Interaction['type'], React.ReactNode> = {
     'جلسه': <UsersIcon className="w-5 h-5 text-purple-500" />,
 };
 
-// Custom Radio Component to ensure consistent styling (fix black border issue)
+// Custom Radio Component to ensure consistent styling
 const InteractionTypeRadio = ({ label, value, checked, onChange }: { label: string, value: string, checked: boolean, onChange: (e: any) => void }) => (
     <label className="flex items-center gap-2 cursor-pointer select-none group">
         <div className="relative flex items-center justify-center">
@@ -59,9 +68,7 @@ const InteractionTypeRadio = ({ label, value, checked, onChange }: { label: stri
                 onChange={onChange} 
                 className="peer sr-only" 
             />
-            {/* Ring */}
             <div className="w-4 h-4 rounded-full border border-gray-300 dark:border-gray-500 bg-white dark:bg-gray-700 peer-checked:bg-indigo-600 peer-checked:border-indigo-600 transition-all"></div>
-            {/* Inner Dot */}
             <div className="absolute w-1.5 h-1.5 bg-white rounded-full opacity-0 peer-checked:opacity-100 transition-opacity transform scale-0 peer-checked:scale-100"></div>
         </div>
         <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">{label}</span>
@@ -71,6 +78,7 @@ const InteractionTypeRadio = ({ label, value, checked, onChange }: { label: stri
 const TicketDetailEmbedded: React.FC<{ ticket: Ticket; onBack: () => void; currentUser: User; onUpdate: (ticket: Ticket) => void }> = ({ ticket, onBack, currentUser, onUpdate }) => {
     const [newReply, setNewReply] = useState('');
     const [isInternalNote, setIsInternalNote] = useState(false);
+    const [attachments, setAttachments] = useState<Attachment[]>([]);
     const chatEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -78,7 +86,7 @@ const TicketDetailEmbedded: React.FC<{ ticket: Ticket; onBack: () => void; curre
     }, [ticket.replies]);
 
     const handleSendReply = () => {
-        if (newReply.trim() === '') return;
+        if (newReply.trim() === '' && attachments.length === 0) return;
 
         const reply: TicketReply = {
             id: `R-${Date.now()}`,
@@ -89,11 +97,13 @@ const TicketDetailEmbedded: React.FC<{ ticket: Ticket; onBack: () => void; curre
             authorName: currentUser.name,
             authorAvatar: currentUser.avatar,
             createdAt: new Date().toLocaleString('fa-IR'),
+            attachments: attachments
         };
         const updatedTicket = { ...ticket, replies: [...(ticket.replies || []), reply] };
         onUpdate(updatedTicket);
 
         setNewReply('');
+        setAttachments([]);
         setIsInternalNote(false);
     };
 
@@ -121,7 +131,12 @@ const TicketDetailEmbedded: React.FC<{ ticket: Ticket; onBack: () => void; curre
                                  <p className="font-semibold text-sm">{reply.authorName}</p>
                                  {reply.isInternal && <LockClosedIcon className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
                              </div>
-                            <p className="text-sm text-gray-800 dark:text-gray-200">{reply.text}</p>
+                            <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{reply.text}</p>
+                            {reply.attachments && reply.attachments.length > 0 && (
+                                <div className="mt-2">
+                                    <AttachmentList attachments={reply.attachments} readonly={true} />
+                                </div>
+                            )}
                             <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{new Date(reply.createdAt).toLocaleDateString('fa-IR', { hour: '2-digit', minute: '2-digit' })}</p>
                         </div>
                         {reply.authorType === 'Customer' && <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center font-bold text-sm order-2">{ticket.customer.name.charAt(0)}</div>}
@@ -131,6 +146,10 @@ const TicketDetailEmbedded: React.FC<{ ticket: Ticket; onBack: () => void; curre
             </div>
              <div className="mt-4 pt-4 border-t dark:border-gray-700">
                 <textarea value={newReply} onChange={(e) => setNewReply(e.target.value)} rows={3} placeholder="پاسخ خود را اینجا بنویسید..." className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 mb-2"></textarea>
+                <div className="mb-3">
+                    <FileUploader onUpload={(files) => setAttachments(prev => [...prev, ...files])} compact={false} />
+                    <AttachmentList attachments={attachments} onRemove={(id) => setAttachments(prev => prev.filter(a => a.id !== id))} />
+                </div>
                 <div className="flex items-center justify-between">
                     <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                         <input type="checkbox" checked={isInternalNote} onChange={(e) => setIsInternalNote(e.target.checked)} className="rounded text-indigo-600 focus:ring-indigo-500"/>
@@ -143,19 +162,25 @@ const TicketDetailEmbedded: React.FC<{ ticket: Ticket; onBack: () => void; curre
     );
 }
 
-const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId, customers, currentUser, tickets = [], onUpdateTicket, onBack, onOpenReminderModal }) => {
+const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId, customers, currentUser, tickets = [], quotes = [], invoices = [], payments = [], onUpdateTicket, onBack, onOpenReminderModal, onViewQuote, onViewInvoice }) => {
     const [customer, setCustomer] = useState<Customer | null>(() => customers.find(c => c.id === customerId) || null);
     const [interactions, setInteractions] = useState<Interaction[]>(() => mockInteractions.filter(i => i.customerId === customerId));
-    const [activeTab, setActiveTab] = useState<'interactions' | 'tickets'>('interactions');
+    const [activeTab, setActiveTab] = useState<'interactions' | 'tickets' | 'quotes' | 'invoices' | 'payments' | 'documents'>('interactions');
     const [viewingTicket, setViewingTicket] = useState<Ticket | null>(null);
 
     const [newInteractionText, setNewInteractionText] = useState('');
     const [newInteractionType, setNewInteractionType] = useState<Interaction['type']>('یادداشت');
     const [selectedContactId, setSelectedContactId] = useState<string>('');
     const [editingInteraction, setEditingInteraction] = useState<{ id: string; text: string } | null>(null);
+    
+    // Documents State
+    const [documents, setDocuments] = useState<Attachment[]>(customer?.documents || []);
 
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const customerTickets = tickets.filter(t => t.customerId === customerId);
+    const customerQuotes = quotes.filter(q => q.customerId === customerId);
+    const customerInvoices = invoices.filter(i => i.customerId === customerId);
+    const customerPayments = payments.filter(p => p.partyId === customerId);
 
     useEffect(() => {
         if (scrollContainerRef.current && activeTab === 'interactions') {
@@ -201,7 +226,7 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
         setInteractions(prev => prev.map(i => 
             i.id === editingInteraction.id ? { ...i, text: editingInteraction.text } : i
         ));
-        setEditingInteraction(null); // Exit editing mode
+        setEditingInteraction(null);
     };
 
     const handleStartEditing = (interaction: Interaction) => {
@@ -223,6 +248,25 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
     const handleTicketClick = (ticket: Ticket) => {
         setViewingTicket(ticket);
     };
+    
+    const handleUploadDocument = (newFiles: Attachment[]) => {
+        setDocuments(prev => [...prev, ...newFiles]);
+        // In a real app, you would update the customer object via API here
+        if (customer) {
+            const updatedCustomer = { ...customer, documents: [...documents, ...newFiles] };
+            setCustomer(updatedCustomer);
+        }
+    };
+    
+    const handleDeleteDocument = (fileId: string) => {
+        if (window.confirm('آیا از حذف این سند اطمینان دارید؟')) {
+            setDocuments(prev => prev.filter(d => d.id !== fileId));
+             if (customer) {
+                const updatedCustomer = { ...customer, documents: documents.filter(d => d.id !== fileId) };
+                setCustomer(updatedCustomer);
+            }
+        }
+    };
 
     if (!customer) return <div className="p-8 text-center">مشتری یافت نشد.</div>
 
@@ -241,27 +285,55 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                     </div>
                 </div>
                 {/* Tabs */}
-                <div className="flex px-4 space-i-8">
+                <div className="flex px-4 space-i-8 overflow-x-auto">
                     <button 
                         onClick={() => setActiveTab('interactions')} 
-                        className={`flex items-center pb-3 px-2 border-b-2 transition-colors font-medium text-sm ${activeTab === 'interactions' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                        className={`flex items-center whitespace-nowrap pb-3 px-2 border-b-2 transition-colors font-medium text-sm ${activeTab === 'interactions' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'}`}
                     >
                         <ClipboardDocumentListIcon className="w-4 h-4 ml-2"/>
                         تاریخچه تعاملات
                     </button>
                     <button 
                         onClick={() => setActiveTab('tickets')} 
-                        className={`flex items-center pb-3 px-2 border-b-2 transition-colors font-medium text-sm ${activeTab === 'tickets' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                        className={`flex items-center whitespace-nowrap pb-3 px-2 border-b-2 transition-colors font-medium text-sm ${activeTab === 'tickets' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'}`}
                     >
                         <TicketsIcon className="w-4 h-4 ml-2"/>
                         تیکت‌ها ({customerTickets.length})
+                    </button>
+                     <button 
+                        onClick={() => setActiveTab('quotes')} 
+                        className={`flex items-center whitespace-nowrap pb-3 px-2 border-b-2 transition-colors font-medium text-sm ${activeTab === 'quotes' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                    >
+                        <DocumentDuplicateIcon className="w-4 h-4 ml-2"/>
+                        پیش‌فاکتورها ({customerQuotes.length})
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('invoices')} 
+                        className={`flex items-center whitespace-nowrap pb-3 px-2 border-b-2 transition-colors font-medium text-sm ${activeTab === 'invoices' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                    >
+                        <CreditCardIcon className="w-4 h-4 ml-2"/>
+                        فاکتورها ({customerInvoices.length})
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('payments')} 
+                        className={`flex items-center whitespace-nowrap pb-3 px-2 border-b-2 transition-colors font-medium text-sm ${activeTab === 'payments' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                    >
+                        <BanknotesIcon className="w-4 h-4 ml-2"/>
+                        تراکنش‌ها ({customerPayments.length})
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('documents')} 
+                        className={`flex items-center whitespace-nowrap pb-3 px-2 border-b-2 transition-colors font-medium text-sm ${activeTab === 'documents' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                    >
+                        <DocumentIcon className="w-4 h-4 ml-2"/>
+                        اسناد ({documents.length})
                     </button>
                 </div>
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-hidden flex flex-col relative">
-                {activeTab === 'interactions' ? (
+                {activeTab === 'interactions' && (
                     <>
                          {/* Timeline */}
                         <div className="flex-1 overflow-y-auto p-6" ref={scrollContainerRef}>
@@ -393,8 +465,8 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                             </form>
                         </div>
                     </>
-                ) : (
-                    // Tickets Tab
+                )}
+                {activeTab === 'tickets' && (
                     <div className="flex-1 overflow-y-auto p-6">
                         {viewingTicket ? (
                              <TicketDetailEmbedded 
@@ -442,6 +514,51 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                                 )}
                             </div>
                         )}
+                    </div>
+                )}
+                {activeTab === 'quotes' && (
+                     <div className="flex-1 overflow-y-auto p-4">
+                        <QuotationsList 
+                            quotes={customerQuotes} 
+                            onEdit={onViewQuote}
+                            onCreateInvoiceFromQuote={() => {}}
+                            hideControls={true}
+                        />
+                     </div>
+                )}
+                {activeTab === 'invoices' && (
+                     <div className="flex-1 overflow-y-auto p-4">
+                        <InvoicesList 
+                            invoices={customerInvoices} 
+                            onEdit={onViewInvoice}
+                            hideControls={true}
+                        />
+                     </div>
+                )}
+                {activeTab === 'payments' && (
+                     <div className="flex-1 overflow-y-auto p-4">
+                        <PaymentsList 
+                            payments={customerPayments}
+                            hideControls={true}
+                        />
+                     </div>
+                )}
+                {activeTab === 'documents' && (
+                    <div className="flex-1 overflow-y-auto p-6">
+                        <div className="mb-6">
+                            <h3 className="text-lg font-bold mb-4">آپلود سند جدید</h3>
+                            <FileUploader onUpload={handleUploadDocument} />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold mb-4">اسناد ذخیره شده</h3>
+                            {documents.length > 0 ? (
+                                <AttachmentList attachments={documents} onRemove={handleDeleteDocument} />
+                            ) : (
+                                <div className="text-center text-gray-500 py-8 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-dashed dark:border-gray-700">
+                                    هیچ سندی برای این مشتری آپلود نشده است.
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>

@@ -9,10 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react-dom": "18.2.0",
     "react": "18.2.0",
+    "react-dom": "18.2.0",
     "recharts": "2.12.7",
-    "@hello-pangea/dnd": "16.6.0"
+    "@hello-pangea/dnd": "16.6.0",
+    "react-multi-date-picker": "^4.5.2",
+    "react-date-object": "^2.1.9"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

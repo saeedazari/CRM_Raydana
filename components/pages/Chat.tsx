@@ -1,79 +1,13 @@
 
-/* 
-    === BACKEND SPEC ===
-    توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
-    این کامپوننت سیستم چت تیمی را پیاده‌سازی می‌کند. برای عملکرد real-time، استفاده از WebSocket (مانند SignalR) به شدت توصیه می‌شود. با این حال، می‌توان با polling هم آن را پیاده‌سازی کرد.
-
-    1. دریافت لیست کانال‌ها
-    - Route: /api/chat/channels
-    - Method: GET
-    - Response JSON Schema: { "data": [ChatChannel] }
-    - توضیح منطق بکند مورد نیاز: دریافت لیست کانال‌هایی که کاربر فعلی عضو آنهاست.
-
-    2. دریافت پیام‌های یک کانال
-    - Route: /api/chat/channels/:channelId/messages
-    - Method: GET
-    - Expected Query Params: ?page=1&limit=50 (برای بارگذاری تاریخچه)
-    - Response JSON Schema: { "data": [ChatMessage] }
-    - توضیح منطق بکند مورد نیاز: دریافت پیام‌های یک کانال خاص با قابلیت pagination.
-
-    3. ارسال پیام جدید
-    - Route: /api/chat/channels/:channelId/messages
-    - Method: POST
-    - Expected Body JSON Schema: { "text": "string" }
-    - Response JSON Schema: ChatMessage (پیام ایجاد شده)
-    - توضیح منطق بکند مورد نیاز: ذخیره پیام جدید در دیتابیس. اگر از WebSocket استفاده می‌شود، این پیام باید به تمام کلاینت‌های متصل در آن کانال broadcast شود.
-
-    4. ارسال پاسخ در یک ترد (Thread)
-    - Route: /api/chat/messages/:parentMessageId/reply
-    - Method: POST
-    - Expected Body JSON Schema: { "text": "string" }
-    - Response JSON Schema: ChatMessage (پاسخ ایجاد شده)
-    - توضیح منطق بکند مورد نیاز: ذخیره پیام به عنوان پاسخ یک پیام دیگر.
-
-    - Dependencies: نیاز به Auth Token.
-    - پیشنهاد WebSocket:
-        - کلاینت بعد از اتصال، در کانال‌های خود join می‌شود.
-        - سرور پیام‌های جدید را به کلاینت‌های حاضر در کانال push می‌کند.
-        - Event ها: "newMessage", "messageUpdated", "userTyping"
-*/
 import React, { useState, useRef, useEffect } from 'react';
-import { User, ChatChannel, ChatMessage } from '../../types';
+import { User, ChatChannel, ChatMessage, Attachment } from '../../types';
 import { XMarkIcon } from '../icons/XMarkIcon';
 import { ChatBubbleLeftRightIcon } from '../icons/ChatBubbleLeftRightIcon';
 import { HamburgerIcon } from '../icons/HamburgerIcon';
 import { ClipboardDocumentCheckIcon } from '../icons/ClipboardDocumentCheckIcon';
 import { ClockIcon } from '../icons/ClockIcon';
-
-/*
-    === REMOVE OR REPLACE MOCK DATA ===
-    این داده‌ها موقتی هستند و باید از API دریافت شوند.
-*/
-// // FIX: Removed 'email' property and added 'username' to align with the 'User' type definition.
-// const mockUsers: User[] = [
-//   { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
-//   { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
-//   { id: 'U3', name: 'محمد کریمی', username: 'mohammad', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U3' },
-// ];
-
-// const mockChannels: ChatChannel[] = [
-//     { id: 'CH1', name: 'عمومی', description: 'بحث‌های کلی تیم', members: ['U1', 'U2', 'U3'] },
-//     { id: 'CH2', name: 'پشتیبانی', description: 'مربوط به تیکت‌های پشتیبانی', members: ['U1', 'U2'] },
-//     { id: 'CH3', name: 'فروش', description: 'بحث در مورد سرنخ‌ها و فرصت‌ها', members: ['U1', 'U3'] },
-// ];
-
-// const initialMessages: Record<string, ChatMessage[]> = {
-//     'CH1': [
-//         { id: 'MSG1', user: mockUsers[1], text: 'سلام به همگی!', timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), thread: [] },
-//         { id: 'MSG2', user: mockUsers[2], text: 'سلام زهرا، @علی رضایی در مورد گزارش فروش سوال داشتم.', timestamp: new Date(Date.now() - 1000 * 60 * 4).toISOString(), thread: [
-//             { id: 'MSG2-1', user: mockUsers[0], text: 'بفرمایید محمد جان.', timestamp: new Date(Date.now() - 1000 * 60 * 3).toISOString() }
-//         ]},
-//     ],
-//     'CH2': [
-//         { id: 'MSG3', user: mockUsers[0], text: 'لطفا یکی تیکت #721 رو بررسی کنه.', timestamp: new Date(Date.now() - 1000 * 60 * 10).toISOString(), thread: [] }
-//     ],
-//     'CH3': [],
-// };
+import { PaperClipIcon } from '../icons/PaperClipIcon';
+import AttachmentList from '../AttachmentList';
 
 const renderMessageText = (text: string, users: User[]) => {
   const userNames = users.map(u => u.name);
@@ -116,6 +50,11 @@ const Message: React.FC<{ message: ChatMessage; onOpenThread: (message: ChatMess
                     <span className="text-xs text-gray-400 dark:text-gray-500">{new Date(message.timestamp).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit'})}</span>
                 </div>
                 <div className="text-gray-700 dark:text-gray-300 break-words">{renderMessageText(message.text, users)}</div>
+                 {message.attachments && message.attachments.length > 0 && (
+                    <div className="mt-2">
+                        <AttachmentList attachments={message.attachments} readonly={true} />
+                    </div>
+                )}
                 {hasThread && (
                     <button onClick={() => onOpenThread(message)} className="text-sm text-indigo-600 dark:text-indigo-400 mt-1">
                         {message.thread.length} پاسخ
@@ -174,6 +113,11 @@ const ThreadView: React.FC<{ message: ChatMessage; onClose: () => void; onAddRep
                     <div className="flex-1">
                         <div className="flex items-baseline"><span className="font-bold mr-2">{message.user.name}</span><span className="text-xs text-gray-400">{new Date(message.timestamp).toLocaleTimeString('fa-IR')}</span></div>
                         <p>{renderMessageText(message.text, users)}</p>
+                        {message.attachments && message.attachments.length > 0 && (
+                            <div className="mt-2">
+                                <AttachmentList attachments={message.attachments} readonly={true} />
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div className="border-b dark:border-gray-600 my-2"></div>
@@ -203,7 +147,6 @@ interface ChatProps {
 }
 
 const Chat: React.FC<ChatProps> = ({ currentUser, onCreateTask, onOpenReminderModal }) => {
-    // state ها باید از API یا WebSocket دریافت شوند
     const [channels, setChannels] = useState<ChatChannel[]>([]);
     const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({});
     const [users, setUsers] = useState<User[]>([]);
@@ -211,32 +154,13 @@ const Chat: React.FC<ChatProps> = ({ currentUser, onCreateTask, onOpenReminderMo
     const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
     const [activeThread, setActiveThread] = useState<ChatMessage | null>(null);
     const [newMessage, setNewMessage] = useState('');
+    const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [isChannelListOpen, setIsChannelListOpen] = useState(false);
+    
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     
     useEffect(() => {
-        /*
-          === API CALL REQUIRED HERE ===
-          - Route: /api/chat/channels and /api/users
-          - Method: GET
-          - Output: List of channels and users.
-          - Sample Fetch Code:
-            const fetchInitialData = async () => {
-                const headers = { 'Authorization': 'Bearer <TOKEN>' };
-                const [channelsRes, usersRes] = await Promise.all([
-                    fetch('/api/chat/channels', { headers }),
-                    fetch('/api/users', { headers }),
-                ]);
-                const channelsData = await channelsRes.json();
-                const usersData = await usersRes.json();
-                setChannels(channelsData.data);
-                setUsers(usersData.data);
-                if (channelsData.data.length > 0) {
-                    setActiveChannelId(channelsData.data[0].id);
-                }
-            };
-            fetchInitialData();
-        */
         const mockUsers: User[] = [
           { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
           { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
@@ -263,71 +187,28 @@ const Chat: React.FC<ChatProps> = ({ currentUser, onCreateTask, onOpenReminderMo
         setActiveChannelId(mockChannels[0]?.id || null);
     }, []);
 
-    useEffect(() => {
-        if (activeChannelId) {
-             /*
-              === API CALL REQUIRED HERE ===
-              - Route: /api/chat/channels/:channelId/messages
-              - Method: GET
-              - Output: List of messages for the selected channel.
-              - Sample Fetch Code:
-                fetch(`/api/chat/channels/${activeChannelId}/messages`, { headers: { 'Authorization': 'Bearer <TOKEN>' } })
-                .then(r => r.json())
-                .then(data => {
-                    setMessages(prev => ({...prev, [activeChannelId]: data.data}));
-                });
-             */
-        }
-    }, [activeChannelId]);
-
 
     const handleSendMessage = (e: React.FormEvent) => {
         e.preventDefault();
-        if (newMessage.trim() && activeChannelId) {
-            /*
-              === API CALL REQUIRED HERE ===
-              - Route: /api/chat/channels/:channelId/messages
-              - Method: POST
-              - Input: { "text": newMessage }
-              - Output: The newly created message object.
-              - Sample Fetch Code:
-                fetch(`/api/chat/channels/${activeChannelId}/messages`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <TOKEN>' },
-                    body: JSON.stringify({ text: newMessage })
-                })
-                .then(res => res.json())
-                .then(newMessageFromServer => {
-                    // اگر از WebSocket استفاده نمی‌کنید، پیام جدید را به state اضافه کنید
-                    // setMessages(prev => ({...prev, [activeChannelId]: [...prev[activeChannelId], newMessageFromServer]}));
-                    setNewMessage('');
-                });
-            */
+        if ((newMessage.trim() || attachments.length > 0) && activeChannelId) {
             const message: ChatMessage = {
                 id: `MSG-${Date.now()}`,
                 user: currentUser,
                 text: newMessage,
                 timestamp: new Date().toISOString(),
+                attachments: attachments
             };
             setMessages(prev => ({
                 ...prev,
                 [activeChannelId]: [...(prev[activeChannelId] || []), message],
             }));
             setNewMessage('');
+            setAttachments([]);
         }
     };
     
     const handleAddReply = (parentMessageId: string, text: string) => {
         if (activeChannelId) {
-            /*
-              === API CALL REQUIRED HERE ===
-              - Route: /api/chat/messages/:parentMessageId/reply
-              - Method: POST
-              - Input: { "text": text }
-              - Output: The newly created reply object.
-              - Sample Fetch Code:
-                // ...
-            */
             const reply: ChatMessage = {
                 id: `MSG-${Date.now()}`,
                 user: currentUser,
@@ -343,6 +224,23 @@ const Chat: React.FC<ChatProps> = ({ currentUser, onCreateTask, onOpenReminderMo
                 return msg;
             });
             setMessages(prev => ({ ...prev, [activeChannelId]: newMessages }));
+        }
+    };
+    
+     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+             const newAttachments: Attachment[] = [];
+             Array.from(e.target.files).forEach((file: File) => {
+                newAttachments.push({
+                    id: `FILE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    url: URL.createObjectURL(file),
+                    uploadedAt: new Date().toISOString(),
+                });
+             });
+             setAttachments(prev => [...prev, ...newAttachments]);
         }
     };
 
@@ -372,8 +270,17 @@ const Chat: React.FC<ChatProps> = ({ currentUser, onCreateTask, onOpenReminderMo
                     {activeChannelId && messages[activeChannelId]?.map(msg => <Message key={msg.id} message={msg} onOpenThread={setActiveThread} users={users} onCreateTaskFromMessage={onCreateTask} onOpenReminderModal={onOpenReminderModal || (() => {})} />)}
                 </div>
                 <div className="p-4 border-t dark:border-gray-700 flex-shrink-0">
-                    <form onSubmit={handleSendMessage}>
-                        <input type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder={`پیام در #${activeChannel?.name}`} className="w-full p-3 border rounded-lg bg-gray-100 dark:bg-gray-700" />
+                    {attachments.length > 0 && (
+                        <div className="mb-2 max-h-32 overflow-y-auto border rounded p-2 dark:border-gray-600">
+                            <AttachmentList attachments={attachments} onRemove={(id) => setAttachments(prev => prev.filter(a => a.id !== id))} />
+                        </div>
+                    )}
+                    <form onSubmit={handleSendMessage} className="flex gap-2 items-center">
+                        <button type="button" onClick={() => fileInputRef.current?.click()} className="p-3 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500">
+                            <PaperClipIcon className="w-6 h-6" />
+                        </button>
+                        <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" multiple />
+                        <input type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder={`پیام در #${activeChannel?.name}`} className="flex-1 p-3 border rounded-lg bg-gray-100 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     </form>
                 </div>
             </div>

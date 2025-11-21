@@ -1,3 +1,4 @@
+
 /* 
     === BACKEND SPEC ===
     توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
@@ -61,8 +62,8 @@ const Products: React.FC = () => {
             .then(data => setProducts(data.data));
         */
         const mockProducts: Product[] = [
-            { id: 'P1', code: 'SRV-GOLD', name: 'سرویس پشتیبانی طلایی', description: 'پشتیبانی ۲۴/۷ با پاسخ‌دهی زیر ۱ ساعت', price: 10000000 },
-            { id: 'P2', code: 'SRV-SILVER', name: 'سرویس پشتیبانی نقره‌ای', description: 'پشتیبانی در ساعات اداری', price: 5000000 },
+            { id: 'P1', code: 'SRV-GOLD', name: 'سرویس پشتیبانی طلایی', description: 'پشتیبانی ۲۴/۷ با پاسخ‌دهی زیر ۱ ساعت', price: 10000000, stock: 100, type: 'service' },
+            { id: 'P2', code: 'SRV-SILVER', name: 'سرویس پشتیبانی نقره‌ای', description: 'پشتیبانی در ساعات اداری', price: 5000000, stock: 50, type: 'service' },
         ];
         setProducts(mockProducts);
     }, []);

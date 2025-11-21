@@ -1,11 +1,15 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Ticket, TicketStatus, TicketReply, Customer } from '../../types';
+import { Ticket, TicketStatus, TicketReply, Customer, Attachment } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
 import { EyeIcon } from '../icons/EyeIcon';
 import { XMarkIcon } from '../icons/XMarkIcon';
 import { ArrowRightIcon } from '../icons/ArrowRightIcon';
 import { StarIcon } from '../icons/StarIcon';
 import SatisfactionSurvey from './SatisfactionSurvey';
+import { LockClosedIcon } from '../icons/LockClosedIcon';
+import AttachmentList from '../AttachmentList';
+import FileUploader from '../FileUploader';
 
 // Re-defining colors here to keep component self-contained
 const statusColors: { [key in TicketStatus]: string } = {
@@ -43,6 +47,7 @@ interface CustomerTicketsProps {
 // --- Detail View Component ---
 const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; onUpdate: (ticket: Ticket) }> = ({ ticket, onBack, onUpdate }) => {
     const [newReply, setNewReply] = useState('');
+    const [attachments, setAttachments] = useState<Attachment[]>([]);
     const chatEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -50,7 +55,7 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; onUpdate:
     }, [ticket.replies]);
 
     const handleSendReply = () => {
-        if (newReply.trim() === '') return;
+        if (newReply.trim() === '' && attachments.length === 0) return;
         const reply: TicketReply = {
             id: `TR-${Date.now()}`,
             authorName: ticket.customer.name,
@@ -58,10 +63,12 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; onUpdate:
             text: newReply,
             createdAt: new Date().toLocaleString('fa-IR-u-nu-latn'),
             isInternal: false,
+            attachments: attachments,
         };
         const updatedReplies = [...(ticket.replies || []), reply];
         onUpdate({ ...ticket, replies: updatedReplies, status: 'در انتظار مشتری' });
         setNewReply('');
+        setAttachments([]);
     };
 
     return (
@@ -80,6 +87,23 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; onUpdate:
             <div className="flex-grow flex flex-col md:flex-row overflow-hidden">
                 <div className="flex-1 flex flex-col p-4 overflow-y-auto">
                     <div className="space-y-4">
+                         {/* Initial Ticket Description */}
+                         {ticket.description && (
+                             <div className="flex items-end gap-3 justify-end">
+                                 <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center font-bold text-sm order-2">{ticket.customer.name.charAt(0)}</div>
+                                 <div className="w-fit max-w-lg rounded-xl px-4 py-3 bg-gray-200 dark:bg-gray-700 order-1">
+                                     <p className="font-semibold text-sm mb-1">{ticket.customer.name}</p>
+                                     <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{ticket.description}</p>
+                                     {ticket.attachments && ticket.attachments.length > 0 && (
+                                        <div className="mt-2">
+                                            <AttachmentList attachments={ticket.attachments} readonly={true} />
+                                        </div>
+                                     )}
+                                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{new Date(ticket.createdAt).toLocaleDateString('fa-IR')}</p>
+                                 </div>
+                             </div>
+                         )}
+
                         {ticket.replies?.filter(r => !r.isInternal).map(reply => (
                             <div key={reply.id} className={`flex items-end gap-3 ${reply.authorType === 'Customer' ? 'justify-end' : ''}`}>
                                 {reply.authorType === 'User' && <img src={reply.authorAvatar} alt={reply.authorName} className="w-8 h-8 rounded-full order-2" />}
@@ -90,6 +114,11 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; onUpdate:
                                 }`}>
                                     <p className="font-semibold text-sm mb-1">{reply.authorName}</p>
                                     <p className="text-sm text-gray-800 dark:text-gray-200">{reply.text}</p>
+                                     {reply.attachments && reply.attachments.length > 0 && (
+                                        <div className="mt-2">
+                                            <AttachmentList attachments={reply.attachments} readonly={true} />
+                                        </div>
+                                    )}
                                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{reply.createdAt}</p>
                                 </div>
                                 {reply.authorType === 'Customer' && <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center font-bold text-sm order-2">{ticket.customer.name.charAt(0)}</div>}
@@ -116,6 +145,12 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; onUpdate:
                     )}
                     <div className="border-t pt-4 space-y-3">
                          <h3 className="font-semibold">ارسال پاسخ</h3>
+                         <FileUploader onUpload={(files) => setAttachments(prev => [...prev, ...files])} compact={false} />
+                         {attachments.length > 0 && (
+                            <div className="mb-2">
+                                <AttachmentList attachments={attachments} onRemove={(id) => setAttachments(prev => prev.filter(a => a.id !== id))} />
+                            </div>
+                         )}
                         <textarea value={newReply} onChange={(e) => setNewReply(e.target.value)} rows={5} placeholder="پاسخ خود را اینجا بنویسید..." className="w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600"></textarea>
                         <button onClick={handleSendReply} className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">ارسال</button>
                     </div>
@@ -131,6 +166,9 @@ const CustomerTickets: React.FC<CustomerTicketsProps> = ({ customer, tickets, on
   const [newTicket, setNewTicket] = useState(initialNewTicketState);
   const [viewingTicket, setViewingTicket] = useState<Ticket | null>(null);
   const [surveyTicket, setSurveyTicket] = useState<Ticket | null>(null);
+  
+  // New state for attachments
+  const [newTicketAttachments, setNewTicketAttachments] = useState<Attachment[]>([]);
 
   useEffect(() => {
     if (viewingTicket && ['حل شده', 'بسته شده'].includes(viewingTicket.status) && !viewingTicket.surveySubmitted) {
@@ -147,7 +185,12 @@ const CustomerTickets: React.FC<CustomerTicketsProps> = ({ customer, tickets, on
 
   const handleAddTicket = (e: React.FormEvent) => {
     e.preventDefault();
-    onAddTicket({ ...newTicket, customerId: customer.id, createdAt: new Date().toLocaleDateString('fa-IR-u-nu-latn')} as any);
+    onAddTicket({ 
+        ...newTicket, 
+        customerId: customer.id, 
+        createdAt: new Date().toLocaleDateString('fa-IR-u-nu-latn'),
+        attachments: newTicketAttachments // Pass attachments to the parent handler
+    } as any);
     closePanel();
   };
   
@@ -155,6 +198,7 @@ const CustomerTickets: React.FC<CustomerTicketsProps> = ({ customer, tickets, on
   const closePanel = () => {
       setIsPanelOpen(false);
       setNewTicket(initialNewTicketState);
+      setNewTicketAttachments([]); // Reset attachments
   };
   
   const handleSurvey = (rating: number, feedback: string, tags: string[]) => {
@@ -242,6 +286,11 @@ const CustomerTickets: React.FC<CustomerTicketsProps> = ({ customer, tickets, on
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div><label className="block mb-2 text-sm font-medium">اولویت</label><select name="priority" value={newTicket.priority} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700"><option value="کم">کم</option><option value="متوسط">متوسط</option><option value="بالا">بالا</option><option value="حیاتی">حیاتی</option></select></div>
                    <div><label className="block mb-2 text-sm font-medium">دسته‌بندی</label><select name="category" value={newTicket.category} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700"><option value="عمومی">عمومی</option><option value="فنی">فنی</option><option value="مالی">مالی</option></select></div>
+              </div>
+              <div>
+                  <label className="block mb-2 text-sm font-medium">ضمیمه‌ها</label>
+                  <FileUploader onUpload={(files) => setNewTicketAttachments(prev => [...prev, ...files])} />
+                  <AttachmentList attachments={newTicketAttachments} onRemove={(id) => setNewTicketAttachments(prev => prev.filter(a => a.id !== id))} />
               </div>
             </div>
             <div className="flex items-center justify-end p-4 border-t dark:border-gray-700 flex-shrink-0">

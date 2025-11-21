@@ -1,70 +1,13 @@
-
-/* 
-    === BACKEND SPEC ===
-    توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
-    این کامپوننت مسئولیت مدیریت وظایف (Tasks) را بر عهده دارد.
-
-    1. دریافت لیست وظایف (Read)
-    - Route: /api/tasks
-    - Method: GET
-    - Expected Query Params: ?page={number}&limit={number}&search={string}&status={string}&priority={string}
-    - Response JSON Schema: { "data": [Task], "totalPages": number }
-    - توضیح منطق بکند مورد نیاز: یک کنترلر برای وظایف که قابلیت فیلتر و صفحه‌بندی داشته باشد. باید اطلاعات مشتری و کاربر (assignedTo) را join کند.
-    - Dependencies: نیاز به Auth Token، نیاز به Pagination.
-
-    2. افزودن وظیفه جدید (Create)
-    - Route: /api/tasks
-    - Method: POST
-    - Expected Body JSON Schema: Omit<Task, 'id' | 'createdAt'>
-    - Response JSON Schema: Task (وظیفه جدید)
-    - توضیح منطق بکند مورد نیاز: ایجاد رکورد جدید برای وظیفه.
-
-    3. ویرایش وظیفه (Update)
-    - Route: /api/tasks/:id
-    - Method: PUT
-    - Expected Body JSON Schema: Partial<Task>
-    - Response JSON Schema: Task (وظیفه ویرایش شده)
-    - توضیح منطق بکند مورد نیاز: بروزرسانی رکورد وظیفه در دیتابیس.
-
-    4. حذف وظیفه (Delete)
-    - Route: /api/tasks/:id
-    - Method: DELETE
-    - Response JSON Schema: { "success": true }
-    - توضیح منطق بکند مورد نیاز: حذف وظیفه از دیتابیس.
-
-    - Dependencies: تمام endpoint ها نیاز به Auth Token دارند.
-*/
-import React, { useState, useMemo, useEffect } from 'react';
-import { Task, User, TaskStatus, TaskPriority, Customer } from '../../types';
+import React, { useState, useMemo } from 'react';
+import { Task, TaskStatus, TaskPriority, Customer } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
 import { SearchIcon } from '../icons/SearchIcon';
 import { PencilIcon } from '../icons/PencilIcon';
 import { TrashIcon } from '../icons/TrashIcon';
 import { ChevronLeftIcon } from '../icons/ChevronLeftIcon';
 import { ChevronRightIcon } from '../icons/ChevronRightIcon';
-import { XMarkIcon } from '../icons/XMarkIcon';
 import { FilterIcon } from '../icons/FilterIcon';
 import { ClockIcon } from '../icons/ClockIcon';
-
-/*
-    === REMOVE OR REPLACE MOCK DATA ===
-    این داده‌ها موقتی هستند و باید از API دریافت شوند.
-*/
-// const mockUsers: User[] = [
-//   { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
-//   { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
-// ];
-
-// const mockCustomers: Customer[] = [
-//   { id: 'C1', name: 'شرکت آلفا', contacts: [{id: 'P1', name: 'آقای الف', isPrimary: true}], username: 'alpha', email: 'alpha@co.com', phone: '021-123', status: 'فعال' },
-//   { id: 'C2', name: 'تجارت بتا', contacts: [{id: 'P2', name: 'خانم ب', isPrimary: true}], username: 'beta', email: 'beta@co.com', phone: '021-456', status: 'فعال' },
-// ];
-
-// const mockTasks: Task[] = [
-//     { id: 'TSK1', title: 'پیگیری تیکت #721', description: 'مشتری در مورد ورود به پنل کاربری مشکل دارد.', customer: mockCustomers[0], relatedTicketId: 'TKT-721', assignedTo: mockUsers[0], priority: 'بالا', status: 'در حال انجام', dueDate: '1403/05/10', createdAt: '1403/05/01' },
-//     { id: 'TSK2', title: 'آماده‌سازی پیش‌فاکتور برای تجارت بتا', description: '', customer: mockCustomers[1], assignedTo: mockUsers[0], priority: 'متوسط', status: 'معلق', dueDate: '1403/05/15', createdAt: '1403/05/02' },
-//     { id: 'TSK3', title: 'جلسه دمو با مشتری جدید', description: 'معرفی ویژگی‌های جدید محصول', assignedTo: mockUsers[1], priority: 'فوری', status: 'تکمیل شده', dueDate: '1403/04/30', createdAt: '1403/04/28' },
-// ];
 
 const statusColors: { [key in TaskStatus]: string } = {
   'معلق': 'bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-300',
@@ -83,86 +26,18 @@ const priorityColors: { [key in TaskPriority]: string } = {
 
 const ITEMS_PER_PAGE = 8;
 
-const initialNewTaskState: Omit<Task, 'id' | 'assignedTo' | 'customer' | 'createdAt'> & { assignedToId: string, customerId: string } = {
-    title: '',
-    description: '',
-    customerId: '',
-    relatedTicketId: '',
-    assignedToId: '',
-    priority: 'متوسط',
-    status: 'معلق',
-    dueDate: '',
-};
-
 interface TasksProps {
-    initialParams?: any;
-    customers: Customer[];
+    tasks: Task[];
+    setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+    onOpenTaskModal: (task?: Task) => void;
     onOpenReminderModal?: (data: any) => void;
 }
 
-const Tasks: React.FC<TasksProps> = ({ initialParams, customers, onOpenReminderModal }) => {
-  // این state ها باید از API دریافت شوند
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  
+const Tasks: React.FC<TasksProps> = ({ tasks, setTasks, onOpenTaskModal, onOpenReminderModal }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [isPanelOpen, setIsPanelOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [taskFormData, setTaskFormData] = useState(initialNewTaskState);
-
-  useEffect(() => {
-    /*
-      === API CALL REQUIRED HERE ===
-      - Route: /api/tasks, /api/users
-      - Method: GET
-      - Output: Lists of tasks and users.
-      - Sample Fetch Code:
-        const fetchTasks = async () => { ... };
-        const fetchUsers = async () => { ... };
-        fetchTasks();
-        fetchUsers();
-    */
-    const mockUsers: User[] = [
-      { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
-      { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
-    ];
-    const mockCustomers: Customer[] = [
-      { id: 'C1', name: 'شرکت آلفا', contacts: [{id: 'P1', name: 'آقای الف', isPrimary: true, phone: '09121112233'}], email: 'alpha@co.com', phone: '021-123', status: 'فعال' },
-      { id: 'C2', name: 'تجارت بتا', contacts: [{id: 'P2', name: 'خانم ب', isPrimary: true, phone: '09122223344'}], email: 'beta@co.com', phone: '021-456', status: 'فعال' },
-    ];
-    const mockTasks: Task[] = [
-        { id: 'TSK1', title: 'پیگیری تیکت #721', description: 'مشتری در مورد ورود به پنل کاربری مشکل دارد.', customer: mockCustomers[0], relatedTicketId: 'TKT-721', assignedTo: mockUsers[0], priority: 'بالا', status: 'در حال انجام', dueDate: new Date(Date.now() + 5 * 86400000).toISOString(), createdAt: new Date(Date.now() - 2 * 86400000).toISOString() },
-        { id: 'TSK2', title: 'آماده‌سازی پیش‌فاکتور برای تجارت بتا', description: '', customer: mockCustomers[1], assignedTo: mockUsers[0], priority: 'متوسط', status: 'معلق', dueDate: new Date(Date.now() + 10 * 86400000).toISOString(), createdAt: new Date(Date.now() - 1 * 86400000).toISOString() },
-        { id: 'TSK3', title: 'جلسه دمو با مشتری جدید', description: 'معرفی ویژگی‌های جدید محصول', assignedTo: mockUsers[1], priority: 'فوری', status: 'تکمیل شده', dueDate: new Date(Date.now() - 3 * 86400000).toISOString(), createdAt: new Date(Date.now() - 5 * 86400000).toISOString() },
-    ];
-    setTasks(mockTasks);
-    setUsers(mockUsers);
-  }, []);
-
-  useEffect(() => {
-    if (initialParams?.action === 'create' && initialParams?.prefill) {
-      setTaskFormData(prev => ({ ...prev, ...initialParams.prefill, }));
-      openPanel();
-    }
-  }, [initialParams]);
-  
-  useEffect(() => {
-    if (editingTask) {
-        setTaskFormData({
-            ...editingTask,
-            assignedToId: editingTask.assignedTo.id,
-            customerId: editingTask.customer?.id || '',
-        });
-    } else {
-        const prefilledState = initialParams?.action === 'create' && initialParams?.prefill
-            ? { ...initialNewTaskState, ...initialParams.prefill }
-            : initialNewTaskState;
-        setTaskFormData(prefilledState);
-    }
-  }, [editingTask, isPanelOpen]);
 
   const filteredTasks = useMemo(() => 
     tasks.filter(task =>
@@ -181,91 +56,9 @@ const Tasks: React.FC<TasksProps> = ({ initialParams, customers, onOpenReminderM
     return filteredTasks.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredTasks, currentPage]);
   
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setTaskFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const assignedTo = users.find(u => u.id === taskFormData.assignedToId);
-    const customer = customers.find(c => c.id === taskFormData.customerId);
-    if (!assignedTo) {
-        alert("لطفا یک کاربر را برای تخصیص انتخاب کنید.");
-        return;
-    }
-
-    if (editingTask) {
-        /*
-          === API CALL REQUIRED HERE ===
-          - Route: /api/tasks/:id
-          - Method: PUT
-          - Input: taskFormData
-          - Output: The updated task object.
-          - Sample Fetch Code:
-            fetch(`/api/tasks/${editingTask.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <TOKEN>' },
-                body: JSON.stringify(taskFormData)
-            })
-            .then(res => res.json())
-            .then(updatedTask => {
-                setTasks(tasks.map(t => t.id === editingTask.id ? updatedTask : t));
-                closePanel();
-            });
-        */
-        setTasks(tasks.map(t => t.id === editingTask.id ? { ...editingTask, ...taskFormData, assignedTo, customer } : t));
-    } else {
-        /*
-          === API CALL REQUIRED HERE ===
-          - Route: /api/tasks
-          - Method: POST
-          - Input: taskFormData
-          - Output: The newly created task object.
-          - Sample Fetch Code:
-            fetch('/api/tasks', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <TOKEN>' },
-                body: JSON.stringify(taskFormData)
-            })
-            .then(res => res.json())
-            .then(newTask => {
-                setTasks(prev => [newTask, ...prev]);
-                closePanel();
-            });
-        */
-        const newTask: Task = {
-            id: `TSK-${Date.now()}`,
-            ...initialNewTaskState,
-            ...taskFormData,
-            assignedTo,
-            customer,
-            createdAt: new Date().toISOString(),
-        };
-        setTasks(prev => [newTask, ...prev]);
-    }
-    closePanel();
-  };
-  
   const handleDelete = (taskId: string) => {
     if (window.confirm('آیا از حذف این وظیفه اطمینان دارید؟')) {
-       /*
-          === API CALL REQUIRED HERE ===
-          - Route: /api/tasks/:id
-          - Method: DELETE
-          - Output: { success: true }
-          - Sample Fetch Code:
-            fetch(`/api/tasks/${taskId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': 'Bearer <TOKEN>' }
-            })
-            .then(res => {
-                if (res.ok) {
-                    setTasks(tasks.filter(t => t.id !== taskId));
-                }
-            });
-       */
-       setTasks(tasks.filter(t => t.id !== taskId));
+       setTasks(prev => prev.filter(t => t.id !== taskId));
     }
   };
   
@@ -279,17 +72,6 @@ const Tasks: React.FC<TasksProps> = ({ initialParams, customers, onOpenReminderM
               sourcePreview: task.title
           });
       }
-  };
-
-  const openPanel = (task: Task | null = null) => {
-      setEditingTask(task);
-      setIsPanelOpen(true);
-  };
-
-  const closePanel = () => {
-      setIsPanelOpen(false);
-      setEditingTask(null);
-      if(initialParams) initialParams.prefill = null; 
   };
 
   return (
@@ -316,7 +98,7 @@ const Tasks: React.FC<TasksProps> = ({ initialParams, customers, onOpenReminderM
                     <FilterIcon className="w-5 h-5" />
                 </button>
             </div>
-            <button onClick={() => openPanel()} className="flex-shrink-0 flex items-center justify-center w-full md:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+            <button onClick={() => onOpenTaskModal()} className="flex-shrink-0 flex items-center justify-center w-full md:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
                 <PlusIcon className="w-5 h-5 ml-2" />
                 <span>وظیفه جدید</span>
             </button>
@@ -346,7 +128,7 @@ const Tasks: React.FC<TasksProps> = ({ initialParams, customers, onOpenReminderM
                             <td className="px-4 py-3 text-center">
                                 <div className="flex justify-center items-center gap-2">
                                     <button onClick={() => handleCreateReminder(task)} className="p-1 text-gray-500 hover:text-indigo-600" title="ایجاد یادآور"><ClockIcon className="w-5 h-5" /></button>
-                                    <button onClick={() => openPanel(task)} className="p-1 text-gray-500 hover:text-indigo-600"><PencilIcon className="w-5 h-5" /></button>
+                                    <button onClick={() => onOpenTaskModal(task)} className="p-1 text-gray-500 hover:text-indigo-600"><PencilIcon className="w-5 h-5" /></button>
                                     <button onClick={() => handleDelete(task.id)} className="p-1 text-gray-500 hover:text-red-600"><TrashIcon className="w-5 h-5" /></button>
                                 </div>
                             </td>
@@ -355,71 +137,15 @@ const Tasks: React.FC<TasksProps> = ({ initialParams, customers, onOpenReminderM
                 </tbody>
             </table>
         </div>
-      </div>
-      <div className={`fixed inset-0 z-50 ${isPanelOpen ? '' : 'pointer-events-none'}`}>
-        <div className={`absolute inset-0 bg-black transition-opacity duration-300 ${isPanelOpen ? 'bg-opacity-50' : 'bg-opacity-0'}`} onClick={closePanel}></div>
-        <div className={`absolute inset-y-0 left-0 bg-white dark:bg-gray-800 h-full w-full max-w-lg shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out ${isPanelOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-          <div className="flex justify-between items-center p-4 border-b dark:border-gray-700 flex-shrink-0">
-            <h3 className="text-lg font-semibold">{editingTask ? 'ویرایش وظیفه' : 'ایجاد وظیفه'}</h3>
-            <button onClick={closePanel} className="p-1 rounded-full text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"><XMarkIcon className="w-6 h-6" /></button>
+        {totalPages > 1 && (
+          <div className="flex justify-between items-center mt-6">
+              <div><span className="text-sm text-gray-700 dark:text-gray-400">صفحه <span className="font-semibold">{currentPage}</span> از <span className="font-semibold">{totalPages}</span></span></div>
+              <div className="flex items-center gap-2">
+                  <button onClick={() => setCurrentPage(c => Math.min(c + 1, totalPages))} disabled={currentPage === totalPages} className="flex items-center justify-center p-2 text-gray-500 bg-white dark:bg-gray-700 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"><ChevronRightIcon className="w-5 h-5" /></button>
+                  <button onClick={() => setCurrentPage(c => Math.max(c - 1, 1))} disabled={currentPage === 1} className="flex items-center justify-center p-2 text-gray-500 bg-white dark:bg-gray-700 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"><ChevronLeftIcon className="w-5 h-5" /></button>
+              </div>
           </div>
-          <form onSubmit={handleFormSubmit} className="flex flex-col overflow-hidden flex-grow">
-            <div className="p-6 space-y-6 overflow-y-auto flex-grow">
-                <div>
-                    <label htmlFor="title" className="block mb-2 text-sm font-medium">عنوان</label>
-                    <input type="text" name="title" id="title" value={taskFormData.title} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" required />
-                </div>
-                <div>
-                    <label htmlFor="description" className="block mb-2 text-sm font-medium">شرح وظیفه</label>
-                    <textarea name="description" id="description" value={taskFormData.description || ''} onChange={handleInputChange} rows={4} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700"></textarea>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label htmlFor="customerId" className="block mb-2 text-sm font-medium">مشتری مرتبط</label>
-                        <select name="customerId" id="customerId" value={taskFormData.customerId} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700">
-                            <option value="">هیچکدام</option>
-                            {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                    </div>
-                    <div>
-                        <label htmlFor="relatedTicketId" className="block mb-2 text-sm font-medium">تیکت مرتبط</label>
-                        <input type="text" name="relatedTicketId" id="relatedTicketId" value={taskFormData.relatedTicketId} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" />
-                    </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label htmlFor="assignedToId" className="block mb-2 text-sm font-medium">اختصاص به</label>
-                        <select name="assignedToId" id="assignedToId" value={taskFormData.assignedToId} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" required>
-                        <option value="">یک کاربر را انتخاب کنید</option>
-                        {users.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
-                        </select>
-                    </div>
-                    <div>
-                        <label htmlFor="dueDate" className="block mb-2 text-sm font-medium">مهلت انجام</label>
-                        <input type="date" name="dueDate" id="dueDate" value={taskFormData.dueDate?.split('T')[0] || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" required />
-                    </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label htmlFor="priority" className="block mb-2 text-sm font-medium">اولویت</label>
-                        <select name="priority" id="priority" value={taskFormData.priority} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700">
-                            {['پایین', 'متوسط', 'بالا', 'فوری'].map(p => <option key={p} value={p}>{p}</option>)}
-                        </select>
-                    </div>
-                    <div>
-                        <label htmlFor="status" className="block mb-2 text-sm font-medium">وضعیت</label>
-                        <select name="status" id="status" value={taskFormData.status} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700">
-                            {Object.keys(statusColors).map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div className="flex items-center justify-end p-4 border-t dark:border-gray-700 space-i-3 flex-shrink-0">
-              <button type="button" onClick={closePanel} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400">انصراف</button>
-              <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">ذخیره</button>
-            </div>
-          </form>
-        </div>
+        )}
       </div>
     </>
   );

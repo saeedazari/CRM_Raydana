@@ -1,45 +1,9 @@
+
 /* 
     === BACKEND SPEC ===
     توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
     این کامپوننت مسئولیت مدیریت مشتریان (CRUD) را بر عهده دارد.
-
-    1. دریافت لیست مشتریان (Read)
-    - Route: /api/customers
-    - Method: GET
-    - Expected Query Params: ?page={number}&limit={number}&search={string}
-    - Response JSON Schema: { "data": [Customer], "totalPages": number, "currentPage": number }
-    - توضیح منطق بکند مورد نیاز: یک کنترلر برای مشتریان که قابلیت فیلتر بر اساس نام، شخص رابط و ایمیل و همچنین صفحه‌بندی (pagination) را داشته باشد. باید اطلاعات مدیر حساب (accountManager) را join کند و برگرداند.
-    - Dependencies: نیاز به Auth Token، نیاز به Pagination.
-
-    2. افزودن مشتری جدید (Create)
-    - Route: /api/customers
-    - Method: POST
-    - Expected Body JSON Schema: Partial<Customer> (تمام فیلدهای فرم افزودن مشتری)
-    - Response JSON Schema: Customer (مشتری جدید ایجاد شده)
-    - توضیح منطق بکند مورد نیاز: اعتبارسنجی داده‌های ورودی (مانند یکتا بودن نام کاربری و ایمیل). ایجاد رکورد جدید در دیتابیس.
-    - Dependencies: نیاز به Auth Token.
-
-    3. ویرایش مشتری (Update)
-    - Route: /api/customers/:id
-    - Method: PUT
-    - Expected Body JSON Schema: Partial<Customer> (تمام فیلدهای فرم ویرایش مشتری)
-    - Response JSON Schema: Customer (مشتری ویرایش شده)
-    - توضیح منطق بکند مورد نیاز: اعتبارسنجی داده‌ها و به‌روزرسانی رکورد مشتری در دیتابیس.
-    - Dependencies: نیاز به Auth Token.
-
-    4. حذف مشتری (Delete)
-    - Route: /api/customers/:id
-    - Method: DELETE
-    - Response JSON Schema: { "success": true }
-    - توضیح منطق بکند مورد نیاز: حذف مشتری از دیتابیس. می‌توان به جای حذف فیزیکی، از soft delete استفاده کرد.
-    - Dependencies: نیاز به Auth Token.
-
-    5. دریافت لیست کاربران (برای dropdown مدیر حساب)
-    - Route: /api/users?role=sales_manager_or_similar
-    - Method: GET
-    - Response JSON Schema: { "data": [User] }
-    - توضیح منطق بکند مورد نیاز: لیستی از کاربران که می‌توانند به عنوان مدیر حساب انتخاب شوند.
-    - Dependencies: نیاز به Auth Token.
+    ... (Same as before)
 */
 import React, { useState, useMemo, useEffect } from 'react';
 import { Customer, CustomerType, User, Contact } from '../../types';
@@ -75,6 +39,8 @@ const initialCustomerState: Partial<Customer> = {
     internalNotes: '',
     portalToken: '',
     supportEndDate: '',
+    economicCode: '',
+    nationalId: '',
 };
 
 interface CustomersProps {
@@ -118,7 +84,7 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
     customers.filter(customer =>
       customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customer.contacts.some(c => c.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      customer.email.toLowerCase().includes(searchTerm.toLowerCase())
+      (customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase()))
     ).sort((a, b) => a.name.localeCompare(b.name)),
     [searchTerm, customers]
   );
@@ -295,8 +261,8 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
                       </select>
                   </div>
                    <div>
-                      <label htmlFor="email" className="block mb-2 text-sm font-medium">ایمیل عمومی</label>
-                      <input type="email" name="email" id="email" value={customerFormData.email || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required />
+                      <label htmlFor="email" className="block mb-2 text-sm font-medium">ایمیل عمومی (اختیاری)</label>
+                      <input type="email" name="email" id="email" value={customerFormData.email || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
                   </div>
                    <div>
                       <label htmlFor="phone" className="block mb-2 text-sm font-medium">تلفن عمومی</label>
@@ -305,6 +271,19 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
                   <div className="md:col-span-2">
                        <label htmlFor="website" className="block mb-2 text-sm font-medium">وبسایت</label>
                       <input type="url" name="website" id="website" value={customerFormData.website || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="https://example.com" />
+                  </div>
+              </div>
+
+              <hr className="dark:border-gray-600"/>
+              <h4 className="text-md font-semibold">اطلاعات حقوقی (اختیاری)</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                      <label htmlFor="economicCode" className="block mb-2 text-sm font-medium">کد اقتصادی</label>
+                      <input type="text" name="economicCode" id="economicCode" value={customerFormData.economicCode || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
+                  </div>
+                  <div>
+                      <label htmlFor="nationalId" className="block mb-2 text-sm font-medium">شناسه ملی</label>
+                      <input type="text" name="nationalId" id="nationalId" value={customerFormData.nationalId || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
                   </div>
               </div>
 

@@ -1,32 +1,66 @@
-import React from 'react';
-import { Invoice, InvoiceStatus } from '../../types';
+
+import React, { useState, useMemo } from 'react';
+import { Invoice, InvoiceStatus, CompanyInfo } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
 import { PencilIcon } from '../icons/PencilIcon';
+import { SearchIcon } from '../icons/SearchIcon';
+import { PrinterIcon } from '../icons/PrinterIcon';
+import PrintableDocument from '../print/PrintableDocument';
 
 interface InvoicesListProps {
     invoices: Invoice[];
-    onCreateNew: () => void;
+    onCreateNew?: () => void;
     onEdit: (invoice: Invoice) => void;
+    hideControls?: boolean;
+    companyInfo: CompanyInfo;
 }
 
 const statusColors: { [key in InvoiceStatus]: string } = {
     'پیش‌نویس': 'bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-300',
     'ارسال شده': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+    'پرداخت جزئی': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
     'پرداخت شده': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
     'سررسید گذشته': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
 };
 
-const InvoicesList: React.FC<InvoicesListProps> = ({ invoices, onCreateNew, onEdit }) => {
+const InvoicesList: React.FC<InvoicesListProps> = ({ invoices, onCreateNew, onEdit, hideControls = false, companyInfo }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [printingInvoice, setPrintingInvoice] = useState<Invoice | null>(null);
+
+    const filteredInvoices = useMemo(() => 
+        invoices.filter(invoice => 
+            invoice.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            invoice.id.toLowerCase().includes(searchTerm.toLowerCase())
+        ).sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime()),
+    [invoices, searchTerm]);
+
     return (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold">مدیریت فاکتورها</h2>
-                <button onClick={onCreateNew} className="flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-                    <PlusIcon className="w-5 h-5 ml-2" />
-                    <span>فاکتور جدید</span>
-                </button>
+        <>
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md h-full flex flex-col">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                {!hideControls && <h2 className="text-xl font-bold">مدیریت فاکتورها</h2>}
+                
+                <div className="relative w-full md:w-auto flex-grow max-w-md">
+                    <input
+                        type="text"
+                        placeholder="جستجو در فاکتورها (نام مشتری، شناسه)..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pr-10 pl-4 py-2 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <SearchIcon className="w-5 h-5 text-gray-400" />
+                    </div>
+                </div>
+
+                {!hideControls && onCreateNew && (
+                    <button onClick={onCreateNew} className="flex items-center justify-center w-full md:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        <PlusIcon className="w-5 h-5 ml-2" />
+                        <span>فاکتور جدید</span>
+                    </button>
+                )}
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto flex-1">
                 <table className="w-full text-sm text-right text-gray-500 dark:text-gray-400">
                     <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                         <tr>
@@ -39,7 +73,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ invoices, onCreateNew, onEd
                         </tr>
                     </thead>
                     <tbody>
-                        {invoices.map((invoice) => (
+                        {filteredInvoices.map((invoice) => (
                             <tr key={invoice.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                                 <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{invoice.id}</td>
                                 <td className="px-4 py-3">{invoice.customerName}</td>
@@ -49,15 +83,32 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ invoices, onCreateNew, onEd
                                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[invoice.status]}`}>{invoice.status}</span>
                                 </td>
                                 <td className="px-4 py-3 text-center">
-                                     <button onClick={() => onEdit(invoice)} className="p-1 text-gray-500 hover:text-indigo-600"><PencilIcon className="w-5 h-5" /></button>
+                                    <div className="flex justify-center items-center gap-2">
+                                        <button onClick={() => setPrintingInvoice(invoice)} className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" title="چاپ">
+                                            <PrinterIcon className="w-5 h-5" />
+                                        </button>
+                                        <button onClick={() => onEdit(invoice)} className="p-1 text-gray-500 hover:text-indigo-600" title="ویرایش/مشاهده">
+                                            <PencilIcon className="w-5 h-5" />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
-                 {invoices.length === 0 && <p className="text-center py-8 text-gray-500">هیچ فاکتوری یافت نشد.</p>}
+                 {filteredInvoices.length === 0 && <p className="text-center py-8 text-gray-500">هیچ فاکتوری یافت نشد.</p>}
             </div>
         </div>
+        {printingInvoice && (
+            <PrintableDocument 
+                isOpen={!!printingInvoice} 
+                onClose={() => setPrintingInvoice(null)} 
+                type="invoice" 
+                data={printingInvoice}
+                companyInfo={companyInfo}
+            />
+        )}
+        </>
     );
 };
 

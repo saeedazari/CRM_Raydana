@@ -1,46 +1,6 @@
-/* 
-    === BACKEND SPEC ===
-    توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
-    این کامپوننت مسئولیت مدیریت تیکت‌های پشتیبانی را بر عهده دارد.
 
-    1. دریافت لیست تیکت‌ها (Read)
-    - Route: /api/tickets
-    - Method: GET
-    - Expected Query Params: ?page={number}&limit={number}&search={string}&status={string}&priority={string}
-    - Response JSON Schema: { "data": [Ticket], "totalPages": number, "currentPage": number }
-    - توضیح منطق بکند مورد نیاز: یک کنترلر برای تیکت‌ها که قابلیت فیلتر و صفحه‌بندی داشته باشد. باید اطلاعات مشتری و کارشناس (assignee) را join کند.
-    - Dependencies: نیاز به Auth Token، نیاز به Pagination.
-
-    2. دریافت یک تیکت خاص (برای مشاهده جزئیات)
-    - Route: /api/tickets/:id
-    - Method: GET
-    - Response JSON Schema: Ticket (شامل تمام reply ها)
-    - توضیح منطق بکند مورد نیاز: دریافت کامل یک تیکت به همراه تمام پیام‌های آن.
-    - Dependencies: نیاز به Auth Token.
-
-    3. افزودن تیکت جدید (Create)
-    - Route: /api/tickets
-    - Method: POST
-    - Expected Body JSON Schema: Omit<Ticket, 'id' | 'replies' | ...> (فیلدهای فرم)
-    - Response JSON Schema: Ticket (تیکت جدید)
-    - توضیح منطق بکند مورد نیاز: ایجاد رکورد جدید برای تیکت.
-    - Dependencies: نیاز به Auth Token.
-
-    4. بروزرسانی تیکت (Update) - شامل تغییر وضعیت، تخصیص کارشناس و افزودن پاسخ
-    - Route: /api/tickets/:id
-    - Method: PUT
-    - Expected Body JSON Schema: Partial<Ticket> (مثلا فقط { status: '...' } یا { assigneeId: '...' })
-    - Response JSON Schema: Ticket (تیکت بروز شده)
-    - توضیح منطق بکند مورد نیاز: بروزرسانی فیلدهای مشخص شده تیکت.
-    - ---
-    - Route (برای افزودن پاسخ): /api/tickets/:id/reply
-    - Method: POST
-    - Expected Body JSON Schema: { "text": "string", "isInternal": boolean }
-    - Response JSON Schema: Ticket (تیکت بروز شده با پاسخ جدید)
-    - Dependencies: نیاز به Auth Token.
-*/
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Ticket, User, TicketStatus, TicketReply, Customer } from '../../types';
+import { Ticket, User, TicketStatus, TicketReply, Customer, Attachment } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
 import { SearchIcon } from '../icons/SearchIcon';
 import { ChevronLeftIcon } from '../icons/ChevronLeftIcon';
@@ -51,45 +11,9 @@ import { ClipboardDocumentCheckIcon } from '../icons/ClipboardDocumentCheckIcon'
 import { EyeIcon } from '../icons/EyeIcon';
 import { ArrowRightIcon } from '../icons/ArrowRightIcon';
 import { LockClosedIcon } from '../icons/LockClosedIcon';
-
-/*
-    === REMOVE OR REPLACE MOCK DATA ===
-    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
-    ساختار مورد انتظار پاسخ API: GET /api/users
-*/
-// // FIX: Removed 'email' property and added 'username' to align with the 'User' type definition.
-// const mockUsers: User[] = [
-//   { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
-//   { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
-// ];
-
-/*
-    === REMOVE OR REPLACE MOCK DATA ===
-    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
-    ساختار مورد انتظار پاسخ API: GET /api/customers
-*/
-// // FIX: Added required 'username' property to align with the 'Customer' type definition.
-// const mockCustomers: Customer[] = [
-//   { id: 'C1', companyName: 'شرکت آلفا', contactPerson: 'آقای الف', username: 'alpha', email: 'alpha@co.com', phone: '021-123', status: 'فعال' },
-//   { id: 'C2', companyName: 'تجارت بتا', contactPerson: 'خانم ب', username: 'beta', email: 'beta@co.com', phone: '021-456', status: 'فعال' },
-// ];
-
-/*
-    === REMOVE OR REPLACE MOCK DATA ===
-    این داده موقتی است و در نسخه اصلی باید از API دریافت شود.
-    ساختار مورد انتظار پاسخ API: GET /api/tickets
-*/
-// const mockTickets: Ticket[] = [
-//     { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', description: 'کاربر اعلام کرده نمی‌تواند وارد پنل شود.', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'در حال بررسی', priority: 'بالا', createdAt: '1403/05/01', category: 'فنی', replies: [
-//         {id: 'R1', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', text: 'در حال بررسی مشکل هستیم.', isInternal: false, createdAt: '1403/05/01 10:30', authorAvatar: mockUsers[0].avatar},
-//         {id: 'R2', authorType: 'Customer', authorName: 'شرکت آلفا', text: 'ممنون از پیگیری شما.', isInternal: false, createdAt: '1403/05/01 10:35'},
-//         {id: 'R3', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', text: 'مشکل از سمت سرور بود، لطفا مجدد تست کنید.', isInternal: true, createdAt: '1403/05/01 11:00', authorAvatar: mockUsers[0].avatar},
-//     ]},
-//     { id: 'TKT-720', subject: 'سوال در مورد صورتحساب', customer: mockCustomers[1], customerId: 'C2', assignee: mockUsers[1], assigneeId: 'U2', status: 'جدید', priority: 'متوسط', createdAt: '1403/05/01', category: 'مالی' },
-//     { id: 'TKT-719', subject: 'گزارش باگ در ماژول گزارشات', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'حل شده', priority: 'بالا', createdAt: '1403/04/31', category: 'فنی', surveySubmitted: false },
-//     { id: 'TKT-718', subject: 'درخواست افزودن ویژگی جدید', customer: mockCustomers[1], customerId: 'C2', status: 'در انتظار مشتری', priority: 'کم', createdAt: '1403/04/30', category: 'عمومی' },
-// ];
-
+import { PaperClipIcon } from '../icons/PaperClipIcon';
+import AttachmentList from '../AttachmentList';
+import FileUploader from '../FileUploader';
 
 const statusColors: { [key in TicketStatus]: string } = {
   'جدید': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
@@ -125,54 +49,22 @@ interface TicketsProps {
 const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; users: User[], currentUser: User, onUpdate: (ticket: Ticket) => void }> = ({ ticket, onBack, users, currentUser, onUpdate }) => {
     const [newReply, setNewReply] = useState('');
     const [isInternalNote, setIsInternalNote] = useState(false);
+    const [attachments, setAttachments] = useState<Attachment[]>([]);
+    const [showUploader, setShowUploader] = useState(false);
     const chatEndRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [ticket?.replies]);
 
     const handleUpdate = (updates: Partial<Ticket>) => {
-        /*
-          === API CALL REQUIRED HERE ===
-          - Route: /api/tickets/:id
-          - Method: PUT
-          - Input: { ...updates } e.g., { "status": "بسته شده" }
-          - Output: The updated ticket object.
-          - Sample Fetch Code:
-            fetch(`/api/tickets/${ticket.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <TOKEN>' },
-                body: JSON.stringify(updates)
-            })
-            .then(res => res.json())
-            .then(updatedTicketFromServer => {
-                onUpdate(updatedTicketFromServer);
-            });
-        */
         onUpdate({ ...ticket, ...updates });
     };
     
     const handleSendReply = () => {
-        if (newReply.trim() === '' || !ticket) return;
-        /*
-          === API CALL REQUIRED HERE ===
-          - Route: /api/tickets/:id/reply
-          - Method: POST
-          - Input: { "text": newReply, "isInternal": isInternalNote }
-          - Output: The updated ticket object with the new reply.
-          - Sample Fetch Code:
-            fetch(`/api/tickets/${ticket.id}/reply`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <TOKEN>' },
-                body: JSON.stringify({ text: newReply, isInternal: isInternalNote })
-            })
-            .then(res => res.json())
-            .then(updatedTicketFromServer => {
-                onUpdate(updatedTicketFromServer);
-                setNewReply('');
-                setIsInternalNote(false);
-            });
-        */
+        if (newReply.trim() === '' && attachments.length === 0) return;
+        
         const reply: TicketReply = {
             id: `R-${Date.now()}`,
             text: newReply,
@@ -182,12 +74,32 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; users: Us
             authorName: currentUser.name,
             authorAvatar: currentUser.avatar,
             createdAt: new Date().toLocaleString('fa-IR'),
+            attachments: attachments
         };
         const updatedTicket = { ...ticket, replies: [...(ticket.replies || []), reply] };
         onUpdate(updatedTicket);
 
         setNewReply('');
+        setAttachments([]);
+        setShowUploader(false);
         setIsInternalNote(false);
+    };
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+             const newAttachments: Attachment[] = [];
+             Array.from(e.target.files).forEach((file: File) => {
+                newAttachments.push({
+                    id: `FILE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    url: URL.createObjectURL(file),
+                    uploadedAt: new Date().toISOString(),
+                });
+             });
+             setAttachments(prev => [...prev, ...newAttachments]);
+        }
     };
 
     return (
@@ -206,6 +118,25 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; users: Us
             <div className="flex-grow flex flex-col md:flex-row overflow-hidden">
                 <div className="flex-1 flex flex-col p-4 overflow-y-auto">
                     <div className="space-y-4">
+                         {/* Initial Ticket Description */}
+                         {ticket.description && (
+                             <div className="flex items-end gap-3 justify-end">
+                                 <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center font-bold text-sm order-2">{ticket.customer.name.charAt(0)}</div>
+                                 <div className="w-fit max-w-lg rounded-xl px-4 py-3 bg-gray-200 dark:bg-gray-700 order-1">
+                                     <div className="flex items-center gap-3 mb-1">
+                                         <p className="font-semibold text-sm">{ticket.customer.name}</p>
+                                     </div>
+                                     <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{ticket.description}</p>
+                                     {ticket.attachments && ticket.attachments.length > 0 && (
+                                        <div className="mt-2">
+                                            <AttachmentList attachments={ticket.attachments} readonly={true} />
+                                        </div>
+                                     )}
+                                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{new Date(ticket.createdAt).toLocaleDateString('fa-IR')}</p>
+                                 </div>
+                             </div>
+                         )}
+
                          {ticket.replies?.map(reply => (
                             <div key={reply.id} className={`flex items-end gap-3 ${reply.authorType === 'Customer' ? 'justify-end' : ''}`}>
                                 {reply.authorType === 'User' && <img src={users.find(u => u.id === reply.authorId)?.avatar} alt={reply.authorName} className="w-8 h-8 rounded-full order-2" />}
@@ -220,7 +151,12 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; users: Us
                                          <p className="font-semibold text-sm">{reply.authorName || (reply.authorType === 'Customer' ? ticket.customer.name : 'کاربر حذف شده')}</p>
                                          {reply.isInternal && <LockClosedIcon className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
                                      </div>
-                                    <p className="text-sm text-gray-800 dark:text-gray-200">{reply.text}</p>
+                                    <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{reply.text}</p>
+                                    {reply.attachments && reply.attachments.length > 0 && (
+                                        <div className="mt-2">
+                                            <AttachmentList attachments={reply.attachments} readonly={true} />
+                                        </div>
+                                    )}
                                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{new Date(reply.createdAt).toLocaleDateString('fa-IR', { hour: '2-digit', minute: '2-digit' })}</p>
                                 </div>
                                 {reply.authorType === 'Customer' && <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center font-bold text-sm order-2">{ticket.customer.name.charAt(0)}</div>}
@@ -244,7 +180,20 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; users: Us
                         <div className="flex justify-between"><span>تاریخ ایجاد:</span><span className="font-semibold">{new Date(ticket.createdAt).toLocaleDateString('fa-IR')}</span></div>
                     </div>
                     <div className="border-t pt-4 space-y-3">
-                         <h3 className="font-semibold">پاسخ به تیکت</h3>
+                         <div className="flex justify-between items-center">
+                            <h3 className="font-semibold">پاسخ به تیکت</h3>
+                            <button onClick={() => fileInputRef.current?.click()} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500" title="افزودن فایل">
+                                <PaperClipIcon className="w-5 h-5" />
+                            </button>
+                            <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" multiple />
+                         </div>
+                         
+                         {attachments.length > 0 && (
+                            <div className="mb-2">
+                                <AttachmentList attachments={attachments} onRemove={(id) => setAttachments(prev => prev.filter(a => a.id !== id))} />
+                            </div>
+                         )}
+
                         <textarea value={newReply} onChange={(e) => setNewReply(e.target.value)} rows={5} placeholder="پاسخ خود را اینجا بنویسید..." className="w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600"></textarea>
                         <label className="flex items-center gap-2 text-sm">
                             <input type="checkbox" checked={isInternalNote} onChange={(e) => setIsInternalNote(e.target.checked)} className="rounded text-indigo-600 focus:ring-indigo-500"/>
@@ -259,7 +208,6 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; users: Us
 }
 
 const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) => {
-  // state ها باید با useEffect از API دریافت شوند
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   
@@ -270,57 +218,23 @@ const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) 
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [newTicketData, setNewTicketData] = useState(initialNewTicketState);
   const [viewingTicket, setViewingTicket] = useState<Ticket | null>(null);
+  
+  // State for new ticket attachments
+  const [newTicketAttachments, setNewTicketAttachments] = useState<Attachment[]>([]);
 
   useEffect(() => {
-    /*
-      === API CALL REQUIRED HERE ===
-      - Route: /api/tickets, /api/users
-      - Method: GET
-      - Input: Query params for filtering and pagination.
-      - Output: List of tickets and users.
-      - Sample Fetch Code:
-        const fetchTickets = async () => {
-            const params = new URLSearchParams({ 
-                page: currentPage.toString(), 
-                limit: ITEMS_PER_PAGE.toString(),
-                search: searchTerm,
-                status: statusFilter,
-                priority: priorityFilter
-            });
-            const res = await fetch(`/api/tickets?${params}`, { headers: { 'Authorization': 'Bearer <TOKEN>' } });
-            const data = await res.json();
-            setTickets(data.data);
-            // setTotalPages(data.totalPages);
-        };
-        const fetchUsers = async () => {
-             const res = await fetch('/api/users', { headers: { 'Authorization': 'Bearer <TOKEN>' } });
-             const data = await res.json();
-             setUsers(data.data);
-        }
-        fetchTickets();
-        fetchUsers();
-    */
     const mockUsers: User[] = [
       { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
       { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
     ];
-    const mockCustomers: Customer[] = [
-      { id: 'C1', name: 'شرکت آلفا', contacts:[], username: 'alpha', email: 'alpha@co.com', phone: '021-123', status: 'فعال' },
-      { id: 'C2', name: 'تجارت بتا', contacts:[], username: 'beta', email: 'beta@co.com', phone: '021-456', status: 'فعال' },
-    ];
     const mockTickets: Ticket[] = [
-        { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', description: 'کاربر اعلام کرده نمی‌تواند وارد پنل شود.', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'در حال بررسی', priority: 'بالا', createdAt: '1403/05/01', category: 'فنی', replies: [
+        { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', description: 'کاربر اعلام کرده نمی‌تواند وارد پنل شود.', customer: customers[0] || {id: 'C1', name: 'مشتری نمونه', contacts: []}, customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'در حال بررسی', priority: 'بالا', createdAt: '1403/05/01', category: 'فنی', replies: [
             {id: 'R1', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', text: 'در حال بررسی مشکل هستیم.', isInternal: false, createdAt: '1403/05/01 10:30', authorAvatar: mockUsers[0].avatar},
-            {id: 'R2', authorType: 'Customer', authorName: 'شرکت آلفا', text: 'ممنون از پیگیری شما.', isInternal: false, createdAt: '1403/05/01 10:35'},
-            {id: 'R3', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', text: 'مشکل از سمت سرور بود، لطفا مجدد تست کنید.', isInternal: true, createdAt: '1403/05/01 11:00', authorAvatar: mockUsers[0].avatar},
         ]},
-        { id: 'TKT-720', subject: 'سوال در مورد صورتحساب', customer: mockCustomers[1], customerId: 'C2', assignee: mockUsers[1], assigneeId: 'U2', status: 'جدید', priority: 'متوسط', createdAt: '1403/05/01', category: 'مالی' },
-        { id: 'TKT-719', subject: 'گزارش باگ در ماژول گزارشات', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'حل شده', priority: 'بالا', createdAt: '1403/04/31', category: 'فنی', surveySubmitted: false },
-        { id: 'TKT-718', subject: 'درخواست افزودن ویژگی جدید', customer: mockCustomers[1], customerId: 'C2', status: 'در انتظار مشتری', priority: 'کم', createdAt: '1403/04/30', category: 'عمومی' },
     ];
     setTickets(mockTickets);
     setUsers(mockUsers);
-  }, [searchTerm, statusFilter, priorityFilter, currentPage]);
+  }, []);
 
   const filteredTickets = useMemo(() => 
     tickets.filter(ticket =>
@@ -347,24 +261,6 @@ const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) 
 
   const handleAddTicket = (e: React.FormEvent) => {
     e.preventDefault();
-    /*
-      === API CALL REQUIRED HERE ===
-      - Route: /api/tickets
-      - Method: POST
-      - Input: newTicketData
-      - Output: The newly created ticket object.
-      - Sample Fetch Code:
-        fetch('/api/tickets', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <TOKEN>' },
-            body: JSON.stringify(newTicketData)
-        })
-        .then(res => res.json())
-        .then(newTicketFromServer => {
-            setTickets(prev => [newTicketFromServer, ...prev]);
-            closePanel();
-        });
-    */
     const customer = customers.find(c => c.id === newTicketData.customerId);
     if(!customer) {
         alert("لطفا یک مشتری انتخاب کنید.");
@@ -376,6 +272,7 @@ const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) 
         ...newTicketData,
         customer,
         createdAt: new Date().toLocaleDateString('fa-IR'),
+        attachments: newTicketAttachments, // Attach files
     };
     setTickets(prev => [newTicket, ...prev]);
     closePanel();
@@ -385,6 +282,7 @@ const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) 
   const closePanel = () => {
       setIsPanelOpen(false);
       setNewTicketData(initialNewTicketState);
+      setNewTicketAttachments([]); // Reset attachments
   };
   
   const handleUpdateTicket = (updatedTicket: Ticket) => {
@@ -395,23 +293,6 @@ const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) 
   };
 
   const handleAssigneeChange = (ticketId: string, assigneeId: string) => {
-      /*
-          === API CALL REQUIRED HERE ===
-          - Route: /api/tickets/:id
-          - Method: PUT
-          - Input: { "assigneeId": assigneeId }
-          - Output: The updated ticket object.
-          - Sample Fetch Code:
-            fetch(`/api/tickets/${ticketId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <TOKEN>' },
-                body: JSON.stringify({ assigneeId: assigneeId })
-            })
-            .then(res => res.json())
-            .then(updatedTicketFromServer => {
-                setTickets(prev => prev.map(t => t.id === ticketId ? updatedTicketFromServer : t));
-            });
-        */
       const assignee = users.find(u => u.id === assigneeId);
       setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, assignee, assigneeId } : t));
   };
@@ -521,6 +402,11 @@ const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) 
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div><label htmlFor="priority" className="block mb-2 text-sm font-medium">اولویت</label><select name="priority" id="priority" value={newTicketData.priority} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600"><option value="کم">کم</option><option value="متوسط">متوسط</option><option value="بالا">بالا</option><option value="حیاتی">حیاتی</option></select></div>
                    <div><label htmlFor="category" className="block mb-2 text-sm font-medium">دسته‌بندی</label><select name="category" id="category" value={newTicketData.category} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600"><option value="عمومی">عمومی</option><option value="فنی">فنی</option><option value="مالی">مالی</option><option value="پشتیبانی">پشتیبانی</option></select></div>
+              </div>
+              <div>
+                  <label className="block mb-2 text-sm font-medium">ضمیمه‌ها</label>
+                  <FileUploader onUpload={(files) => setNewTicketAttachments(prev => [...prev, ...files])} />
+                  <AttachmentList attachments={newTicketAttachments} onRemove={(id) => setNewTicketAttachments(prev => prev.filter(a => a.id !== id))} />
               </div>
             </div>
             <div className="flex items-center justify-end p-4 border-t dark:border-gray-700 space-i-3 flex-shrink-0">
