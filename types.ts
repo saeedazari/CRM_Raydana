@@ -402,6 +402,7 @@ export interface InventoryTransaction {
 // Company Info for Print
 export interface CompanyInfo {
     name: string;
+    appName?: string; // Name of the application (e.g. CRM Pro)
     address: string;
     postalCode?: string;
     phone: string;

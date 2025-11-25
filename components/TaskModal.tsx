@@ -130,7 +130,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, onSave, initialD
                 onClick={onClose}
             ></div>
             
-            <div className={`absolute inset-y-0 left-0 bg-white dark:bg-gray-800 h-full w-full max-w-lg shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className={`absolute inset-y-0 left-0 bg-white dark:bg-gray-800 h-full w-full md:w-auto md:min-w-[30rem] md:max-w-lg shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="flex justify-between items-center p-4 border-b dark:border-gray-700 flex-shrink-0">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                         {isEditing ? 'جزئیات وظیفه' : 'ایجاد وظیفه جدید'}

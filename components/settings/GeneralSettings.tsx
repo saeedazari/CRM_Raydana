@@ -31,6 +31,19 @@ const GeneralSettings: React.FC<GeneralSettingsProps> = ({ companyInfo, setCompa
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="col-span-2">
+                        <label htmlFor="appName" className="block text-sm font-medium mb-2">نام برنامه (نمایش در نوار کناری و ورود)</label>
+                        <input 
+                            type="text" 
+                            name="appName" 
+                            id="appName" 
+                            value={formData.appName || ''} 
+                            onChange={handleChange} 
+                            className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" 
+                            placeholder="CRM Pro"
+                        />
+                    </div>
+
+                    <div className="col-span-2">
                         <label htmlFor="name" className="block text-sm font-medium mb-2">نام شرکت (فروشنده)</label>
                         <input 
                             type="text" 

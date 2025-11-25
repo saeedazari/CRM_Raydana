@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Invoice, InvoiceItem, Product, Customer, Quote, CompanyInfo } from '../../types';
 import { TrashIcon } from '../icons/TrashIcon';
@@ -227,43 +225,45 @@ const InvoiceEditor: React.FC<{
     return (
         <>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md h-full flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <div className="flex items-center">
-                    <button onClick={onCancel} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 ml-4">
+            <div className="flex items-center justify-between p-4 border-b dark:border-gray-700 flex-wrap gap-2">
+                <div className="flex items-center w-full sm:w-auto mb-2 sm:mb-0">
+                    <button onClick={onCancel} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 ml-2 md:ml-4 flex-shrink-0">
                         <ArrowRightIcon className="w-5 h-5" />
                     </button>
-                    <h2 className="text-xl font-bold">{ 'id' in invoice ? `ویرایش فاکتور ${invoice.id}` : 'ایجاد فاکتور جدید'}</h2>
+                    <div className="overflow-hidden">
+                        <h2 className="text-lg md:text-xl font-bold truncate">{ 'id' in invoice ? `ویرایش فاکتور ${invoice.id}` : 'ایجاد فاکتور جدید'}</h2>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <label className="flex items-center gap-2 ml-4 text-sm font-medium text-gray-700 dark:text-gray-300 select-none cursor-pointer">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+                    <label className="flex items-center gap-2 ml-2 text-sm font-medium text-gray-700 dark:text-gray-300 select-none cursor-pointer">
                         <input 
                             type="checkbox" 
                             checked={invoice.isOfficial} 
                             onChange={e => handleIsOfficialChange(e.target.checked)}
                             className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                         />
-                        فاکتور رسمی
+                        رسمی
                     </label>
                     {('id' in invoice) && (
-                        <button onClick={() => setIsPrintOpen(true)} className="flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">
-                            <PrinterIcon className="w-5 h-5 ml-2" />
+                        <button onClick={() => setIsPrintOpen(true)} className="flex items-center px-3 py-1.5 md:px-4 md:py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 text-sm">
+                            <PrinterIcon className="w-4 h-4 md:w-5 md:h-5 ml-2" />
                             چاپ
                         </button>
                     )}
-                    <button onClick={() => onSave(invoice)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">ذخیره</button>
+                    <button onClick={() => onSave(invoice)} className="px-3 py-1.5 md:px-4 md:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm">ذخیره</button>
                 </div>
             </div>
-            <div className="flex-grow p-6 overflow-y-auto space-y-6">
-                <div className="mb-4 p-4 border rounded-lg dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex flex-wrap items-center gap-4">
+            <div className="flex-grow p-4 md:p-6 overflow-y-auto space-y-6">
+                <div className="mb-4 p-4 border rounded-lg dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <label className="text-sm font-medium flex-shrink-0">ایجاد از روی پیش‌فاکتور:</label>
-                    <select value={quoteToLoad} onChange={e => setQuoteToLoad(e.target.value)} className="flex-grow p-2 bg-white border rounded-lg dark:bg-gray-700 dark:text-white">
+                    <select value={quoteToLoad} onChange={e => setQuoteToLoad(e.target.value)} className="w-full sm:flex-grow p-2 bg-white border rounded-lg dark:bg-gray-700 dark:text-white">
                         <option value="">انتخاب پیش‌فاکتور تایید شده...</option>
                         {approvedQuotes.map(q => <option key={q.id} value={q.id}>#{q.quoteNumber} (Ver {q.version}) - {q.customerName}</option>)}
                     </select>
-                    <button onClick={() => handleLoadFromQuote(quoteToLoad)} disabled={!quoteToLoad} className="px-4 py-2 text-sm text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400">بارگذاری</button>
+                    <button onClick={() => handleLoadFromQuote(quoteToLoad)} disabled={!quoteToLoad} className="w-full sm:w-auto px-4 py-2 text-sm text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400">بارگذاری</button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-lg dark:border-gray-700">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 p-4 border rounded-lg dark:border-gray-700">
                     <div>
                         <label className="block text-sm font-medium mb-1">مشتری</label>
                         <select value={invoice.customerId} onChange={(e) => handleCustomerChange(e.target.value)} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white" required>
@@ -284,89 +284,93 @@ const InvoiceEditor: React.FC<{
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm min-w-[900px]">
-                        <thead className="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-gray-700">
-                            <tr>
-                                <th className="p-2 text-right w-[20%]">محصول</th>
-                                <th className="p-2 text-center w-[8%]">تعداد</th>
-                                <th className="p-2 text-center w-[12%]">قیمت واحد</th>
-                                <th className="p-2 text-center w-[12%]">قیمت کل</th>
-                                <th className="p-2 text-center w-[15%]">تخفیف</th>
-                                <th className="p-2 text-center w-[12%]">پس از تخفیف</th>
-                                <th className="p-2 text-center w-[8%]">مالیات (%)</th>
-                                <th className="p-2 text-left w-[13%]">مبلغ نهایی</th>
-                                <th className="p-2 w-[5%]"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {items.map((item, index) => (
-                                <tr key={index} className="border-b dark:border-gray-700">
-                                    <td className="p-1"><select value={item.productId} onChange={e => handleItemChange(index, 'productId', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white"><option value="">انتخاب محصول</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></td>
-                                    <td className="p-1">
-                                        <input 
-                                            type="text" 
-                                            value={toPersianDigits(item.quantity)} 
-                                            onChange={e => handleItemChange(index, 'quantity', e.target.value)} 
-                                            className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" 
-                                        />
-                                    </td>
-                                    <td className="p-1">
-                                        <input 
-                                            type="text" 
-                                            value={toPersianDigits(item.unitPrice)} 
-                                            onChange={e => handleItemChange(index, 'unitPrice', e.target.value)} 
-                                            className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" 
-                                        />
-                                    </td>
-                                    <td className="p-1">
-                                        <input type="text" value={item.totalPrice.toLocaleString('fa-IR')} readOnly className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white cursor-default focus:outline-none" />
-                                    </td>
-                                    <td className="p-1">
-                                        <div className="flex items-center">
+                <div className="border rounded-lg dark:border-gray-700 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm min-w-[900px]">
+                            <thead className="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th className="p-2 text-right w-[20%]">محصول</th>
+                                    <th className="p-2 text-center w-[8%]">تعداد</th>
+                                    <th className="p-2 text-center w-[12%]">قیمت واحد</th>
+                                    <th className="p-2 text-center w-[12%]">قیمت کل</th>
+                                    <th className="p-2 text-center w-[15%]">تخفیف</th>
+                                    <th className="p-2 text-center w-[12%]">پس از تخفیف</th>
+                                    <th className="p-2 text-center w-[8%]">مالیات (%)</th>
+                                    <th className="p-2 text-left w-[13%]">مبلغ نهایی</th>
+                                    <th className="p-2 w-[5%]"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {items.map((item, index) => (
+                                    <tr key={index} className="border-b dark:border-gray-700">
+                                        <td className="p-1"><select value={item.productId} onChange={e => handleItemChange(index, 'productId', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white min-w-[120px]"><option value="">انتخاب محصول</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></td>
+                                        <td className="p-1">
                                             <input 
                                                 type="text" 
-                                                value={toPersianDigits(item.discount)} 
-                                                onChange={e => handleItemChange(index, 'discount', e.target.value)} 
-                                                className="w-full p-2 text-center bg-gray-50 border rounded-r-lg rounded-l-none text-gray-900 dark:bg-gray-700 dark:text-white focus:z-10" 
+                                                value={toPersianDigits(item.quantity)} 
+                                                onChange={e => handleItemChange(index, 'quantity', e.target.value)} 
+                                                className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" 
                                             />
-                                            <select 
-                                                value={item.discountType} 
-                                                onChange={e => handleItemChange(index, 'discountType', e.target.value)}
-                                                className="p-2 bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white border border-r-0 rounded-l-lg rounded-r-none text-xs focus:z-10"
-                                            >
-                                                <option value="percent">%</option>
-                                                <option value="amount">$</option>
-                                            </select>
-                                        </div>
-                                    </td>
-                                    <td className="p-1">
-                                        <input type="text" value={item.totalAfterDiscount.toLocaleString('fa-IR')} readOnly className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white cursor-default focus:outline-none" />
-                                    </td>
-                                    <td className="p-1">
-                                        <input 
-                                            type="text" 
-                                            value={toPersianDigits(item.tax)} 
-                                            onChange={e => handleItemChange(index, 'tax', e.target.value)} 
-                                            className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" 
-                                        />
-                                    </td>
-                                    <td className="p-1">
-                                        <input type="text" value={item.totalWithTax.toLocaleString('fa-IR')} readOnly className="w-full p-2 text-left font-bold bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white cursor-default focus:outline-none" />
-                                    </td>
-                                    <td className="p-1 text-center"><button type="button" onClick={() => handleRemoveItem(index)} className="text-red-500 hover:text-red-700 p-1"><TrashIcon className="w-5 h-5"/></button></td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    <button type="button" onClick={handleAddItem} className="mt-4 text-sm text-indigo-600 font-medium">+ افزودن آیتم جدید</button>
+                                        </td>
+                                        <td className="p-1">
+                                            <input 
+                                                type="text" 
+                                                value={toPersianDigits(item.unitPrice)} 
+                                                onChange={e => handleItemChange(index, 'unitPrice', e.target.value)} 
+                                                className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white min-w-[80px]" 
+                                            />
+                                        </td>
+                                        <td className="p-1">
+                                            <input type="text" value={item.totalPrice.toLocaleString('fa-IR')} readOnly className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white cursor-default focus:outline-none" />
+                                        </td>
+                                        <td className="p-1">
+                                            <div className="flex items-center">
+                                                <input 
+                                                    type="text" 
+                                                    value={toPersianDigits(item.discount)} 
+                                                    onChange={e => handleItemChange(index, 'discount', e.target.value)} 
+                                                    className="w-full p-2 text-center bg-gray-50 border rounded-r-lg rounded-l-none text-gray-900 dark:bg-gray-700 dark:text-white focus:z-10 min-w-[60px]" 
+                                                />
+                                                <select 
+                                                    value={item.discountType} 
+                                                    onChange={e => handleItemChange(index, 'discountType', e.target.value)}
+                                                    className="p-2 bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white border border-r-0 rounded-l-lg rounded-r-none text-xs focus:z-10"
+                                                >
+                                                    <option value="percent">%</option>
+                                                    <option value="amount">$</option>
+                                                </select>
+                                            </div>
+                                        </td>
+                                        <td className="p-1">
+                                            <input type="text" value={item.totalAfterDiscount.toLocaleString('fa-IR')} readOnly className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white cursor-default focus:outline-none" />
+                                        </td>
+                                        <td className="p-1">
+                                            <input 
+                                                type="text" 
+                                                value={toPersianDigits(item.tax)} 
+                                                onChange={e => handleItemChange(index, 'tax', e.target.value)} 
+                                                className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" 
+                                            />
+                                        </td>
+                                        <td className="p-1">
+                                            <input type="text" value={item.totalWithTax.toLocaleString('fa-IR')} readOnly className="w-full p-2 text-left font-bold bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white cursor-default focus:outline-none" />
+                                        </td>
+                                        <td className="p-1 text-center"><button type="button" onClick={() => handleRemoveItem(index)} className="text-red-500 hover:text-red-700 p-1"><TrashIcon className="w-5 h-5"/></button></td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="p-2 bg-gray-50 dark:bg-gray-700/50 border-t dark:border-gray-700">
+                        <button type="button" onClick={handleAddItem} className="text-sm text-indigo-600 font-medium px-2 py-1">+ افزودن آیتم جدید</button>
+                    </div>
                 </div>
                 
                 <div className="border-t dark:border-gray-700 pt-4">
                     <div className="flex flex-col md:flex-row justify-between gap-6">
                         <div className="flex-grow max-w-2xl">
                             <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">توضیحات و شرایط</label>
-                            <div className="flex gap-2 mb-2">
+                            <div className="flex gap-2 mb-2 flex-wrap">
                                 <select 
                                     value={selectedTemplate} 
                                     onChange={handleTemplateSelect} 

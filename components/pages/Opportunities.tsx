@@ -18,63 +18,32 @@
     - توضیح منطق بکند مورد نیاز: بروزرسانی مرحله (stage) یا دیگر فیلدهای یک فرصت. این API هنگام drag & drop یک کارت در Kanban فراخوانی می‌شود.
     - Dependencies: نیاز به Auth Token.
 */
-import React, { useState } from 'react';
+import React from 'react';
 import OpportunityKanban from '../sales/OpportunityKanban';
-import { Opportunity, User } from '../../types';
+import { Opportunity, OpportunityStage } from '../../types';
+import { toShamsi } from '../../utils/date';
+import { CurrencyDollarIcon } from '../icons/CurrencyDollarIcon';
+import { UserCircleIcon } from '../icons/UserCircleIcon';
 
-// Helper to create ISO dates relative to now
-const daysAgo = (days: number) => new Date(Date.now() - days * 86400000).toISOString();
-const daysAhead = (days: number) => new Date(Date.now() + days * 86400000).toISOString();
+const stages: OpportunityStage[] = ['شناسایی', 'واجد شرایط', 'ارائه پیشنهاد', 'مذاکره', 'موفق', 'ناموفق'];
 
-const Opportunities: React.FC = () => {
-    // state باید با داده‌های API پر شود
-    const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-    
-    React.useEffect(() => {
-        /*
-          === API CALL REQUIRED HERE ===
-          - Route: /api/opportunities
-          - Method: GET
-          - Output: { "data": [Opportunity] }
-          - Sample Fetch Code:
-            fetch('/api/opportunities', { headers: { 'Authorization': 'Bearer <TOKEN>' } })
-            .then(r => r.json())
-            .then(data => setOpportunities(data.data));
-        */
-        const mockUsers: User[] = [
-          { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
-          { id: 'U3', name: 'محمد کریمی', username: 'mohammad', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U3' },
-        ];
-        const mockOpportunities: Opportunity[] = [
-            { id: 'OP1', name: 'پروژه وبسایت فروشگاهی', customerName: 'فروشگاه سارا', customerId: 'C-L1', amount: 250000000, stage: 'ارائه پیشنهاد', closeDate: daysAhead(15), assignedToId: 'U1', assignedTo: mockUsers[0] },
-            { id: 'OP2', name: 'قرارداد پشتیبانی سالانه', customerName: 'صنایع گاما', customerId: 'C3', amount: 120000000, stage: 'مذاکره', closeDate: daysAhead(5), assignedToId: 'U3', assignedTo: mockUsers[1] },
-            { id: 'OP3', name: 'توسعه ماژول گزارشات', customerName: 'شرکت آلفا', customerId: 'C1', amount: 80000000, stage: 'واجد شرایط', closeDate: daysAhead(30), assignedToId: 'U1', assignedTo: mockUsers[0] },
-        ];
-        setOpportunities(mockOpportunities);
-    }, []);
+const stageColors: { [key in OpportunityStage]: string } = {
+    'شناسایی': 'bg-gray-100 text-gray-800',
+    'واجد شرایط': 'bg-blue-100 text-blue-800',
+    'ارائه پیشنهاد': 'bg-cyan-100 text-cyan-800',
+    'مذاکره': 'bg-yellow-100 text-yellow-800',
+    'موفق': 'bg-green-100 text-green-800',
+    'ناموفق': 'bg-red-100 text-red-800',
+};
+
+interface OpportunitiesProps {
+    opportunities: Opportunity[];
+    setOpportunities: React.Dispatch<React.SetStateAction<Opportunity[]>>;
+}
+
+const Opportunities: React.FC<OpportunitiesProps> = ({ opportunities, setOpportunities }) => {
 
     const handleUpdateOpportunity = (opportunityId: string, updates: Partial<Opportunity>) => {
-        /*
-          === API CALL REQUIRED HERE ===
-          - Route: /api/opportunities/:opportunityId
-          - Method: PUT
-          - Input: updates (e.g., { "stage": "مذاکره" })
-          - Output: The updated opportunity object.
-          - Sample Fetch Code:
-            fetch(`/api/opportunities/${opportunityId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer <TOKEN>' },
-                body: JSON.stringify(updates)
-            })
-            .then(res => res.json())
-            .then(updatedOpportunity => {
-                 setOpportunities(prev =>
-                    prev.map(opp =>
-                        opp.id === opportunityId ? updatedOpportunity : opp
-                    )
-                );
-            });
-        */
         setOpportunities(prev =>
             prev.map(opp =>
                 opp.id === opportunityId ? { ...opp, ...updates } : opp
@@ -84,7 +53,52 @@ const Opportunities: React.FC = () => {
 
     return (
         <div className="h-full">
-            <OpportunityKanban opportunities={opportunities} onUpdateOpportunity={handleUpdateOpportunity} />
+            {/* Mobile List View */}
+            <div className="md:hidden space-y-4 p-4">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">فرصت‌های فروش</h2>
+                {opportunities.map(opp => (
+                    <div key={opp.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                        <div className="flex justify-between items-start mb-2">
+                            <h3 className="font-bold text-gray-900 dark:text-white">{opp.name}</h3>
+                            <span className="text-xs text-gray-500">{toShamsi(opp.closeDate)}</span>
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{opp.customerName}</p>
+                        
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center text-green-600 dark:text-green-400">
+                                <CurrencyDollarIcon className="w-5 h-5 ml-1" />
+                                <span className="font-bold">{opp.amount.toLocaleString('fa-IR')}</span>
+                            </div>
+                            <div className="flex items-center">
+                                {opp.assignedTo?.avatar ? (
+                                    <img src={opp.assignedTo.avatar} alt={opp.assignedTo.name} className="w-6 h-6 rounded-full ml-2" />
+                                ) : (
+                                    <UserCircleIcon className="w-6 h-6 text-gray-400 ml-2" />
+                                )}
+                                <span className="text-xs text-gray-500">{opp.assignedTo?.name}</span>
+                            </div>
+                        </div>
+
+                        <div className="mt-3 pt-3 border-t dark:border-gray-700">
+                            <label className="block text-xs font-medium text-gray-500 mb-1">مرحله:</label>
+                            <select 
+                                value={opp.stage} 
+                                onChange={(e) => handleUpdateOpportunity(opp.id, { stage: e.target.value as OpportunityStage })}
+                                className={`w-full p-2 text-sm rounded-lg border-none outline-none font-medium ${stageColors[opp.stage]}`}
+                            >
+                                {stages.map(stage => (
+                                    <option key={stage} value={stage}>{stage}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Desktop Kanban View */}
+            <div className="hidden md:block h-full">
+                <OpportunityKanban opportunities={opportunities} onUpdateOpportunity={handleUpdateOpportunity} />
+            </div>
         </div>
     );
 };

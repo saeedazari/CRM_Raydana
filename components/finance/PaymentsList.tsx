@@ -53,9 +53,9 @@ const PaymentsList: React.FC<PaymentsListProps> = ({ payments, onRegisterPayment
                             <th className="px-4 py-3">نوع</th>
                             <th className="px-4 py-3">طرف حساب</th>
                             <th className="px-4 py-3">مبلغ (تومان)</th>
-                            <th className="px-4 py-3">تاریخ</th>
-                            <th className="px-4 py-3">روش پرداخت</th>
-                            <th className="px-4 py-3">بابت</th>
+                            <th className="px-4 py-3 hidden sm:table-cell">تاریخ</th>
+                            <th className="px-4 py-3 hidden md:table-cell">روش پرداخت</th>
+                            <th className="px-4 py-3 hidden lg:table-cell">بابت</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -67,11 +67,14 @@ const PaymentsList: React.FC<PaymentsListProps> = ({ payments, onRegisterPayment
                                         {payment.type}
                                     </div>
                                 </td>
-                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{payment.partyName}</td>
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                                    {payment.partyName}
+                                    <div className="sm:hidden text-xs text-gray-500 mt-1">{toShamsi(payment.date)}</div>
+                                </td>
                                 <td className="px-4 py-3 font-bold">{payment.amount.toLocaleString('fa-IR')}</td>
-                                <td className="px-4 py-3">{toShamsi(payment.date)}</td>
-                                <td className="px-4 py-3">{payment.method}</td>
-                                <td className="px-4 py-3 text-xs font-mono">{payment.referenceId || '-'}</td>
+                                <td className="px-4 py-3 hidden sm:table-cell">{toShamsi(payment.date)}</td>
+                                <td className="px-4 py-3 hidden md:table-cell">{payment.method}</td>
+                                <td className="px-4 py-3 text-xs font-mono hidden lg:table-cell">{payment.referenceId || '-'}</td>
                             </tr>
                         ))}
                     </tbody>

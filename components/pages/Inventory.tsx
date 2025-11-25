@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useMemo } from 'react';
 import { Product, InventoryTransaction, InventoryTransactionType } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
@@ -101,7 +99,7 @@ const Inventory: React.FC<InventoryProps> = ({ products, transactions, onAddTran
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                 <h2 className="text-xl font-bold flex items-center gap-2">
                     <ArchiveBoxIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                    مدیریت موجودی انبار (کالاهای فیزیکی)
+                    مدیریت موجودی انبار
                 </h2>
                 
                 <div className="relative w-full md:w-auto flex-grow max-w-md">
@@ -127,10 +125,10 @@ const Inventory: React.FC<InventoryProps> = ({ products, transactions, onAddTran
                 <table className="w-full text-sm text-right text-gray-500 dark:text-gray-400">
                     <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                         <tr>
-                            <th className="px-4 py-3">کد کالا</th>
+                            <th className="px-4 py-3 hidden sm:table-cell">کد کالا</th>
                             <th className="px-4 py-3">نام کالا</th>
-                            <th className="px-4 py-3 text-center">موجودی فعلی</th>
-                            <th className="px-4 py-3 text-center">وضعیت موجودی</th>
+                            <th className="px-4 py-3 text-center">موجودی</th>
+                            <th className="px-4 py-3 text-center hidden md:table-cell">وضعیت</th>
                             <th className="px-4 py-3 text-center">عملیات</th>
                         </tr>
                     </thead>
@@ -141,10 +139,10 @@ const Inventory: React.FC<InventoryProps> = ({ products, transactions, onAddTran
                             
                             return (
                                 <tr key={product.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
-                                    <td className="px-4 py-3 font-mono text-xs">{product.code || '-'}</td>
+                                    <td className="px-4 py-3 font-mono text-xs hidden sm:table-cell">{product.code || '-'}</td>
                                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{product.name}</td>
                                     <td className="px-4 py-3 text-center font-bold text-lg">{product.stock}</td>
-                                    <td className="px-4 py-3 text-center">
+                                    <td className="px-4 py-3 text-center hidden md:table-cell">
                                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${stockStatus}`}>
                                             {stockLabel}
                                         </span>
@@ -170,9 +168,9 @@ const Inventory: React.FC<InventoryProps> = ({ products, transactions, onAddTran
         {/* Transaction Drawer */}
         <div className={`fixed inset-0 z-50 ${isModalOpen ? '' : 'pointer-events-none'}`}>
             <div className={`absolute inset-0 bg-black transition-opacity duration-300 ${isModalOpen ? 'bg-opacity-50' : 'bg-opacity-0'}`} onClick={() => setIsModalOpen(false)}></div>
-            <div className={`absolute inset-y-0 left-0 bg-white dark:bg-gray-800 h-full w-full max-w-md shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out ${isModalOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">ثبت سند انبار (مستقل)</h3>
+            <div className={`absolute inset-y-0 left-0 bg-white dark:bg-gray-800 h-full w-full md:w-auto md:min-w-[24rem] md:max-w-md shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out ${isModalOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                <div className="flex justify-between items-center p-4 border-b dark:border-gray-700 flex-shrink-0">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">ثبت سند انبار</h3>
                     <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
                         <XMarkIcon className="w-6 h-6" />
                     </button>
@@ -238,7 +236,7 @@ const Inventory: React.FC<InventoryProps> = ({ products, transactions, onAddTran
                             ></textarea>
                         </div>
                     </div>
-                    <div className="flex items-center justify-end p-4 border-t dark:border-gray-700 mt-auto">
+                    <div className="flex items-center justify-end p-4 border-t dark:border-gray-700 mt-auto flex-shrink-0">
                         <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 ml-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">انصراف</button>
                         <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">ثبت سند</button>
                     </div>
@@ -250,11 +248,11 @@ const Inventory: React.FC<InventoryProps> = ({ products, transactions, onAddTran
         {isHistoryModalOpen && selectedProductForHistory && (
              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl mx-4 flex flex-col max-h-[90vh]">
-                    <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
+                    <div className="flex justify-between items-center p-4 border-b dark:border-gray-700 flex-shrink-0">
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                             کاردکس کالا: <span className="text-indigo-600">{selectedProductForHistory.name}</span>
                         </h3>
-                        <button onClick={() => setIsHistoryModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                        <button onClick={() => setIsHistoryModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1">
                             <XMarkIcon className="w-6 h-6" />
                         </button>
                     </div>
@@ -268,9 +266,9 @@ const Inventory: React.FC<InventoryProps> = ({ products, transactions, onAddTran
                                 <tr>
                                     <th className="px-2 py-2">تاریخ</th>
                                     <th className="px-2 py-2">نوع سند</th>
-                                    <th className="px-2 py-2">مرجع</th>
+                                    <th className="px-2 py-2 hidden sm:table-cell">مرجع</th>
                                     <th className="px-2 py-2 text-center">تعداد</th>
-                                    <th className="px-2 py-2">توضیحات</th>
+                                    <th className="px-2 py-2 hidden sm:table-cell">توضیحات</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -286,11 +284,11 @@ const Inventory: React.FC<InventoryProps> = ({ products, transactions, onAddTran
                                                     {typeInfo.text}
                                                 </span>
                                             </td>
-                                            <td className="px-2 py-3 font-mono text-xs text-gray-500">{t.referenceId || '-'}</td>
+                                            <td className="px-2 py-3 font-mono text-xs text-gray-500 hidden sm:table-cell">{t.referenceId || '-'}</td>
                                             <td className={`px-2 py-3 text-center font-bold ${isAdd ? 'text-green-600' : 'text-red-600'}`}>
                                                 {isAdd ? '+' : '-'}{t.quantity}
                                             </td>
-                                            <td className="px-2 py-3 text-xs text-gray-500">{t.description || '-'}</td>
+                                            <td className="px-2 py-3 text-xs text-gray-500 hidden sm:table-cell">{t.description || '-'}</td>
                                         </tr>
                                     )
                                 })}
@@ -302,7 +300,7 @@ const Inventory: React.FC<InventoryProps> = ({ products, transactions, onAddTran
                             </tbody>
                         </table>
                     </div>
-                     <div className="p-4 border-t dark:border-gray-700">
+                     <div className="p-4 border-t dark:border-gray-700 flex-shrink-0">
                         <button onClick={() => setIsHistoryModalOpen(false)} className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300">بستن</button>
                     </div>
                 </div>

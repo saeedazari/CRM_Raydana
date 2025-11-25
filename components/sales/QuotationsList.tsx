@@ -82,12 +82,12 @@ const QuotationsList: React.FC<QuotationsListProps> = ({ quotes, onCreateNew, on
             </div>
             <div className="overflow-x-auto flex-1">
                 <table className="w-full text-sm text-right text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
                         <tr>
                             <th scope="col" className="px-4 py-3">شماره</th>
-                            <th scope="col" className="px-4 py-3">نسخه</th>
+                            <th scope="col" className="px-4 py-3 hidden sm:table-cell">نسخه</th>
                             <th scope="col" className="px-4 py-3">مشتری</th>
-                            <th scope="col" className="px-4 py-3">تاریخ صدور</th>
+                            <th scope="col" className="px-4 py-3 hidden md:table-cell">تاریخ صدور</th>
                             <th scope="col" className="px-4 py-3">مبلغ کل (تومان)</th>
                             <th scope="col" className="px-4 py-3 text-center">وضعیت</th>
                             <th scope="col" className="px-4 py-3 text-center">عملیات</th>
@@ -97,9 +97,12 @@ const QuotationsList: React.FC<QuotationsListProps> = ({ quotes, onCreateNew, on
                         {filteredQuotes.map((quote) => (
                             <tr key={quote.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                                 <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{quote.quoteNumber || quote.id}</td>
-                                <td className="px-4 py-3"><span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">Ver {quote.version}</span></td>
-                                <td className="px-4 py-3">{quote.customerName}</td>
-                                <td className="px-4 py-3">{toShamsi(quote.issueDate)}</td>
+                                <td className="px-4 py-3 hidden sm:table-cell"><span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">Ver {quote.version}</span></td>
+                                <td className="px-4 py-3">
+                                    {quote.customerName}
+                                    <div className="md:hidden text-xs text-gray-500 mt-1">{toShamsi(quote.issueDate)}</div>
+                                </td>
+                                <td className="px-4 py-3 hidden md:table-cell">{toShamsi(quote.issueDate)}</td>
                                 <td className="px-4 py-3">{quote.totalAmount.toLocaleString('fa-IR')}</td>
                                 <td className="px-4 py-3 text-center">
                                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[quote.status]}`}>{quote.status}</span>
@@ -107,11 +110,11 @@ const QuotationsList: React.FC<QuotationsListProps> = ({ quotes, onCreateNew, on
                                 <td className="px-4 py-3 text-center">
                                     <div className="flex justify-center items-center gap-2">
                                         {quote.status === 'تایید شده' && (
-                                            <button onClick={() => onCreateInvoiceFromQuote(quote)} className="p-1 text-gray-500 hover:text-green-600" title="ایجاد فاکتور" aria-label="Create Invoice">
+                                            <button onClick={() => onCreateInvoiceFromQuote(quote)} className="p-1 text-gray-500 hover:text-green-600 hidden sm:block" title="ایجاد فاکتور" aria-label="Create Invoice">
                                                 <DocumentDuplicateIcon className="w-5 h-5" />
                                             </button>
                                         )}
-                                        <button onClick={() => setPrintingQuote(quote)} className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" title="چاپ">
+                                        <button onClick={() => setPrintingQuote(quote)} className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hidden sm:block" title="چاپ">
                                             <PrinterIcon className="w-5 h-5" />
                                         </button>
                                         <button onClick={() => onEdit(quote)} className="p-1 text-gray-500 hover:text-indigo-600" title="ویرایش/مشاهده">

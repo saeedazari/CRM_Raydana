@@ -129,7 +129,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ leads, onConvertLead, onAddLead
 
     return (
         <>
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md h-full flex flex-col">
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 flex-wrap">
                  <div className="w-full md:w-auto flex flex-col sm:flex-row gap-4 flex-wrap">
                      <div className="relative w-full sm:w-auto">
@@ -140,7 +140,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ leads, onConvertLead, onAddLead
                         <option value="all">همه وضعیت‌ها</option>
                         {Object.keys(statusColors).map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
-                     <select value={sourceFilter} onChange={e => {setSourceFilter(e.target.value); setCurrentPage(1);}} className="w-full sm:w-auto px-4 py-2 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                     <select value={sourceFilter} onChange={e => {setSourceFilter(e.target.value); setCurrentPage(1);}} className="w-full sm:w-auto px-4 py-2 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 hidden sm:block">
                         <option value="all">همه منابع</option>
                         <option value="وبسایت">وبسایت</option>
                         <option value="ارجاعی">ارجاعی</option>
@@ -154,16 +154,16 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ leads, onConvertLead, onAddLead
                 </button>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto flex-1">
                 <table className="w-full text-sm text-right text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
                         <tr>
                             <th scope="col" className="px-4 py-3">نام رابط</th>
-                            <th scope="col" className="px-4 py-3">شرکت</th>
-                            <th scope="col" className="px-4 py-3">منبع</th>
-                            <th scope="col" className="px-4 py-3 text-center">امتیاز</th>
-                            <th scope="col" className="px-4 py-3">کارشناس</th>
-                            <th scope="col" className="px-4 py-3">تاریخ ایجاد</th>
+                            <th scope="col" className="px-4 py-3 hidden sm:table-cell">شرکت</th>
+                            <th scope="col" className="px-4 py-3 hidden md:table-cell">منبع</th>
+                            <th scope="col" className="px-4 py-3 text-center hidden sm:table-cell">امتیاز</th>
+                            <th scope="col" className="px-4 py-3 hidden lg:table-cell">کارشناس</th>
+                            <th scope="col" className="px-4 py-3 hidden xl:table-cell">تاریخ ایجاد</th>
                             <th scope="col" className="px-4 py-3 text-center">وضعیت</th>
                             <th scope="col" className="px-4 py-3 text-center">عملیات</th>
                         </tr>
@@ -171,12 +171,15 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ leads, onConvertLead, onAddLead
                     <tbody>
                         {paginatedLeads.map(lead => (
                             <tr key={lead.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{lead.contactName}</td>
-                                <td className="px-4 py-3">{lead.companyName || '-'}</td>
-                                <td className="px-4 py-3">{lead.source}</td>
-                                <td className="px-4 py-3 text-center">{lead.score}</td>
-                                <td className="px-4 py-3">{lead.assignedTo?.name}</td>
-                                <td className="px-4 py-3 text-xs">{toShamsi(lead.createdAt)}</td>
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                                    {lead.contactName}
+                                    <div className="sm:hidden text-xs text-gray-500 mt-1">{lead.companyName}</div>
+                                </td>
+                                <td className="px-4 py-3 hidden sm:table-cell">{lead.companyName || '-'}</td>
+                                <td className="px-4 py-3 hidden md:table-cell">{lead.source}</td>
+                                <td className="px-4 py-3 text-center hidden sm:table-cell">{lead.score}</td>
+                                <td className="px-4 py-3 hidden lg:table-cell">{lead.assignedTo?.name}</td>
+                                <td className="px-4 py-3 text-xs hidden xl:table-cell">{toShamsi(lead.createdAt)}</td>
                                 <td className="px-4 py-3 text-center">
                                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[lead.status]}`}>{lead.status}</span>
                                 </td>
@@ -185,10 +188,10 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ leads, onConvertLead, onAddLead
                                         {lead.converted ? (
                                             <span className="flex items-center text-green-600 dark:text-green-400 text-xs font-semibold">
                                                 <CheckBadgeIcon className="w-5 h-5 ml-1"/>
-                                                تبدیل شده
+                                                <span className="hidden sm:inline">تبدیل شده</span>
                                             </span>
                                         ) : (
-                                            <button onClick={() => openConvertPanel(lead)} className="p-1 text-gray-500 hover:text-green-600 dark:hover:text-green-400" aria-label="Convert Lead"><ArrowPathIcon className="w-5 h-5" /></button>
+                                            <button onClick={() => openConvertPanel(lead)} className="p-1 text-gray-500 hover:text-green-600 dark:hover:text-green-400" aria-label="Convert Lead" title="تبدیل به فرصت"><ArrowPathIcon className="w-5 h-5" /></button>
                                         )}
                                         <button onClick={() => openPanel(lead)} className="p-1 text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400" aria-label="Edit"><PencilIcon className="w-5 h-5" /></button>
                                         <button className="p-1 text-gray-500 hover:text-red-600 dark:hover:text-red-400" aria-label="Delete"><TrashIcon className="w-5 h-5" /></button>

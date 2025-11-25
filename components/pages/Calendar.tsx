@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useMemo } from 'react';
 import { Task, Reminder, Invoice } from '../../types';
 import { ChevronLeftIcon } from '../icons/ChevronLeftIcon';
@@ -62,8 +60,6 @@ const Calendar: React.FC<CalendarProps> = ({ tasks, reminders, invoices, onOpenT
                 });
             }
         });
-
-        // Removed invoices from calendar as they no longer have a due date.
 
         return allEvents;
     }, [tasks, reminders, invoices]);
@@ -134,17 +130,17 @@ const Calendar: React.FC<CalendarProps> = ({ tasks, reminders, invoices, onOpenT
     return (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md h-full flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+            <div className="flex flex-col md:flex-row items-center justify-between p-4 border-b dark:border-gray-700 gap-4">
+                <h2 className="text-lg md:text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2 order-2 md:order-1">
                     {currentDate.format("MMMM YYYY")}
                 </h2>
-                <div className="flex items-center gap-2">
-                    <button onClick={goToToday} className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300">امروز</button>
+                <div className="flex items-center gap-2 order-1 md:order-2 w-full md:w-auto justify-between md:justify-end">
                     <div className="flex rounded-md shadow-sm" role="group">
                         <button onClick={prevMonth} type="button" className="px-3 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-r-lg hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600">
                             <ChevronRightIcon className="w-4 h-4" />
                         </button>
-                        <button onClick={nextMonth} type="button" className="px-3 py-2 text-sm font-medium text-gray-900 bg-white border border-t border-b border-l border-gray-200 rounded-l-lg hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600">
+                        <button onClick={goToToday} className="px-4 py-2 text-sm bg-white dark:bg-gray-700 border-t border-b border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300">امروز</button>
+                        <button onClick={nextMonth} type="button" className="px-3 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 border-l rounded-l-lg hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-2 focus:ring-blue-700 focus:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600">
                             <ChevronLeftIcon className="w-4 h-4" />
                         </button>
                     </div>
@@ -154,8 +150,9 @@ const Calendar: React.FC<CalendarProps> = ({ tasks, reminders, invoices, onOpenT
             {/* Grid Header */}
             <div className="grid grid-cols-7 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
                 {weekDays.map(day => (
-                    <div key={day} className="p-3 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
-                        {day}
+                    <div key={day} className="p-2 md:p-3 text-center text-xs md:text-sm font-semibold text-gray-500 dark:text-gray-400">
+                        <span className="hidden md:inline">{day}</span>
+                        <span className="md:hidden">{day.charAt(0)}</span>
                     </div>
                 ))}
             </div>
@@ -163,7 +160,7 @@ const Calendar: React.FC<CalendarProps> = ({ tasks, reminders, invoices, onOpenT
             {/* Calendar Grid */}
             <div className="grid grid-cols-7 flex-grow auto-rows-fr">
                 {days.map((dateObj, index) => {
-                    if (!dateObj) return <div key={`empty-${index}`} className="border-b border-l dark:border-gray-700 bg-gray-50/30 dark:bg-gray-800/30"></div>;
+                    if (!dateObj) return <div key={`empty-${index}`} className="border-b border-l dark:border-gray-700 bg-gray-50/30 dark:bg-gray-800/30 min-h-[80px]"></div>;
                     
                     const dayEvents = events.filter(e => isSameDay(dateObj, e.date));
                     
@@ -171,19 +168,20 @@ const Calendar: React.FC<CalendarProps> = ({ tasks, reminders, invoices, onOpenT
                     const isToday = dateObj.year === todayObj.year && dateObj.month.number === todayObj.month.number && dateObj.day === todayObj.day;
 
                     return (
-                        <div key={index} className={`border-b border-l dark:border-gray-700 p-2 min-h-[100px] overflow-hidden relative group transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/30 ${isToday ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''}`}>
-                            <span className={`text-sm font-medium inline-block w-7 h-7 leading-7 text-center rounded-full ${isToday ? 'bg-indigo-600 text-white' : 'text-gray-700 dark:text-gray-300'}`}>
+                        <div key={index} className={`border-b border-l dark:border-gray-700 p-1 md:p-2 min-h-[80px] overflow-hidden relative group transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/30 ${isToday ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''}`}>
+                            <span className={`text-xs md:text-sm font-medium inline-block w-6 h-6 md:w-7 md:h-7 leading-6 md:leading-7 text-center rounded-full ${isToday ? 'bg-indigo-600 text-white' : 'text-gray-700 dark:text-gray-300'}`}>
                                 {toPersianDigits(dateObj.format("D"))}
                             </span>
-                            <div className="mt-1 space-y-1 max-h-24 overflow-y-auto custom-scrollbar">
+                            <div className="mt-1 space-y-1 max-h-16 md:max-h-24 overflow-y-auto custom-scrollbar">
                                 {dayEvents.map(event => (
                                     <button 
                                         key={event.id}
                                         onClick={() => handleEventClick(event)}
-                                        className={`block w-full text-right text-xs px-1.5 py-1 rounded border truncate ${getEventColor(event.type)}`}
+                                        className={`block w-full text-right text-[10px] md:text-xs px-1 py-0.5 md:px-1.5 md:py-1 rounded border truncate ${getEventColor(event.type)}`}
                                         title={event.title}
                                     >
-                                        {getEventIcon(event.type)}
+                                        <span className="hidden md:inline">{getEventIcon(event.type)}</span>
+                                        <span className="md:hidden text-[8px] mr-0.5">●</span>
                                         {event.title}
                                     </button>
                                 ))}

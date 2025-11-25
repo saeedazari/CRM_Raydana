@@ -47,8 +47,7 @@ const HeaderNotifications: React.FC<HeaderNotificationsProps> = ({ reminders, on
             </button>
 
             {isOpen && (
-                /* FIX: Changed positioning from right-0 to left-0 to align with the button on the left side of the header */
-                <div className="absolute left-0 mt-2 w-80 origin-top-left bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50 max-h-96 overflow-y-auto">
+                <div className="fixed left-4 right-4 top-20 mt-2 md:absolute md:left-0 md:right-auto md:top-full md:mt-2 w-auto md:w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50 max-h-[70vh] md:max-h-96 overflow-y-auto origin-top-left">
                     <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center sticky top-0 bg-white dark:bg-gray-800 z-10">
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white">اعلان‌ها ({unreadCount})</h3>
                     </div>

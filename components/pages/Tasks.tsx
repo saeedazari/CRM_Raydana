@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Task, TaskStatus, TaskPriority, Customer, User } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
 import { SearchIcon } from '../icons/SearchIcon';
@@ -50,6 +50,19 @@ const Tasks: React.FC<TasksProps> = ({ tasks, setTasks, onOpenTaskModal, onOpenR
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [taskTypeFilter, setTaskTypeFilter] = useState<FilterType>('my_tasks'); // Default to my tasks
+
+  // Effect to handle mobile defaults
+  useEffect(() => {
+      const handleResize = () => {
+          if (window.innerWidth < 768) {
+              setViewMode('list');
+          }
+      };
+      // Set initial
+      handleResize();
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const filteredTasks = useMemo(() => 
     tasks.filter(task => {
@@ -160,8 +173,8 @@ const Tasks: React.FC<TasksProps> = ({ tasks, setTasks, onOpenTaskModal, onOpenR
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md h-full flex flex-col">
         {/* Top Controls */}
         <div className="flex flex-wrap flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <div className="flex items-center gap-2">
-                <div className="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+            <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto no-scrollbar">
+                <div className="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-lg whitespace-nowrap">
                     <button 
                         onClick={() => setTaskTypeFilter('my_tasks')}
                         className={`px-3 py-1.5 text-sm rounded-md transition-colors ${taskTypeFilter === 'my_tasks' ? 'bg-white dark:bg-gray-600 shadow text-indigo-600 dark:text-indigo-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}
@@ -197,8 +210,8 @@ const Tasks: React.FC<TasksProps> = ({ tasks, setTasks, onOpenTaskModal, onOpenR
                     </div>
                 </div>
                 
-                {/* View Toggle */}
-                <div className="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+                {/* View Toggle (Hidden on mobile to enforce list view) */}
+                <div className="hidden md:flex bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
                     <button onClick={() => setViewMode('list')} className={`p-1.5 rounded transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-gray-600 shadow text-indigo-600 dark:text-indigo-400' : 'text-gray-500'}`}>
                         <ListBulletIcon className="w-5 h-5" />
                     </button>
@@ -207,7 +220,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks, setTasks, onOpenTaskModal, onOpenR
                     </button>
                 </div>
 
-                <button onClick={() => onOpenTaskModal()} className="flex items-center justify-center px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition">
+                <button onClick={() => onOpenTaskModal()} className="flex items-center justify-center px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition w-full sm:w-auto">
                     <PlusIcon className="w-4 h-4 ml-2" />
                     <span>وظیفه جدید</span>
                 </button>
@@ -223,10 +236,10 @@ const Tasks: React.FC<TasksProps> = ({ tasks, setTasks, onOpenTaskModal, onOpenR
                             <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
                                 <tr>
                                     <th scope="col" className="px-4 py-3">عنوان</th>
-                                    <th scope="col" className="px-4 py-3">مشتری</th>
-                                    <th scope="col" className="px-4 py-3">مسئول</th>
+                                    <th scope="col" className="px-4 py-3 hidden sm:table-cell">مشتری</th>
+                                    <th scope="col" className="px-4 py-3 hidden md:table-cell">مسئول</th>
                                     <th scope="col" className="px-4 py-3">اولویت</th>
-                                    <th scope="col" className="px-4 py-3">مهلت</th>
+                                    <th scope="col" className="px-4 py-3 hidden sm:table-cell">مهلت</th>
                                     <th scope="col" className="px-4 py-3 text-center">وضعیت</th>
                                     <th scope="col" className="px-4 py-3 text-center">عملیات</th>
                                 </tr>
@@ -234,14 +247,17 @@ const Tasks: React.FC<TasksProps> = ({ tasks, setTasks, onOpenTaskModal, onOpenR
                             <tbody>
                                 {paginatedTasks.map((task) => (
                                     <tr key={task.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer" onClick={() => onOpenTaskModal(task)}>
-                                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{task.title}</td>
-                                        <td className="px-4 py-3">{task.customer?.name || '-'}</td>
-                                        <td className="px-4 py-3 flex items-center gap-2">
+                                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                                            {task.title}
+                                            <div className="sm:hidden text-xs text-gray-500 mt-1">{task.customer?.name}</div>
+                                        </td>
+                                        <td className="px-4 py-3 hidden sm:table-cell">{task.customer?.name || '-'}</td>
+                                        <td className="px-4 py-3 hidden md:table-cell flex items-center gap-2">
                                             {task.assignedTo.avatar && <img src={task.assignedTo.avatar} className="w-6 h-6 rounded-full" />}
                                             {task.assignedTo.name}
                                         </td>
                                         <td className={`px-4 py-3 font-medium ${priorityColors[task.priority].split(' ')[1]}`}>{task.priority}</td>
-                                        <td className="px-4 py-3 text-xs font-mono">{task.dueDate ? toShamsi(task.dueDate) : '-'}</td>
+                                        <td className="px-4 py-3 text-xs font-mono hidden sm:table-cell">{task.dueDate ? toShamsi(task.dueDate) : '-'}</td>
                                         <td className="px-4 py-3 text-center">
                                             <span className={`px-2 py-1 text-xs font-medium rounded-full border ${statusColors[task.status]}`}>
                                                 {task.status}
@@ -271,7 +287,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks, setTasks, onOpenTaskModal, onOpenR
                     )}
                 </div>
             ) : (
-                <div className="h-full overflow-x-auto overflow-y-hidden pb-2">
+                <div className="h-full overflow-x-auto overflow-y-hidden pb-2 hidden md:block">
                     <DragDropContext onDragEnd={onDragEnd}>
                         <div className="flex h-full gap-4 min-w-max px-1">
                             {Object.keys(statusColors).map(key => {

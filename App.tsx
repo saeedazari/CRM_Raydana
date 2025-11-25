@@ -1,16 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
 /* 
     === BACKEND SPEC ===
     توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
@@ -108,7 +96,7 @@ const mockCustomers = generateMockCustomers();
 
 // --- EXTENDED MOCK TICKETS ---
 const mockTicketsData: Ticket[] = [
-    { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', customerId: 'C1', customer: mockCustomers[0], assigneeId: 'U1', assignee: mockUsers[0], status: 'در حال بررسی', priority: 'بالا', createdAt: daysAgo(1), category: 'فنی' },
+    { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', description: 'کاربر اعلام کرده نمی‌تواند وارد پنل شود.', customerId: 'C1', customer: mockCustomers[0], assigneeId: 'U1', assignee: mockUsers[0], status: 'در حال بررسی', priority: 'بالا', createdAt: daysAgo(1), category: 'فنی', replies: [{id: 'R1', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', text: 'در حال بررسی مشکل هستیم.', isInternal: false, createdAt: daysAgo(1), authorAvatar: mockUsers[0].avatar}] },
     { id: 'TKT-720', subject: 'سوال در مورد صورتحساب', customerId: 'C2', customer: mockCustomers[1], assigneeId: 'U2', assignee: mockUsers[1], status: 'جدید', priority: 'متوسط', createdAt: daysAgo(2), category: 'مالی' },
     { id: 'TKT-719', subject: 'گزارش باگ در ماژول گزارشات', customerId: 'C1', customer: mockCustomers[0], assigneeId: 'U1', assignee: mockUsers[0], status: 'حل شده', priority: 'بالا', createdAt: daysAgo(5), category: 'فنی', surveySubmitted: false },
     { id: 'TKT-718', subject: 'درخواست افزودن ویژگی جدید', customerId: 'C2', customer: mockCustomers[1], status: 'در انتظار مشتری', priority: 'کم', createdAt: daysAgo(7), category: 'عمومی' },
@@ -214,8 +202,15 @@ const mockLeads: Lead[] = [
     { id: 'L4', contactName: 'پیمان عزیزی', companyName: 'صنایع پیمان', email: 'peyman@industry.com', phone: '09121234567', source: 'شبکه اجتماعی', status: 'تبدیل شده', score: 95, assignedToId: 'U3', assignedTo: mockUsers[2], createdAt: daysAgo(15), converted: true },
 ];
 
+const mockOpportunities: Opportunity[] = [
+    { id: 'OP1', name: 'پروژه وبسایت فروشگاهی', customerName: 'فروشگاه سارا', customerId: 'C-L1', amount: 250000000, stage: 'ارائه پیشنهاد', closeDate: daysAhead(15), assignedToId: 'U1', assignedTo: mockUsers[0] },
+    { id: 'OP2', name: 'قرارداد پشتیبانی سالانه', customerName: 'صنایع گاما', customerId: 'C3', amount: 120000000, stage: 'مذاکره', closeDate: daysAhead(5), assignedToId: 'U3', assignedTo: mockUsers[1] },
+    { id: 'OP3', name: 'توسعه ماژول گزارشات', customerName: 'شرکت آلفا', customerId: 'C1', amount: 80000000, stage: 'واجد شرایط', closeDate: daysAhead(30), assignedToId: 'U1', assignedTo: mockUsers[0] },
+];
+
 const initialCompanyInfo: CompanyInfo = {
     name: 'شرکت فناوری اطلاعات CRM Pro',
+    appName: 'CRM Pro', // Default App Name
     address: 'تهران، خیابان ولیعصر، بالاتر از میدان ونک، کوچه تلاش، پلاک ۱',
     phone: '۰۲۱-۸۸۸۸۸۸۸۸',
     email: 'info@crmpro.ir',
@@ -286,6 +281,9 @@ const MainApp: React.FC<{
   
   // Leads
   const [leads, setLeads] = useState<Lead[]>(mockLeads);
+
+  // Opportunities
+  const [opportunities, setOpportunities] = useState<Opportunity[]>(mockOpportunities);
 
   const handleSetActivePage = (name: string, params: any = {}) => {
     setActivePage({ name, params });
@@ -717,6 +715,9 @@ const MainApp: React.FC<{
       case 'tickets':
         return <Tickets 
             customers={customers}
+            tickets={tickets}
+            setTickets={setTickets}
+            onUpdateTicket={handleUpdateTicket}
             onCreateTaskFromTicket={handleCreateTaskFromTicket} 
         />;
       case 'tasks':
@@ -745,9 +746,16 @@ const MainApp: React.FC<{
             onViewInvoice={handleViewInvoice}
           />;
       case 'opportunities':
-        return <Opportunities />;
+        return <Opportunities 
+            opportunities={opportunities}
+            setOpportunities={setOpportunities}
+        />;
       case 'leads':
-        return <Leads />;
+        return <Leads 
+            leads={leads}
+            setLeads={setLeads}
+            users={users}
+        />;
       case 'products':
         return <Products 
             products={products}
@@ -859,6 +867,7 @@ const MainApp: React.FC<{
         setActivePage={handleSetActivePage} 
         isOpen={isSidebarOpen}
         setIsOpen={setIsSidebarOpen}
+        appName={companyInfo.appName || 'CRM Pro'}
       />
       {isSidebarOpen && (
         <div 
@@ -963,7 +972,7 @@ const App: React.FC = () => {
   const [vendors, setVendors] = useState<Vendor[]>(mockVendors);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [companyInfo, setCompanyInfo] = useState<CompanyInfo>(initialCompanyInfo);
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({...initialCompanyInfo, appName: 'CRM Pro'});
   const [personnelRequests, setPersonnelRequests] = useState<PersonnelRequest[]>([]);
   const [interactions, setInteractions] = useState<Interaction[]>(mockInteractions);
   const [noteTemplates, setNoteTemplates] = useState<string[]>([
@@ -1069,7 +1078,7 @@ const App: React.FC = () => {
   };
 
   if (!auth.type || !auth.entity) {
-      return <LoginPage onLogin={handleLogin} />;
+      return <LoginPage onLogin={handleLogin} appName={companyInfo.appName || 'CRM Pro'} />;
   }
 
   if (auth.type === 'customer') {

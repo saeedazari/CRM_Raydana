@@ -151,7 +151,7 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
 
   return (
     <>
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+      <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-md">
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
           <div className="relative w-full md:w-auto">
             <input
@@ -185,17 +185,17 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
           </div>
         </div>
 
-        {/* ... (Table and Pagination - same as before) ... */}
+        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-right text-gray-500 dark:text-gray-400">
               <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                   <tr>
-                      <th scope="col" className="px-4 py-3">نام مشتری</th>
-                      <th scope="col" className="px-4 py-3">رابط اصلی</th>
-                      <th scope="col" className="px-4 py-3">نام کاربری پورتال</th>
-                      <th scope="col" className="px-4 py-3">تلفن</th>
-                      <th scope="col" className="px-4 py-3 text-center">وضعیت</th>
-                      <th scope="col" className="px-4 py-3 text-center">عملیات</th>
+                      <th scope="col" className="px-2 py-2 md:px-4 md:py-3">نام مشتری</th>
+                      <th scope="col" className="px-2 py-2 md:px-4 md:py-3 hidden sm:table-cell">رابط اصلی</th>
+                      <th scope="col" className="px-2 py-2 md:px-4 md:py-3 hidden md:table-cell">نام کاربری پورتال</th>
+                      <th scope="col" className="px-2 py-2 md:px-4 md:py-3">تلفن</th>
+                      <th scope="col" className="px-2 py-2 md:px-4 md:py-3 text-center">وضعیت</th>
+                      <th scope="col" className="px-2 py-2 md:px-4 md:py-3 text-center">عملیات</th>
                   </tr>
               </thead>
               <tbody>
@@ -203,16 +203,16 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
                       const primaryContact = customer.contacts.find(c => c.isPrimary);
                       return (
                       <tr key={customer.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                          <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{customer.name}</td>
-                          <td className="px-4 py-3">{primaryContact?.name || '-'}</td>
-                          <td className="px-4 py-3 font-mono text-xs">{customer.username}</td>
-                          <td className="px-4 py-3">{customer.phone}</td>
-                          <td className="px-4 py-3 text-center">
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[customer.status]}`}>
+                          <td className="px-2 py-2 md:px-4 md:py-3 font-medium text-gray-900 dark:text-white max-w-[120px] truncate">{customer.name}</td>
+                          <td className="px-2 py-2 md:px-4 md:py-3 hidden sm:table-cell">{primaryContact?.name || '-'}</td>
+                          <td className="px-2 py-2 md:px-4 md:py-3 font-mono text-xs hidden md:table-cell">{customer.username}</td>
+                          <td className="px-2 py-2 md:px-4 md:py-3">{customer.phone}</td>
+                          <td className="px-2 py-2 md:px-4 md:py-3 text-center">
+                              <span className={`px-2 py-1 text-[10px] sm:text-xs font-medium rounded-full ${statusColors[customer.status]}`}>
                                   {customer.status}
                               </span>
                           </td>
-                          <td className="px-4 py-3 text-center">
+                          <td className="px-2 py-2 md:px-4 md:py-3 text-center">
                             <div className="flex justify-center items-center gap-2">
                                   <button onClick={() => onViewInteractions(customer.id)} className="p-1 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400" aria-label="View Interactions">
                                       <EyeIcon className="w-5 h-5" />
@@ -234,7 +234,7 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
         {totalPages > 1 && (
           <div className="flex justify-between items-center mt-6">
               <div>
-                  <span className="text-sm text-gray-700 dark:text-gray-400">
+                  <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-400">
                       صفحه <span className="font-semibold">{currentPage}</span> از <span className="font-semibold">{totalPages}</span>
                   </span>
               </div>
@@ -246,16 +246,16 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
         )}
       </div>
 
-      {/* Modal Code ... (unchanged) */}
+      {/* Modal */}
       <div className={`fixed inset-0 z-50 ${isPanelOpen ? '' : 'pointer-events-none'}`}>
         <div className={`absolute inset-0 bg-black transition-opacity duration-300 ${isPanelOpen ? 'bg-opacity-50' : 'bg-opacity-0'}`} onClick={closePanel}></div>
-        <div className={`absolute inset-y-0 left-0 bg-white dark:bg-gray-800 h-full w-full max-w-2xl shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out ${isPanelOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className={`absolute inset-y-0 left-0 bg-white dark:bg-gray-800 h-full w-full md:w-auto md:min-w-[30rem] md:max-w-2xl shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out ${isPanelOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="flex justify-between items-center p-4 border-b dark:border-gray-700 flex-shrink-0">
             <h3 className="text-lg font-semibold">{editingCustomer ? 'ویرایش مشتری' : 'افزودن مشتری جدید'}</h3>
             <button onClick={closePanel} className="p-1 rounded-full text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"><XMarkIcon className="w-6 h-6" /></button>
           </div>
           <form onSubmit={handleFormSubmit} className="flex flex-col overflow-hidden flex-grow">
-            <div className="p-6 space-y-6 overflow-y-auto flex-grow">
+            <div className="p-4 md:p-6 space-y-4 md:space-y-6 overflow-y-auto flex-grow">
               
               <h4 className="text-md font-semibold">اطلاعات اصلی مشتری</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -344,7 +344,7 @@ const Customers: React.FC<CustomersProps> = ({ customers, setCustomers, onViewIn
                           style={{ direction: 'ltr', textAlign: 'left' }}
                         />
                         {tokenExpiry && (
-                            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                            <p className="mt-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                                 تاریخ انقضا: <span className="font-semibold text-indigo-600 dark:text-indigo-400">{tokenExpiry}</span>
                             </p>
                         )}
@@ -404,20 +404,20 @@ const ContactManager: React.FC<{ contacts: Contact[], setContacts: (contacts: Co
     };
 
     return (
-        <div className="p-4 border rounded-lg dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+        <div className="p-3 md:p-4 border rounded-lg dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
             <div className="space-y-3">
                 {contacts.map((contact, index) => (
-                    <div key={contact.id} className="grid grid-cols-12 gap-2 items-center">
-                        <div className="col-span-12 sm:col-span-3">
+                    <div key={contact.id} className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center border-b border-gray-200 dark:border-gray-700 pb-2 sm:border-0 sm:pb-0 last:border-0 last:pb-0">
+                        <div className="sm:col-span-3">
                             <input type="text" placeholder="نام" value={contact.name} onChange={e => handleContactChange(index, 'name', e.target.value)} className="w-full text-sm p-2 bg-white border rounded-lg dark:bg-gray-700" required />
                         </div>
-                        <div className="col-span-12 sm:col-span-3">
+                        <div className="sm:col-span-3">
                              <input type="text" placeholder="سمت" value={contact.position || ''} onChange={e => handleContactChange(index, 'position', e.target.value)} className="w-full text-sm p-2 bg-white border rounded-lg dark:bg-gray-700" />
                         </div>
-                        <div className="col-span-12 sm:col-span-3">
+                        <div className="sm:col-span-3">
                             <input type="tel" placeholder="موبایل" value={contact.phone || ''} onChange={e => handleContactChange(index, 'phone', e.target.value)} className="w-full text-sm p-2 bg-white border rounded-lg dark:bg-gray-700" />
                         </div>
-                         <div className="col-span-12 sm:col-span-3 flex items-center gap-1">
+                         <div className="sm:col-span-3 flex items-center justify-end sm:justify-start gap-2 mt-1 sm:mt-0">
                              <button type="button" onClick={() => setPrimary(contact.id)} title="تنظیم به عنوان رابط اصلی">
                                 <StarIcon className={`w-5 h-5 cursor-pointer ${contact.isPrimary ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`} />
                             </button>

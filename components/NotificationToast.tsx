@@ -28,7 +28,7 @@ const NotificationToast: React.FC<NotificationToastProps> = ({ reminder, onClose
     if (!reminder) return null;
 
     return (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-sm p-4 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border-l-4 border-indigo-600 animate-bounce-in">
+        <div className="fixed top-4 left-4 right-4 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2 z-[60] md:w-full md:max-w-sm p-4 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border-l-4 border-indigo-600 animate-bounce-in">
             <div className="flex items-start">
                 <div className="flex-shrink-0">
                     <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-full text-indigo-600 dark:text-indigo-400">

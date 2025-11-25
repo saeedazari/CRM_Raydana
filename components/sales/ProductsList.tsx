@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { Product } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
@@ -111,13 +109,13 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, onAddProduct, onU
 
                 <div className="overflow-x-auto flex-1">
                     <table className="w-full text-sm text-right text-gray-500 dark:text-gray-400">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
                             <tr>
-                                <th className="px-4 py-3">کد</th>
+                                <th className="px-4 py-3 hidden sm:table-cell">کد</th>
                                 <th className="px-4 py-3">نوع</th>
                                 <th className="px-4 py-3">نام</th>
                                 <th className="px-4 py-3">قیمت (تومان)</th>
-                                <th className="px-4 py-3 text-center">مالیات (%)</th>
+                                <th className="px-4 py-3 text-center hidden md:table-cell">مالیات (%)</th>
                                 <th className="px-4 py-3 text-center">موجودی</th>
                                 <th className="px-4 py-3 text-center">عملیات</th>
                             </tr>
@@ -125,23 +123,23 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, onAddProduct, onU
                         <tbody>
                             {filteredProducts.map((product) => (
                                 <tr key={product.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                    <td className="px-4 py-3 font-mono text-xs">{product.code || '-'}</td>
+                                    <td className="px-4 py-3 font-mono text-xs hidden sm:table-cell">{product.code || '-'}</td>
                                     <td className="px-4 py-3">
                                         {product.type === 'service' ? (
                                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300">
                                                 <LightBulbIcon className="w-3 h-3 ml-1" />
-                                                خدمت
+                                                <span className="hidden sm:inline">خدمت</span>
                                             </span>
                                         ) : (
                                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
                                                 <CubeIcon className="w-3 h-3 ml-1" />
-                                                کالا
+                                                <span className="hidden sm:inline">کالا</span>
                                             </span>
                                         )}
                                     </td>
-                                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{product.name}</td>
+                                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-white max-w-[100px] truncate">{product.name}</td>
                                     <td className="px-4 py-3">{product.price.toLocaleString('fa-IR')}</td>
-                                    <td className="px-4 py-3 text-center">{product.tax}%</td>
+                                    <td className="px-4 py-3 text-center hidden md:table-cell">{product.tax}%</td>
                                     <td className="px-4 py-3 text-center font-bold">
                                         {product.type === 'service' ? '-' : product.stock}
                                     </td>

@@ -101,20 +101,23 @@ const VendorsList: React.FC<VendorsListProps> = ({ vendors, setVendors }) => {
                         <tr>
                             <th className="px-4 py-3">نام شرکت</th>
                             <th className="px-4 py-3">شخص رابط</th>
-                            <th className="px-4 py-3">تلفن</th>
-                            <th className="px-4 py-3">ایمیل</th>
-                            <th className="px-4 py-3 text-center">وضعیت</th>
+                            <th className="px-4 py-3 hidden sm:table-cell">تلفن</th>
+                            <th className="px-4 py-3 hidden md:table-cell">ایمیل</th>
+                            <th className="px-4 py-3 text-center hidden sm:table-cell">وضعیت</th>
                             <th className="px-4 py-3 text-center">عملیات</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredVendors.map(vendor => (
                             <tr key={vendor.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{vendor.name}</td>
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                                    {vendor.name}
+                                    <div className="sm:hidden text-xs text-gray-500 font-normal mt-1">{vendor.phone}</div>
+                                </td>
                                 <td className="px-4 py-3">{vendor.contactName}</td>
-                                <td className="px-4 py-3">{vendor.phone}</td>
-                                <td className="px-4 py-3">{vendor.email}</td>
-                                <td className="px-4 py-3 text-center">
+                                <td className="px-4 py-3 hidden sm:table-cell">{vendor.phone}</td>
+                                <td className="px-4 py-3 hidden md:table-cell">{vendor.email}</td>
+                                <td className="px-4 py-3 text-center hidden sm:table-cell">
                                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${vendor.status === 'فعال' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-800'}`}>
                                         {vendor.status}
                                     </span>
@@ -135,14 +138,14 @@ const VendorsList: React.FC<VendorsListProps> = ({ vendors, setVendors }) => {
             {/* Add/Edit Panel */}
             <div className={`fixed inset-0 z-50 ${isPanelOpen ? '' : 'pointer-events-none'}`}>
                 <div className={`absolute inset-0 bg-black transition-opacity duration-300 ${isPanelOpen ? 'bg-opacity-50' : 'bg-opacity-0'}`} onClick={closePanel}></div>
-                <div className={`absolute inset-y-0 left-0 bg-white dark:bg-gray-800 h-full w-full max-w-lg shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out ${isPanelOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                    <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
+                <div className={`absolute inset-y-0 left-0 bg-white dark:bg-gray-800 h-full w-full md:w-auto md:min-w-[30rem] md:max-w-lg shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out ${isPanelOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                    <div className="flex justify-between items-center p-4 border-b dark:border-gray-700 flex-shrink-0">
                         <h3 className="text-lg font-semibold">{editingVendor ? 'ویرایش تامین‌کننده' : 'افزودن تامین‌کننده'}</h3>
                         <button onClick={closePanel} className="p-1 rounded-full text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"><XMarkIcon className="w-6 h-6" /></button>
                     </div>
                     <form onSubmit={handleFormSubmit} className="flex flex-col flex-grow overflow-hidden">
-                        <div className="p-6 space-y-4 overflow-y-auto">
-                            <div><label className="block text-sm font-medium mb-1">نام شرکت</label><input type="text" name="name" value={formData.name} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" required /></div>
+                        <div className="p-6 space-y-4 overflow-y-auto flex-grow">
+                            <div><label className="block text-sm font-medium mb-1">نام شرکت</label><input type="text" name="name" value={formData.name} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required /></div>
                             <div><label className="block text-sm font-medium mb-1">شخص رابط</label><input type="text" name="contactName" value={formData.contactName} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" required /></div>
                             <div><label className="block text-sm font-medium mb-1">تلفن</label><input type="text" name="phone" value={formData.phone} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" required /></div>
                             <div><label className="block text-sm font-medium mb-1">ایمیل</label><input type="email" name="email" value={formData.email} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700" /></div>
@@ -161,7 +164,7 @@ const VendorsList: React.FC<VendorsListProps> = ({ vendors, setVendors }) => {
                                 </select>
                             </div>
                         </div>
-                        <div className="flex items-center justify-end p-4 border-t dark:border-gray-700">
+                        <div className="flex items-center justify-end p-4 border-t dark:border-gray-700 flex-shrink-0">
                             <button type="button" onClick={closePanel} className="px-4 py-2 ml-3 text-sm font-medium border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">انصراف</button>
                             <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">ذخیره</button>
                         </div>

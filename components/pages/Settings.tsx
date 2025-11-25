@@ -76,12 +76,12 @@ const Settings: React.FC<SettingsProps> = ({ customers, setCustomers, companyInf
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md h-full flex flex-col">
       <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
-        <nav className="flex flex-wrap space-i-8 px-6" aria-label="Tabs">
+        <nav className="flex overflow-x-auto px-4 md:px-6 space-i-4 md:space-i-8 no-scrollbar" aria-label="Tabs">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ml-6
+              className={`flex items-center whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-colors ml-4 md:ml-6 flex-shrink-0
                 ${activeTab === tab.id
                   ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-500'
@@ -93,7 +93,7 @@ const Settings: React.FC<SettingsProps> = ({ customers, setCustomers, companyInf
           ))}
         </nav>
       </div>
-      <div className="flex-grow p-6 overflow-auto">
+      <div className="flex-grow p-4 md:p-6 overflow-auto">
         {renderContent()}
       </div>
     </div>

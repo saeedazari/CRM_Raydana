@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useMemo } from 'react';
 import { PurchaseOrder, PurchaseOrderStatus, CompanyInfo } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
@@ -71,9 +69,9 @@ const PurchaseOrdersList: React.FC<PurchaseOrdersListProps> = ({ purchaseOrders,
                 <table className="w-full text-sm text-right text-gray-500 dark:text-gray-400">
                     <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                         <tr>
-                            <th scope="col" className="px-4 py-3">شناسه</th>
+                            <th scope="col" className="px-4 py-3 hidden sm:table-cell">شناسه</th>
                             <th scope="col" className="px-4 py-3">تامین‌کننده</th>
-                            <th scope="col" className="px-4 py-3">تاریخ صدور</th>
+                            <th scope="col" className="px-4 py-3 hidden md:table-cell">تاریخ صدور</th>
                             <th scope="col" className="px-4 py-3">مبلغ کل (تومان)</th>
                             <th scope="col" className="px-4 py-3 text-center">وضعیت</th>
                             <th scope="col" className="px-4 py-3 text-center">عملیات</th>
@@ -82,16 +80,19 @@ const PurchaseOrdersList: React.FC<PurchaseOrdersListProps> = ({ purchaseOrders,
                     <tbody>
                         {filteredPOs.map((po) => (
                             <tr key={po.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{po.id}</td>
-                                <td className="px-4 py-3">{po.vendorName}</td>
-                                <td className="px-4 py-3">{po.issueDate}</td>
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white hidden sm:table-cell">{po.id}</td>
+                                <td className="px-4 py-3">
+                                    {po.vendorName}
+                                    <div className="sm:hidden text-xs text-gray-500">{po.id}</div>
+                                </td>
+                                <td className="px-4 py-3 hidden md:table-cell">{po.issueDate}</td>
                                 <td className="px-4 py-3">{po.totalAmount.toLocaleString('fa-IR')}</td>
                                 <td className="px-4 py-3 text-center">
                                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[po.status]}`}>{po.status}</span>
                                 </td>
                                 <td className="px-4 py-3 text-center">
                                     <div className="flex justify-center items-center gap-2">
-                                        <button onClick={() => setPrintingPO(po)} className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" title="چاپ">
+                                        <button onClick={() => setPrintingPO(po)} className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hidden sm:block" title="چاپ">
                                             <PrinterIcon className="w-5 h-5" />
                                         </button>
                                         <button onClick={() => onEdit(po)} className="p-1 text-gray-500 hover:text-indigo-600" title="ویرایش/مشاهده">

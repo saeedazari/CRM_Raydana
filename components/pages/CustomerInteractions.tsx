@@ -122,48 +122,48 @@ const TicketDetailEmbedded: React.FC<{ ticket: Ticket; onBack: () => void; curre
                     <ArrowRightIcon className="w-4 h-4 ml-1" />
                     بازگشت به لیست
                 </button>
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">تیکت #{ticket.id}: {ticket.subject}</span>
+                <span className="text-xs md:text-sm font-bold text-gray-700 dark:text-gray-300 truncate max-w-[200px] md:max-w-none">تیکت #{ticket.id}: {ticket.subject}</span>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg border dark:border-gray-700">
+            <div className="flex-1 overflow-y-auto p-2 md:p-4 space-y-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg border dark:border-gray-700">
                  {ticket.replies?.map(reply => (
-                    <div key={reply.id} className={`flex items-end gap-3 ${reply.authorType === 'Customer' ? 'justify-end' : ''}`}>
+                    <div key={reply.id} className={`flex items-end gap-2 md:gap-3 ${reply.authorType === 'Customer' ? 'justify-end' : ''}`}>
                         {reply.authorType === 'User' && <img src={reply.authorAvatar} alt={reply.authorName} className="w-8 h-8 rounded-full order-2" />}
-                        <div className={`w-fit max-w-lg rounded-xl px-4 py-3 ${
+                        <div className={`w-fit max-w-[85%] md:max-w-lg rounded-xl px-3 py-2 md:px-4 md:py-3 ${
                             reply.isInternal 
                                 ? 'bg-amber-100 dark:bg-amber-900/50 border border-amber-300 dark:border-amber-700 order-1'
                                 : reply.authorType === 'Customer'
                                 ? 'bg-gray-200 dark:bg-gray-700 order-1' 
                                 : 'bg-indigo-100 dark:bg-indigo-900/50 order-2'
                         }`}>
-                             <div className="flex items-center gap-3 mb-1">
-                                 <p className="font-semibold text-sm">{reply.authorName}</p>
-                                 {reply.isInternal && <LockClosedIcon className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
+                             <div className="flex items-center gap-2 mb-1">
+                                 <p className="font-semibold text-xs md:text-sm">{reply.authorName}</p>
+                                 {reply.isInternal && <LockClosedIcon className="w-3 h-3 text-amber-600 dark:text-amber-400" />}
                              </div>
-                            <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{reply.text}</p>
+                            <p className="text-xs md:text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{reply.text}</p>
                             {reply.attachments && reply.attachments.length > 0 && (
                                 <div className="mt-2">
                                     <AttachmentList attachments={reply.attachments} readonly={true} />
                                 </div>
                             )}
-                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{toShamsi(reply.createdAt, "YYYY/MM/DD HH:mm")}</p>
+                            <p className="text-[10px] md:text-xs text-gray-400 dark:text-gray-500 mt-2 text-left">{toShamsi(reply.createdAt, "YYYY/MM/DD HH:mm")}</p>
                         </div>
-                        {reply.authorType === 'Customer' && <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center font-bold text-sm order-2">{ticket.customer.name.charAt(0)}</div>}
+                        {reply.authorType === 'Customer' && <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center font-bold text-xs md:text-sm order-2">{ticket.customer.name.charAt(0)}</div>}
                     </div>
                 ))}
                 <div ref={chatEndRef}></div>
             </div>
              <div className="mt-4 pt-4 border-t dark:border-gray-700">
-                <textarea value={newReply} onChange={(e) => setNewReply(e.target.value)} rows={3} placeholder="پاسخ خود را اینجا بنویسید..." className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 mb-2"></textarea>
+                <textarea value={newReply} onChange={(e) => setNewReply(e.target.value)} rows={3} placeholder="پاسخ خود را اینجا بنویسید..." className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 mb-2"></textarea>
                 <div className="mb-3">
                     <FileUploader onUpload={(files) => setAttachments(prev => [...prev, ...files])} compact={false} />
                     <AttachmentList attachments={attachments} onRemove={(id) => setAttachments(prev => prev.filter(a => a.id !== id))} />
                 </div>
-                <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label className="flex items-center gap-2 text-xs md:text-sm text-gray-600 dark:text-gray-400">
                         <input type="checkbox" checked={isInternalNote} onChange={(e) => setIsInternalNote(e.target.checked)} className="rounded text-indigo-600 focus:ring-indigo-500"/>
                         <span>یادداشت داخلی</span>
                     </label>
-                    <button onClick={handleSendReply} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">ارسال پاسخ</button>
+                    <button onClick={handleSendReply} className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700">ارسال پاسخ</button>
                 </div>
             </div>
         </div>
@@ -296,18 +296,18 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
         <div className="bg-white dark:bg-gray-800 h-full flex flex-col">
             {/* Header */}
             <div className="flex flex-col border-b dark:border-gray-700 flex-shrink-0">
-                <div className="flex items-center justify-between p-4">
-                    <div className="flex items-center">
-                         <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 ml-4">
+                <div className="flex items-center justify-between p-3 md:p-4">
+                    <div className="flex items-center w-full">
+                         <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 ml-2 md:ml-4 flex-shrink-0">
                             <ArrowRightIcon className="w-5 h-5" />
                         </button>
-                        <h2 className="text-xl font-bold">
+                        <h2 className="text-lg md:text-xl font-bold truncate">
                             پروفایل <span className="text-indigo-600 dark:text-indigo-400">{customer.name}</span>
                         </h2>
                     </div>
                 </div>
                 {/* Tabs */}
-                <div className="flex px-4 space-i-8 overflow-x-auto">
+                <div className="flex px-2 md:px-4 space-i-8 overflow-x-auto no-scrollbar">
                     <button 
                         onClick={() => setActiveTab('interactions')} 
                         className={`flex items-center whitespace-nowrap pb-3 px-2 border-b-2 transition-colors font-medium text-sm ${activeTab === 'interactions' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'}`}
@@ -371,47 +371,48 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                 {activeTab === 'interactions' && (
                     <>
                          {/* Timeline */}
-                        <div className="flex-1 overflow-y-auto p-6" ref={scrollContainerRef}>
-                            <div className="relative border-r-2 border-gray-200 dark:border-gray-700 mr-4">
+                        <div className="flex-1 overflow-y-auto p-4 md:p-6" ref={scrollContainerRef}>
+                            <div className="relative border-r-2 border-gray-200 dark:border-gray-700 mr-2 md:mr-4 pr-4">
                                 {customerInteractions.map((interaction) => {
                                     const isEditing = editingInteraction?.id === interaction.id;
                                     const canEdit = interaction.userId === currentUser.id;
                                     return (
-                                        <div key={interaction.id} className="mb-8 flex items-start">
-                                            <div className="absolute -right-[0.55rem] top-5 h-4 w-4 rounded-full bg-gray-200 dark:bg-gray-700 border-4 border-white dark:border-gray-800"></div>
+                                        <div key={interaction.id} className="mb-6 md:mb-8 flex items-start">
+                                            {/* Timeline Dot: Adjusted positioning for mobile */}
+                                            <div className="absolute -right-[0.4rem] md:-right-[0.55rem] top-4 md:top-5 h-3 w-3 md:h-4 md:w-4 rounded-full bg-gray-200 dark:bg-gray-700 border-2 md:border-4 border-white dark:border-gray-800"></div>
 
-                                            <div className="mr-8 flex-1 group">
+                                            <div className="mr-4 md:mr-8 flex-1 group min-w-0">
                                                 <div className="flex items-start justify-between mb-2">
-                                                    <div className="flex items-center gap-3">
-                                                        <img src={interaction.user.avatar} alt={interaction.user.name} className="w-8 h-8 rounded-full" />
-                                                        <div>
+                                                    <div className="flex items-center gap-2 md:gap-3 overflow-hidden">
+                                                        <img src={interaction.user.avatar} alt={interaction.user.name} className="w-8 h-8 rounded-full flex-shrink-0" />
+                                                        <div className="min-w-0">
                                                             <div className="flex items-center gap-2">
-                                                                <p className="font-semibold text-gray-800 dark:text-gray-100">{interaction.user.name}</p>
+                                                                <p className="font-semibold text-sm text-gray-800 dark:text-gray-100 truncate">{interaction.user.name}</p>
                                                                 {interactionIcons[interaction.type]}
                                                             </div>
-                                                            <p className="text-xs text-gray-400 dark:text-gray-500">
+                                                            <p className="text-[10px] md:text-xs text-gray-400 dark:text-gray-500 truncate">
                                                                 {toShamsi(interaction.createdAt, "YYYY/MM/DD HH:mm")}
-                                                                {interaction.contactName && <span className="text-gray-500 dark:text-gray-400"> در ارتباط با <span className="font-medium">{interaction.contactName}</span></span>}
+                                                                {interaction.contactName && <span className="text-gray-500 dark:text-gray-400 hidden sm:inline"> در ارتباط با <span className="font-medium">{interaction.contactName}</span></span>}
                                                             </p>
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button onClick={() => handleCreateReminder(interaction)} className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400" aria-label="ایجاد یادآور" title="ایجاد یادآور">
+                                                    <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                                        <button onClick={() => handleCreateReminder(interaction)} className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400" aria-label="ایجاد یادآور" title="ایجاد یادآور">
                                                             <ClockIcon className="w-4 h-4" />
                                                         </button>
                                                         {canEdit && !isEditing && (
                                                             <>
-                                                                <button onClick={() => handleStartEditing(interaction)} className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400" aria-label="ویرایش">
+                                                                <button onClick={() => handleStartEditing(interaction)} className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400" aria-label="ویرایش">
                                                                     <PencilIcon className="w-4 h-4" />
                                                                 </button>
-                                                                <button onClick={() => handleDeleteInteraction(interaction.id)} className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 text-red-500" aria-label="حذف">
+                                                                <button onClick={() => handleDeleteInteraction(interaction.id)} className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 text-red-500" aria-label="حذف">
                                                                     <TrashIcon className="w-4 h-4" />
                                                                 </button>
                                                             </>
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border dark:border-gray-700">
+                                                <div className="p-3 md:p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border dark:border-gray-700">
                                                      {isEditing ? (
                                                         <div className="space-y-2">
                                                             <textarea
@@ -447,9 +448,9 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                         </div>
                          {/* Add Interaction Form */}
                         <div className="p-4 border-t dark:border-gray-700 flex-shrink-0 bg-gray-50 dark:bg-gray-900/50">
-                            <form onSubmit={handleAddInteraction} className="flex items-start gap-4">
-                                <img src={currentUser.avatar} alt={currentUser.name} className="w-10 h-10 rounded-full mt-2" />
-                                <div className="flex-1">
+                            <form onSubmit={handleAddInteraction} className="flex flex-col sm:flex-row items-start gap-4">
+                                <img src={currentUser.avatar} alt={currentUser.name} className="w-10 h-10 rounded-full mt-2 hidden sm:block" />
+                                <div className="flex-1 w-full">
                                     <textarea
                                         value={newInteractionText}
                                         onChange={(e) => setNewInteractionText(e.target.value)}
@@ -457,8 +458,8 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                                         placeholder="یادداشت خود را اینجا بنویسید..."
                                         className="w-full p-2.5 bg-white border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                     ></textarea>
-                                    <div className="flex flex-col sm:flex-row items-center justify-between mt-3 gap-4">
-                                        <div className="flex items-center gap-4 flex-wrap">
+                                    <div className="flex flex-col gap-3 mt-3">
+                                        <div className="flex items-center gap-2 md:gap-4 overflow-x-auto pb-1">
                                             <InteractionTypeRadio 
                                                 label="یادداشت" 
                                                 value="یادداشت" 
@@ -484,14 +485,14 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                                                 onChange={(e) => setNewInteractionType(e.target.value as Interaction['type'])} 
                                             />
                                         </div>
-                                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                                            <select value={selectedContactId} onChange={e => setSelectedContactId(e.target.value)} className="w-full sm:w-40 p-2 text-sm bg-white border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                                        <div className="flex items-center justify-between gap-2 w-full">
+                                            <select value={selectedContactId} onChange={e => setSelectedContactId(e.target.value)} className="flex-1 sm:flex-none sm:w-40 p-2 text-sm bg-white border rounded-lg dark:bg-gray-700 dark:border-gray-600">
                                                 <option value="">عمومی (شرکت)</option>
                                                 {customer.contacts.map(contact => (
                                                     <option key={contact.id} value={contact.id}>{contact.name}</option>
                                                 ))}
                                             </select>
-                                            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:ring-4 focus:outline-none focus:ring-indigo-300 dark:focus:ring-indigo-800">
+                                            <button type="submit" className="px-6 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:ring-4 focus:outline-none focus:ring-indigo-300 dark:focus:ring-indigo-800">
                                                 ثبت
                                             </button>
                                         </div>
@@ -502,7 +503,7 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                     </>
                 )}
                 {activeTab === 'tickets' && hasTicketAccess && (
-                    <div className="flex-1 overflow-y-auto p-4">
+                    <div className="flex-1 overflow-y-auto p-2 md:p-4">
                         {viewingTicket ? (
                              <TicketDetailEmbedded 
                                 ticket={viewingTicket} 
@@ -515,25 +516,25 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                                 <table className="w-full text-sm text-right text-gray-500 dark:text-gray-400">
                                     <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                                         <tr>
-                                            <th scope="col" className="px-4 py-3">موضوع</th>
-                                            <th scope="col" className="px-4 py-3">اولویت</th>
-                                            <th scope="col" className="px-4 py-3">دسته‌بندی</th>
-                                            <th scope="col" className="px-4 py-3">تاریخ</th>
-                                            <th scope="col" className="px-4 py-3 text-center">وضعیت</th>
-                                            <th scope="col" className="px-4 py-3 text-center">عملیات</th>
+                                            <th scope="col" className="px-2 py-2 md:px-4 md:py-3">موضوع</th>
+                                            <th scope="col" className="px-2 py-2 md:px-4 md:py-3">اولویت</th>
+                                            <th scope="col" className="px-2 py-2 md:px-4 md:py-3 hidden sm:table-cell">دسته‌بندی</th>
+                                            <th scope="col" className="px-2 py-2 md:px-4 md:py-3 hidden sm:table-cell">تاریخ</th>
+                                            <th scope="col" className="px-2 py-2 md:px-4 md:py-3 text-center">وضعیت</th>
+                                            <th scope="col" className="px-2 py-2 md:px-4 md:py-3 text-center">عملیات</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {customerTickets.map((ticket) => (
                                             <tr key={ticket.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                                                <td className={`px-4 py-3 font-medium text-gray-900 dark:text-white border-r-4 ${priorityColors[ticket.priority]}`}>{ticket.subject}</td>
-                                                <td className="px-4 py-3">{ticket.priority}</td>
-                                                <td className="px-4 py-3">{ticket.category}</td>
-                                                <td className="px-4 py-3">{toShamsi(ticket.createdAt)}</td>
-                                                <td className="px-4 py-3 text-center">
-                                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[ticket.status]}`}>{ticket.status}</span>
+                                                <td className={`px-2 py-2 md:px-4 md:py-3 font-medium text-gray-900 dark:text-white border-r-4 ${priorityColors[ticket.priority]}`}>{ticket.subject}</td>
+                                                <td className="px-2 py-2 md:px-4 md:py-3">{ticket.priority}</td>
+                                                <td className="px-2 py-2 md:px-4 md:py-3 hidden sm:table-cell">{ticket.category}</td>
+                                                <td className="px-2 py-2 md:px-4 md:py-3 hidden sm:table-cell">{toShamsi(ticket.createdAt)}</td>
+                                                <td className="px-2 py-2 md:px-4 md:py-3 text-center">
+                                                    <span className={`px-2 py-1 text-[10px] sm:text-xs font-medium rounded-full ${statusColors[ticket.status]}`}>{ticket.status}</span>
                                                 </td>
-                                                <td className="px-4 py-3 text-center">
+                                                <td className="px-2 py-2 md:px-4 md:py-3 text-center">
                                                     <button onClick={() => handleTicketClick(ticket)} className="p-1 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400" aria-label="View Ticket"><EyeIcon className="w-5 h-5" /></button>
                                                 </td>
                                             </tr>
@@ -550,7 +551,7 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                     </div>
                 )}
                 {activeTab === 'quotes' && hasSalesAccess && (
-                     <div className="flex-1 overflow-y-auto p-4">
+                     <div className="flex-1 overflow-y-auto p-2 md:p-4">
                         <QuotationsList 
                             quotes={customerQuotes} 
                             onEdit={onViewQuote}
@@ -561,7 +562,7 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                      </div>
                 )}
                 {activeTab === 'invoices' && hasInvoiceAccess && (
-                     <div className="flex-1 overflow-y-auto p-4">
+                     <div className="flex-1 overflow-y-auto p-2 md:p-4">
                         <InvoicesList 
                             invoices={customerInvoices} 
                             onEdit={onViewInvoice}
@@ -571,7 +572,7 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                      </div>
                 )}
                 {activeTab === 'payments' && hasFinanceAccess && (
-                     <div className="flex-1 overflow-y-auto p-4">
+                     <div className="flex-1 overflow-y-auto p-2 md:p-4">
                         <PaymentsList 
                             payments={customerPayments}
                             hideControls={true}

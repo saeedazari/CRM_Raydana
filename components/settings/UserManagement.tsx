@@ -123,9 +123,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, roles, setUsers 
                     <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                         <tr>
                             <th scope="col" className="px-4 py-3">نام</th>
-                            <th scope="col" className="px-4 py-3">نام کاربری</th>
+                            <th scope="col" className="px-4 py-3 hidden sm:table-cell">نام کاربری</th>
                             <th scope="col" className="px-4 py-3">نقش</th>
-                            <th scope="col" className="px-4 py-3">مدیر مستقیم</th>
+                            <th scope="col" className="px-4 py-3 hidden md:table-cell">مدیر مستقیم</th>
                             <th scope="col" className="px-4 py-3 text-center">عملیات</th>
                         </tr>
                     </thead>
@@ -134,11 +134,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, roles, setUsers 
                             <tr key={user.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                                 <td className="px-4 py-3 font-medium text-gray-900 dark:text-white flex items-center">
                                     <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full ml-3" />
-                                    {user.name}
+                                    <div className="flex flex-col">
+                                        <span>{user.name}</span>
+                                        <span className="sm:hidden text-xs text-gray-500 font-normal">@{user.username}</span>
+                                    </div>
                                 </td>
-                                <td className="px-4 py-3 font-mono text-xs">{user.username}</td>
+                                <td className="px-4 py-3 font-mono text-xs hidden sm:table-cell">{user.username}</td>
                                 <td className="px-4 py-3">{rolesMap[user.roleId] || 'تعیین نشده'}</td>
-                                <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">
+                                <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 hidden md:table-cell">
                                     {user.managerId ? usersMap[user.managerId] || '-' : '-'}
                                 </td>
                                 <td className="px-4 py-3 text-center">
@@ -155,13 +158,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, roles, setUsers 
 
             <div className={`fixed inset-0 z-50 ${isPanelOpen ? '' : 'pointer-events-none'}`}>
                 <div className={`absolute inset-0 bg-black transition-opacity duration-300 ${isPanelOpen ? 'bg-opacity-50' : 'bg-opacity-0'}`} onClick={closePanel}></div>
-                <div className={`absolute inset-y-0 left-0 bg-white dark:bg-gray-800 h-full w-full max-w-lg shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out ${isPanelOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                    <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
+                <div className={`absolute inset-y-0 left-0 bg-white dark:bg-gray-800 h-full w-full md:w-auto md:min-w-[30rem] md:max-w-lg shadow-xl flex flex-col transform transition-transform duration-300 ease-in-out ${isPanelOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                    <div className="flex justify-between items-center p-4 border-b dark:border-gray-700 flex-shrink-0">
                         <h3 className="text-lg font-semibold">{editingUser ? 'ویرایش کاربر' : 'افزودن کاربر جدید'}</h3>
                         <button onClick={closePanel} className="p-1 rounded-full text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"><XMarkIcon className="w-6 h-6" /></button>
                     </div>
                     <form onSubmit={handleFormSubmit} className="flex flex-col flex-grow overflow-hidden">
-                        <div className="p-6 space-y-4 overflow-y-auto">
+                        <div className="p-6 space-y-4 overflow-y-auto flex-grow">
                             <div>
                                 <label htmlFor="name" className="block mb-2 text-sm font-medium">نام کامل</label>
                                 <input type="text" name="name" id="name" value={userFormData.name} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required />
@@ -192,7 +195,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, roles, setUsers 
                                 <p className="text-xs text-gray-500 mt-1">مدیر می‌تواند درخواست‌های مرخصی و ماموریت این کاربر را تایید کند.</p>
                             </div>
                         </div>
-                        <div className="flex items-center justify-end p-4 border-t dark:border-gray-700 mt-auto">
+                        <div className="flex items-center justify-end p-4 border-t dark:border-gray-700 mt-auto flex-shrink-0">
                             <button type="button" onClick={closePanel} className="px-4 py-2 ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">انصراف</button>
                             <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">ذخیره</button>
                         </div>
