@@ -1,4 +1,10 @@
 
+
+
+
+
+
+
 import React, { useRef } from 'react';
 import { Invoice, Quote, PurchaseOrder, CompanyInfo, Customer, Vendor } from '../../types';
 import { XMarkIcon } from '../icons/XMarkIcon';
@@ -26,7 +32,7 @@ const PrintableDocument: React.FC<PrintableDocumentProps> = ({ isOpen, onClose, 
             case 'invoice': 
                 return 'isOfficial' in data && (data as Invoice).isOfficial ? 'فاکتور رسمی فروش کالا و خدمات' : 'فاکتور فروش';
             case 'quote': return 'پیش‌فاکتور';
-            case 'purchaseOrder': return 'سفارش خرید';
+            case 'purchaseOrder': return 'فاکتور خرید';
             default: return 'سند';
         }
     };
@@ -41,6 +47,7 @@ const PrintableDocument: React.FC<PrintableDocumentProps> = ({ isOpen, onClose, 
     const docId = data ? ('quoteNumber' in data ? `${data.quoteNumber} (نسخه ${data.version})` : data.id) : '';
     const docDate = data ? ('issueDate' in data ? toShamsi(data.issueDate) : '') : '';
     const items = data ? ('items' in data ? data.items : []) : [];
+    const note = data && 'note' in data ? data.note : null;
     
     // Determine specific fields
     const customerName = data ? ('customerName' in data ? data.customerName : ('vendorName' in data ? data.vendorName : '')) : '';
@@ -67,7 +74,7 @@ const PrintableDocument: React.FC<PrintableDocumentProps> = ({ isOpen, onClose, 
             {/* Printable Area (A4 Size) */}
             <div 
                 ref={printRef}
-                className="bg-white text-black w-[210mm] min-w-[210mm] min-h-[297mm] p-[20mm] shadow-2xl my-8 mx-auto print:my-0 print:shadow-none print:w-full print:min-w-0 print:min-h-0 box-border relative"
+                className="bg-white text-black w-[210mm] min-w-[210mm] min-h-[297mm] p-[20mm] shadow-2xl my-8 mx-auto print:my-0 print:shadow-none print:w-full print:min-w-0 print:min-h-0 box-border relative flex flex-col"
                 dir="rtl"
             >
                 {/* Header */}
@@ -77,7 +84,6 @@ const PrintableDocument: React.FC<PrintableDocumentProps> = ({ isOpen, onClose, 
                         <div className="text-sm space-y-1 text-gray-900 print:text-black">
                             <p><span className="font-bold">شماره:</span> {docId}</p>
                             <p><span className="font-bold">تاریخ:</span> {docDate}</p>
-                            {type === 'invoice' && 'dueDate' in data && <p><span className="font-bold">سررسید:</span> {toShamsi(data.dueDate)}</p>}
                             {type === 'quote' && 'expiryDate' in data && <p><span className="font-bold">اعتبار تا:</span> {toShamsi(data.expiryDate)}</p>}
                         </div>
                     </div>
@@ -167,12 +173,12 @@ const PrintableDocument: React.FC<PrintableDocumentProps> = ({ isOpen, onClose, 
                                 <tr key={index} className="border-b border-gray-400 text-gray-900 print:text-black">
                                     <td className="p-2 text-center border border-gray-400">{index + 1}</td>
                                     <td className="p-2 text-right border border-gray-400">{item.productName}</td>
-                                    <td className="p-2 text-center border border-gray-400">{qty}</td>
+                                    <td className="p-2 text-center border border-gray-400">{qty.toLocaleString('fa-IR')}</td>
                                     <td className="p-2 text-center border border-gray-400">{unit.toLocaleString('fa-IR')}</td>
                                     <td className="p-2 text-center border border-gray-400">{total.toLocaleString('fa-IR')}</td>
                                     <td className="p-2 text-center border border-gray-400">{discountVal.toLocaleString('fa-IR')}</td>
                                     <td className="p-2 text-center border border-gray-400">{afterDisc.toLocaleString('fa-IR')}</td>
-                                    <td className="p-2 text-center border border-gray-400">{taxVal.toLocaleString('fa-IR')} ({item.tax}%)</td>
+                                    <td className="p-2 text-center border border-gray-400">{taxVal.toLocaleString('fa-IR')} ({item.tax.toLocaleString('fa-IR')}%)</td>
                                     <td className="p-2 text-left border border-gray-400 font-bold">{final.toLocaleString('fa-IR')}</td>
                                 </tr>
                             )
@@ -201,9 +207,17 @@ const PrintableDocument: React.FC<PrintableDocumentProps> = ({ isOpen, onClose, 
                         </div>
                     </div>
                 </div>
+                
+                {/* Note Section */}
+                {note && (
+                    <div className="mt-6 border rounded-lg p-4 bg-gray-50 print:bg-transparent print:border-gray-400 text-gray-900 print:text-black">
+                        <h4 className="font-bold text-sm mb-2 border-b border-gray-300 print:border-gray-400 pb-1 w-fit">توضیحات و شرایط:</h4>
+                        <p className="text-sm whitespace-pre-wrap">{note}</p>
+                    </div>
+                )}
 
                 {/* Footer / Signatures */}
-                <div className="mt-12 flex justify-between text-center print:mt-20 text-gray-900 print:text-black">
+                <div className="mt-auto pt-12 flex justify-between text-center print:mt-auto text-gray-900 print:text-black">
                     <div className="w-1/3">
                         <p className="font-bold mb-16">مهر و امضای {labels.from}</p>
                         <div className="border-b border-gray-400 w-2/3 mx-auto"></div>

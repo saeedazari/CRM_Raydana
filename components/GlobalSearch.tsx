@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Customer, Ticket, Lead, Task, Product, Quote, Invoice, PurchaseOrder } from '../types';
+import { Customer, Ticket, Lead, Task, Product, Quote, Invoice, PurchaseOrder, User } from '../types';
 import { MagnifyingGlassIcon } from './icons/MagnifyingGlassIcon';
 import { CustomersIcon } from './icons/CustomersIcon';
 import { TicketsIcon } from './icons/TicketsIcon';
@@ -12,6 +12,7 @@ import { LightBulbIcon } from './icons/LightBulbIcon';
 import { ShoppingBagIcon } from './icons/ShoppingBagIcon';
 
 interface GlobalSearchProps {
+    user: User;
     customers: Customer[];
     tickets: Ticket[];
     leads: Lead[];
@@ -32,7 +33,7 @@ interface SearchResult {
 }
 
 const GlobalSearch: React.FC<GlobalSearchProps> = ({ 
-    customers, tickets, leads, tasks, products, quotes, invoices, purchaseOrders, onNavigate 
+    user, customers, tickets, leads, tasks, products, quotes, invoices, purchaseOrders, onNavigate 
 }) => {
     const [query, setQuery] = useState('');
     const [isOpen, setIsOpen] = useState(false);
@@ -69,33 +70,54 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    const hasPermission = (permission: string) => {
+      if (!permission) return true;
+      if (!user.role || !user.role.permissions) return false;
+      const perms = user.role.permissions.split(',');
+      return perms.includes(permission);
+    };
+
     const results = useMemo(() => {
         if (!query.trim()) return [];
         const lowerQuery = query.toLowerCase();
         const allResults: SearchResult[] = [];
 
+        const hasViewCustomers = hasPermission('view_customers');
+        const hasViewTickets = hasPermission('view_tickets');
+        const hasViewSales = hasPermission('view_sales');
+        // Invoices often fall under view_sales or view_finance or view_invoices
+        const hasViewInvoices = hasPermission('view_invoices') || hasPermission('view_sales') || hasPermission('view_finance');
+        const hasViewInventory = hasPermission('view_inventory');
+        const hasViewPurchases = hasPermission('manage_purchases'); // Or a specific view_purchases if defined
+
         // Customers
-        customers.forEach(c => {
-            if (c.name.toLowerCase().includes(lowerQuery) || c.email?.toLowerCase().includes(lowerQuery) || c.phone.includes(lowerQuery)) {
-                allResults.push({ id: c.id, title: c.name, subtitle: `مشتری - ${c.phone}`, type: 'customer', data: c });
-            }
-        });
+        if (hasViewCustomers) {
+            customers.forEach(c => {
+                if (c.name.toLowerCase().includes(lowerQuery) || c.email?.toLowerCase().includes(lowerQuery) || c.phone.includes(lowerQuery)) {
+                    allResults.push({ id: c.id, title: c.name, subtitle: `مشتری - ${c.phone}`, type: 'customer', data: c });
+                }
+            });
+        }
 
         // Tickets
-        tickets.forEach(t => {
-            if (t.subject.toLowerCase().includes(lowerQuery) || t.id.toLowerCase().includes(lowerQuery)) {
-                allResults.push({ id: t.id, title: t.subject, subtitle: `تیکت ${t.id} - ${t.status}`, type: 'ticket', data: t });
-            }
-        });
+        if (hasViewTickets) {
+            tickets.forEach(t => {
+                if (t.subject.toLowerCase().includes(lowerQuery) || t.id.toLowerCase().includes(lowerQuery)) {
+                    allResults.push({ id: t.id, title: t.subject, subtitle: `تیکت ${t.id} - ${t.status}`, type: 'ticket', data: t });
+                }
+            });
+        }
 
         // Leads
-        leads.forEach(l => {
-            if (l.contactName.toLowerCase().includes(lowerQuery) || l.companyName?.toLowerCase().includes(lowerQuery)) {
-                allResults.push({ id: l.id, title: l.contactName, subtitle: `سرنخ - ${l.companyName || 'شخصی'}`, type: 'lead', data: l });
-            }
-        });
+        if (hasViewSales) {
+            leads.forEach(l => {
+                if (l.contactName.toLowerCase().includes(lowerQuery) || l.companyName?.toLowerCase().includes(lowerQuery)) {
+                    allResults.push({ id: l.id, title: l.contactName, subtitle: `سرنخ - ${l.companyName || 'شخصی'}`, type: 'lead', data: l });
+                }
+            });
+        }
 
-        // Tasks
+        // Tasks (Generally allowed for all users, usually filtered to their own, but global search might find assigned tasks)
         tasks.forEach(t => {
             if (t.title.toLowerCase().includes(lowerQuery)) {
                 allResults.push({ id: t.id, title: t.title, subtitle: `وظیفه - ${t.status}`, type: 'task', data: t });
@@ -103,35 +125,43 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({
         });
 
         // Products
-        products.forEach(p => {
-            if (p.name.toLowerCase().includes(lowerQuery) || p.code?.toLowerCase().includes(lowerQuery)) {
-                allResults.push({ id: p.id, title: p.name, subtitle: `محصول - ${p.price.toLocaleString()} تومان`, type: 'product', data: p });
-            }
-        });
+        if (hasViewSales || hasViewInventory) {
+            products.forEach(p => {
+                if (p.name.toLowerCase().includes(lowerQuery) || p.code?.toLowerCase().includes(lowerQuery)) {
+                    allResults.push({ id: p.id, title: p.name, subtitle: `محصول - ${p.price.toLocaleString()} تومان`, type: 'product', data: p });
+                }
+            });
+        }
 
         // Invoices
-        invoices.forEach(i => {
-            if (i.customerName.toLowerCase().includes(lowerQuery) || i.id.toLowerCase().includes(lowerQuery)) {
-                allResults.push({ id: i.id, title: `فاکتور ${i.customerName}`, subtitle: `${i.id} - ${i.totalAmount.toLocaleString()} تومان`, type: 'invoice', data: i });
-            }
-        });
+        if (hasViewInvoices) {
+            invoices.forEach(i => {
+                if (i.customerName.toLowerCase().includes(lowerQuery) || i.id.toLowerCase().includes(lowerQuery)) {
+                    allResults.push({ id: i.id, title: `فاکتور ${i.customerName}`, subtitle: `${i.id} - ${i.totalAmount.toLocaleString()} تومان`, type: 'invoice', data: i });
+                }
+            });
+        }
         
         // Quotes
-        quotes.forEach(q => {
-            if (q.customerName.toLowerCase().includes(lowerQuery) || q.id.toLowerCase().includes(lowerQuery)) {
-                allResults.push({ id: q.id, title: `پیش‌فاکتور ${q.customerName}`, subtitle: `${q.id} - ${q.status}`, type: 'quote', data: q });
-            }
-        });
+        if (hasViewSales) {
+            quotes.forEach(q => {
+                if (q.customerName.toLowerCase().includes(lowerQuery) || q.id.toLowerCase().includes(lowerQuery)) {
+                    allResults.push({ id: q.id, title: `پیش‌فاکتور ${q.customerName}`, subtitle: `${q.id} - ${q.status}`, type: 'quote', data: q });
+                }
+            });
+        }
 
         // Purchase Orders
-        purchaseOrders.forEach(p => {
-            if (p.vendorName.toLowerCase().includes(lowerQuery) || p.id.toLowerCase().includes(lowerQuery)) {
-                allResults.push({ id: p.id, title: `خرید از ${p.vendorName}`, subtitle: `${p.id} - ${p.status}`, type: 'purchaseOrder', data: p });
-            }
-        });
+        if (hasViewPurchases) {
+            purchaseOrders.forEach(p => {
+                if (p.vendorName.toLowerCase().includes(lowerQuery) || p.id.toLowerCase().includes(lowerQuery)) {
+                    allResults.push({ id: p.id, title: `خرید از ${p.vendorName}`, subtitle: `${p.id} - ${p.status}`, type: 'purchaseOrder', data: p });
+                }
+            });
+        }
 
         return allResults.slice(0, 10); // Limit to 10 results
-    }, [query, customers, tickets, leads, tasks, products, quotes, invoices, purchaseOrders]);
+    }, [query, customers, tickets, leads, tasks, products, quotes, invoices, purchaseOrders, user]);
 
     const handleSelect = (result: SearchResult) => {
         setIsOpen(false);

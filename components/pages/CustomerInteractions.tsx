@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Customer, Interaction, User, Contact, Ticket, TicketReply, Quote, Invoice, Attachment, Payment } from '../../types';
+import { Customer, Interaction, User, Contact, Ticket, TicketReply, Quote, Invoice, Attachment, Payment, TicketStatus } from '../../types';
 import { ArrowRightIcon } from '../icons/ArrowRightIcon';
 import { PhoneIcon } from '../icons/PhoneIcon';
 import { EnvelopeIcon } from '../icons/EnvelopeIcon';
@@ -15,6 +15,7 @@ import { DocumentDuplicateIcon } from '../icons/DocumentDuplicateIcon';
 import { CreditCardIcon } from '../icons/CreditCardIcon';
 import { DocumentIcon } from '../icons/DocumentIcon';
 import { BanknotesIcon } from '../icons/BanknotesIcon';
+import { EyeIcon } from '../icons/EyeIcon';
 import QuotationsList from '../sales/QuotationsList';
 import InvoicesList from '../sales/InvoicesList';
 import PaymentsList from '../finance/PaymentsList';
@@ -22,17 +23,21 @@ import FileUploader from '../FileUploader';
 import AttachmentList from '../AttachmentList';
 import { toShamsi } from '../../utils/date';
 
+const statusColors: { [key in TicketStatus]: string } = {
+  'جدید': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  'در حال بررسی': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+  'در انتظار مشتری': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
+  'حل شده': 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-300',
+  'بسته شده': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+  'بازگشایی شده': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
+};
 
-const mockUsers: User[] = [
-  { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
-  { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
-];
-
-const mockInteractions: Interaction[] = [
-    { id: 'I1', customerId: 'C1', contactId: 'P1', contactName: 'آقای الف', userId: 'U1', user: mockUsers[0], createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), text: 'تماس اولیه برقرار شد. مشتری به دموی محصول علاقه‌مند است.', type: 'تماس' },
-    { id: 'I2', customerId: 'C1', contactId: 'P2', contactName: 'خانم ب', userId: 'U2', user: mockUsers[1], createdAt: new Date(Date.now() - 86400000).toISOString(), text: 'ایمیل حاوی اطلاعات دمو و قیمت ارسال شد.', type: 'ایمیل' },
-    { id: 'I3', customerId: 'C1', userId: 'U1', user: mockUsers[0], createdAt: new Date().toISOString(), text: 'جلسه دمو برای هفته آینده تنظیم شد. کلیه نفرات فنی در جلسه حاضر خواهند بود.', type: 'جلسه' },
-];
+const priorityColors: { [key in Ticket['priority']]: string } = {
+    'حیاتی': 'border-red-500',
+    'بالا': 'border-orange-500',
+    'متوسط': 'border-yellow-500',
+    'کم': 'border-gray-400',
+};
 
 
 interface CustomerInteractionsProps {
@@ -43,6 +48,8 @@ interface CustomerInteractionsProps {
     quotes?: Quote[];
     invoices?: Invoice[];
     payments?: Payment[];
+    interactions: Interaction[];
+    setInteractions: React.Dispatch<React.SetStateAction<Interaction[]>>;
     onUpdateTicket?: (ticket: Ticket) => void;
     onBack: () => void;
     onOpenReminderModal?: (data: any) => void;
@@ -163,9 +170,8 @@ const TicketDetailEmbedded: React.FC<{ ticket: Ticket; onBack: () => void; curre
     );
 }
 
-const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId, customers, currentUser, tickets = [], quotes = [], invoices = [], payments = [], onUpdateTicket, onBack, onOpenReminderModal, onViewQuote, onViewInvoice }) => {
+const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId, customers, currentUser, tickets = [], quotes = [], invoices = [], payments = [], interactions, setInteractions, onUpdateTicket, onBack, onOpenReminderModal, onViewQuote, onViewInvoice }) => {
     const [customer, setCustomer] = useState<Customer | null>(() => customers.find(c => c.id === customerId) || null);
-    const [interactions, setInteractions] = useState<Interaction[]>(() => mockInteractions.filter(i => i.customerId === customerId));
     const [activeTab, setActiveTab] = useState<'interactions' | 'tickets' | 'quotes' | 'invoices' | 'payments' | 'documents'>('interactions');
     const [viewingTicket, setViewingTicket] = useState<Ticket | null>(null);
 
@@ -182,6 +188,21 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
     const customerQuotes = quotes.filter(q => q.customerId === customerId);
     const customerInvoices = invoices.filter(i => i.customerId === customerId);
     const customerPayments = payments.filter(p => p.partyId === customerId);
+    const customerInteractions = interactions.filter(i => i.customerId === customerId);
+
+    const hasPermission = (permission: string) => {
+      if (!permission) return true;
+      if (!currentUser.role || !currentUser.role.permissions) return false;
+      const perms = currentUser.role.permissions.split(',');
+      return perms.includes(permission);
+    };
+
+    const hasSalesAccess = hasPermission('view_sales');
+    const hasTicketAccess = hasPermission('view_tickets');
+    const hasFinanceAccess = hasPermission('view_finance');
+    // Explicit check for invoices if separate, otherwise fallback to sales/finance
+    const hasInvoiceAccess = hasPermission('view_invoices') || hasSalesAccess || hasFinanceAccess;
+
 
     useEffect(() => {
         if (scrollContainerRef.current && activeTab === 'interactions') {
@@ -190,7 +211,7 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                 behavior: 'smooth'
             });
         }
-    }, [interactions, activeTab]);
+    }, [customerInteractions, activeTab]);
 
     const handleAddInteraction = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -294,34 +315,47 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                         <ClipboardDocumentListIcon className="w-4 h-4 ml-2"/>
                         تاریخچه تعاملات
                     </button>
-                    <button 
-                        onClick={() => setActiveTab('tickets')} 
-                        className={`flex items-center whitespace-nowrap pb-3 px-2 border-b-2 transition-colors font-medium text-sm ${activeTab === 'tickets' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'}`}
-                    >
-                        <TicketsIcon className="w-4 h-4 ml-2"/>
-                        تیکت‌ها ({customerTickets.length})
-                    </button>
-                     <button 
-                        onClick={() => setActiveTab('quotes')} 
-                        className={`flex items-center whitespace-nowrap pb-3 px-2 border-b-2 transition-colors font-medium text-sm ${activeTab === 'quotes' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'}`}
-                    >
-                        <DocumentDuplicateIcon className="w-4 h-4 ml-2"/>
-                        پیش‌فاکتورها ({customerQuotes.length})
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('invoices')} 
-                        className={`flex items-center whitespace-nowrap pb-3 px-2 border-b-2 transition-colors font-medium text-sm ${activeTab === 'invoices' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'}`}
-                    >
-                        <CreditCardIcon className="w-4 h-4 ml-2"/>
-                        فاکتورها ({customerInvoices.length})
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('payments')} 
-                        className={`flex items-center whitespace-nowrap pb-3 px-2 border-b-2 transition-colors font-medium text-sm ${activeTab === 'payments' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'}`}
-                    >
-                        <BanknotesIcon className="w-4 h-4 ml-2"/>
-                        تراکنش‌ها ({customerPayments.length})
-                    </button>
+                    
+                    {hasTicketAccess && (
+                        <button 
+                            onClick={() => setActiveTab('tickets')} 
+                            className={`flex items-center whitespace-nowrap pb-3 px-2 border-b-2 transition-colors font-medium text-sm ${activeTab === 'tickets' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                        >
+                            <TicketsIcon className="w-4 h-4 ml-2"/>
+                            تیکت‌ها ({customerTickets.length})
+                        </button>
+                    )}
+
+                    {hasSalesAccess && (
+                        <button 
+                            onClick={() => setActiveTab('quotes')} 
+                            className={`flex items-center whitespace-nowrap pb-3 px-2 border-b-2 transition-colors font-medium text-sm ${activeTab === 'quotes' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                        >
+                            <DocumentDuplicateIcon className="w-4 h-4 ml-2"/>
+                            پیش‌فاکتورها ({customerQuotes.length})
+                        </button>
+                    )}
+
+                    {hasInvoiceAccess && (
+                        <button 
+                            onClick={() => setActiveTab('invoices')} 
+                            className={`flex items-center whitespace-nowrap pb-3 px-2 border-b-2 transition-colors font-medium text-sm ${activeTab === 'invoices' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                        >
+                            <CreditCardIcon className="w-4 h-4 ml-2"/>
+                            فاکتورها ({customerInvoices.length})
+                        </button>
+                    )}
+
+                    {hasFinanceAccess && (
+                        <button 
+                            onClick={() => setActiveTab('payments')} 
+                            className={`flex items-center whitespace-nowrap pb-3 px-2 border-b-2 transition-colors font-medium text-sm ${activeTab === 'payments' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                        >
+                            <BanknotesIcon className="w-4 h-4 ml-2"/>
+                            تراکنش‌ها ({customerPayments.length})
+                        </button>
+                    )}
+
                     <button 
                         onClick={() => setActiveTab('documents')} 
                         className={`flex items-center whitespace-nowrap pb-3 px-2 border-b-2 transition-colors font-medium text-sm ${activeTab === 'documents' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'}`}
@@ -339,7 +373,7 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                          {/* Timeline */}
                         <div className="flex-1 overflow-y-auto p-6" ref={scrollContainerRef}>
                             <div className="relative border-r-2 border-gray-200 dark:border-gray-700 mr-4">
-                                {interactions.map((interaction) => {
+                                {customerInteractions.map((interaction) => {
                                     const isEditing = editingInteraction?.id === interaction.id;
                                     const canEdit = interaction.userId === currentUser.id;
                                     return (
@@ -404,7 +438,7 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                                         </div>
                                     )
                                 })}
-                                 {interactions.length === 0 && (
+                                 {customerInteractions.length === 0 && (
                                     <div className="text-center text-gray-500 py-10">
                                         هیچ تعاملی برای این مشتری ثبت نشده است.
                                     </div>
@@ -467,8 +501,8 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                         </div>
                     </>
                 )}
-                {activeTab === 'tickets' && (
-                    <div className="flex-1 overflow-y-auto p-6">
+                {activeTab === 'tickets' && hasTicketAccess && (
+                    <div className="flex-1 overflow-y-auto p-4">
                         {viewingTicket ? (
                              <TicketDetailEmbedded 
                                 ticket={viewingTicket} 
@@ -477,47 +511,45 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                                 onUpdate={onUpdateTicket || (() => {})} 
                             />
                         ) : (
-                            <div className="space-y-4">
-                                {customerTickets.length > 0 ? (
-                                    customerTickets.map(ticket => (
-                                        <div 
-                                            key={ticket.id} 
-                                            onClick={() => handleTicketClick(ticket)}
-                                            className="block p-4 border rounded-lg hover:shadow-md transition-shadow bg-white dark:bg-gray-800 dark:border-gray-700 cursor-pointer group"
-                                        >
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <h4 className="font-semibold text-lg text-indigo-600 dark:text-indigo-400 group-hover:underline">{ticket.subject}</h4>
-                                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">شناسه: {ticket.id}</p>
-                                                </div>
-                                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                                    ticket.status === 'جدید' ? 'bg-blue-100 text-blue-800' :
-                                                    ticket.status === 'در حال بررسی' ? 'bg-yellow-100 text-yellow-800' :
-                                                    ticket.status === 'بسته شده' || ticket.status === 'حل شده' ? 'bg-green-100 text-green-800' :
-                                                    'bg-gray-100 text-gray-800'
-                                                }`}>
-                                                    {ticket.status}
-                                                </span>
-                                            </div>
-                                            <div className="mt-3 flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
-                                                <div className="flex gap-4">
-                                                    <span>اولویت: {ticket.priority}</span>
-                                                    <span>دسته‌بندی: {ticket.category}</span>
-                                                </div>
-                                                <span>{toShamsi(ticket.createdAt)}</span>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="text-center text-gray-500 py-10">
-                                        هیچ تیکتی برای این مشتری ثبت نشده است.
-                                    </div>
-                                )}
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-right text-gray-500 dark:text-gray-400">
+                                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                        <tr>
+                                            <th scope="col" className="px-4 py-3">موضوع</th>
+                                            <th scope="col" className="px-4 py-3">اولویت</th>
+                                            <th scope="col" className="px-4 py-3">دسته‌بندی</th>
+                                            <th scope="col" className="px-4 py-3">تاریخ</th>
+                                            <th scope="col" className="px-4 py-3 text-center">وضعیت</th>
+                                            <th scope="col" className="px-4 py-3 text-center">عملیات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {customerTickets.map((ticket) => (
+                                            <tr key={ticket.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                                <td className={`px-4 py-3 font-medium text-gray-900 dark:text-white border-r-4 ${priorityColors[ticket.priority]}`}>{ticket.subject}</td>
+                                                <td className="px-4 py-3">{ticket.priority}</td>
+                                                <td className="px-4 py-3">{ticket.category}</td>
+                                                <td className="px-4 py-3">{toShamsi(ticket.createdAt)}</td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[ticket.status]}`}>{ticket.status}</span>
+                                                </td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <button onClick={() => handleTicketClick(ticket)} className="p-1 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400" aria-label="View Ticket"><EyeIcon className="w-5 h-5" /></button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {customerTickets.length === 0 && (
+                                            <tr>
+                                                <td colSpan={6} className="px-4 py-8 text-center">هیچ تیکتی یافت نشد.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
                         )}
                     </div>
                 )}
-                {activeTab === 'quotes' && (
+                {activeTab === 'quotes' && hasSalesAccess && (
                      <div className="flex-1 overflow-y-auto p-4">
                         <QuotationsList 
                             quotes={customerQuotes} 
@@ -528,7 +560,7 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                         />
                      </div>
                 )}
-                {activeTab === 'invoices' && (
+                {activeTab === 'invoices' && hasInvoiceAccess && (
                      <div className="flex-1 overflow-y-auto p-4">
                         <InvoicesList 
                             invoices={customerInvoices} 
@@ -538,7 +570,7 @@ const CustomerInteractions: React.FC<CustomerInteractionsProps> = ({ customerId,
                         />
                      </div>
                 )}
-                {activeTab === 'payments' && (
+                {activeTab === 'payments' && hasFinanceAccess && (
                      <div className="flex-1 overflow-y-auto p-4">
                         <PaymentsList 
                             payments={customerPayments}

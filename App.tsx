@@ -1,4 +1,16 @@
 
+
+
+
+
+
+
+
+
+
+
+
+
 /* 
     === BACKEND SPEC ===
     توضیح کامل اینکه این کامپوننت یا صفحه چه API لازم دارد:
@@ -43,58 +55,109 @@ import Personnel from './components/pages/Personnel';
 import { toShamsi } from './utils/date';
 
 // --- MOCK DATA AGGREGATION ---
-// ... (Existing mock roles/users/customers/tickets/kb data from previous version)
 const mockRoles: Role[] = [
-    { id: 'R1', name: 'مدیر کل', permissions: 'view_customers,create_customers,edit_customers,delete_customers,view_tickets,create_tickets,edit_tickets,delete_tickets,view_sales,create_sales,edit_sales,delete_sales,view_reports,manage_users,manage_roles' },
-    { id: 'R2', name: 'کارشناس پشتیبانی', permissions: 'view_customers,view_tickets,create_tickets,edit_tickets' },
-    { id: 'R3', name: 'کارشناس فروش', permissions: 'view_customers,create_customers,view_sales,create_sales,edit_sales' },
+    { id: 'R1', name: 'مدیر کل', permissions: 'view_customers,create_customers,edit_customers,delete_customers,view_tickets,create_tickets,edit_tickets,delete_tickets,view_sales,create_sales,edit_sales,delete_sales,view_reports,manage_users,manage_roles,view_inventory,create_inventory_txn,view_vendors,manage_purchases,view_finance,create_payment,view_personnel_requests,create_personnel_requests,approve_personnel_requests' },
+    { id: 'R2', name: 'کارشناس پشتیبانی', permissions: 'view_customers,view_tickets,create_tickets,edit_tickets,create_personnel_requests' },
+    { id: 'R3', name: 'کارشناس فروش', permissions: 'view_customers,create_customers,view_sales,create_sales,edit_sales,create_personnel_requests' },
+    { id: 'R4', name: 'حسابدار', permissions: 'view_customers,view_finance,create_payment,view_invoices,view_personnel_requests,create_personnel_requests' },
 ];
 
-// Updated Mock Users with Hierarchy: U1 manages U2 and U3
+// Updated Mock Users with Hierarchy
 const mockUsers: User[] = [
   { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
   { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2', managerId: 'U1' },
   { id: 'U3', name: 'محمد کریمی', username: 'mohammad', roleId: 'R3', avatar: 'https://i.pravatar.cc/40?u=U3', managerId: 'U1' },
+  { id: 'U4', name: 'سارا حسابدار', username: 'sara', roleId: 'R4', avatar: 'https://i.pravatar.cc/40?u=U4', managerId: 'U1' }, // New Restricted User
 ];
-
-const mockContacts: Record<string, Contact[]> = {
-    C1: [
-        { id: 'P1', name: 'آقای الف', phone: '09121112233', position: 'مدیرعامل', isPrimary: true },
-        { id: 'P2', name: 'خانم ب', phone: '09122223344', position: 'مدیر فنی', isPrimary: false },
-    ],
-    C2: [
-        { id: 'P3', name: 'خانم ب', phone: '09123334455', position: 'رابط اصلی', isPrimary: true },
-    ],
-    C3: [
-        { id: 'P4', name: 'آقای ج', phone: '09124445566', position: 'مدیر فروش', isPrimary: true },
-    ],
-    C4: [
-        { id: 'P5', name: 'خانم د', phone: '09125556677', position: 'مدیر مالی', isPrimary: true },
-    ]
-}
 
 // Helper to create ISO dates relative to now
 const daysAgo = (days: number) => new Date(Date.now() - days * 86400000).toISOString();
 const daysAhead = (days: number) => new Date(Date.now() + days * 86400000).toISOString();
 
-const mockCustomers: Customer[] = [
-  { id: 'C1', name: 'شرکت آلفا', contacts: mockContacts.C1, username: 'alpha', email: 'info@alpha.com', phone: '021-12345678', status: 'فعال', portalToken: 'alpha-secret-token-xyz', supportEndDate: daysAhead(365), economicCode: '123456', nationalId: '10101010' },
-  { id: 'C2', name: 'تجارت بتا', contacts: mockContacts.C2, username: 'beta', email: 'contact@beta.com', phone: '021-87654321', status: 'غیرفعال', portalToken: 'beta-secret-token-abc', supportEndDate: daysAgo(30) },
-  { id: 'C3', name: 'صنایع گاما', contacts: mockContacts.C3, username: 'gamma', email: 'office@gamma.com', phone: '021-11223344', status: 'فعال' },
-  { id: 'C4', name: 'راهکارهای دلتا', contacts: mockContacts.C4, username: 'delta', email: 'sales@delta.com', phone: '021-55667788', status: 'معلق' },
+// --- EXTENDED MOCK CUSTOMERS ---
+const generateMockCustomers = (): Customer[] => {
+    const baseCustomers = [
+        { id: 'C1', name: 'شرکت آلفا', username: 'alpha', email: 'info@alpha.com', phone: '021-12345678', status: 'فعال', portalToken: 'alpha-xyz', supportEndDate: daysAhead(365) },
+        { id: 'C2', name: 'تجارت بتا', username: 'beta', email: 'contact@beta.com', phone: '021-87654321', status: 'غیرفعال', portalToken: 'beta-abc', supportEndDate: daysAgo(30) },
+        { id: 'C3', name: 'صنایع گاما', username: 'gamma', email: 'office@gamma.com', phone: '021-11223344', status: 'فعال' },
+        { id: 'C4', name: 'راهکارهای دلتا', username: 'delta', email: 'sales@delta.com', phone: '021-55667788', status: 'معلق' },
+        { id: 'C5', name: 'بازرگانی امید', username: 'omid', email: 'info@omidtr.com', phone: '021-33221100', status: 'فعال' },
+        { id: 'C6', name: 'تکنولوژی برتر', username: 'bartar', email: 'tech@bartar.ir', phone: '021-99887766', status: 'فعال' },
+        { id: 'C7', name: 'فروشگاه مرکزی', username: 'central', email: 'shop@central.com', phone: '021-44556677', status: 'غیرفعال' },
+        { id: 'C8', name: 'موسسه دانش', username: 'danesh', email: 'edu@danesh.ac', phone: '021-66554433', status: 'فعال' },
+        { id: 'C9', name: 'کلینیک سلامت', username: 'salamat', email: 'clinic@salamat.org', phone: '021-22110099', status: 'فعال' },
+        { id: 'C10', name: 'کارخانه فولاد', username: 'foolad', email: 'factory@foolad.com', phone: '021-77889900', status: 'معلق' },
+        { id: 'C11', name: 'پخش مواد غذایی', username: 'food', email: 'dist@food.com', phone: '021-55443322', status: 'فعال' },
+        { id: 'C12', name: 'آژانس مسافرتی سفر', username: 'safar', email: 'tour@safar.com', phone: '021-88776655', status: 'فعال' },
+        { id: 'C13', name: 'استارتاپ نوآور', username: 'noavar', email: 'hello@noavar.io', phone: '09120000000', status: 'فعال' },
+        { id: 'C14', name: 'بیمارستان شفا', username: 'shafa', email: 'info@shafahosp.ir', phone: '021-11112222', status: 'فعال' },
+        { id: 'C15', name: 'مدرسه هوشمند', username: 'school', email: 'admin@school.edu', phone: '021-33334444', status: 'غیرفعال' },
+    ];
+
+    return baseCustomers.map(c => ({
+        ...c,
+        contacts: [
+            { id: `P-${c.id}-1`, name: `مدیر ${c.name}`, phone: `0912${Math.floor(Math.random() * 9000000) + 1000000}`, position: 'مدیرعامل', isPrimary: true },
+            { id: `P-${c.id}-2`, name: `رابط فنی ${c.name}`, phone: `0919${Math.floor(Math.random() * 9000000) + 1000000}`, position: 'مدیر فنی', isPrimary: false },
+        ],
+        customerType: 'شرکتی'
+    })) as Customer[];
+};
+
+const mockCustomers = generateMockCustomers();
+
+// --- EXTENDED MOCK TICKETS ---
+const mockTicketsData: Ticket[] = [
+    { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', customerId: 'C1', customer: mockCustomers[0], assigneeId: 'U1', assignee: mockUsers[0], status: 'در حال بررسی', priority: 'بالا', createdAt: daysAgo(1), category: 'فنی' },
+    { id: 'TKT-720', subject: 'سوال در مورد صورتحساب', customerId: 'C2', customer: mockCustomers[1], assigneeId: 'U2', assignee: mockUsers[1], status: 'جدید', priority: 'متوسط', createdAt: daysAgo(2), category: 'مالی' },
+    { id: 'TKT-719', subject: 'گزارش باگ در ماژول گزارشات', customerId: 'C1', customer: mockCustomers[0], assigneeId: 'U1', assignee: mockUsers[0], status: 'حل شده', priority: 'بالا', createdAt: daysAgo(5), category: 'فنی', surveySubmitted: false },
+    { id: 'TKT-718', subject: 'درخواست افزودن ویژگی جدید', customerId: 'C2', customer: mockCustomers[1], status: 'در انتظار مشتری', priority: 'کم', createdAt: daysAgo(7), category: 'عمومی' },
+    { id: 'TKT-717', subject: 'راهنمایی برای تنظیمات اولیه', customerId: 'C3', customer: mockCustomers[2], assigneeId: 'U2', assignee: mockUsers[1], status: 'بسته شده', priority: 'متوسط', createdAt: daysAgo(8), category: 'پشتیبانی' },
+    { id: 'TKT-716', subject: 'خطای 500 در صفحه پرداخت', customerId: 'C4', customer: mockCustomers[3], assigneeId: 'U1', assignee: mockUsers[0], status: 'در حال بررسی', priority: 'حیاتی', createdAt: daysAgo(9), category: 'فنی' },
+    { id: 'TKT-715', subject: 'تمدید قرارداد پشتیبانی', customerId: 'C5', customer: mockCustomers[4], assigneeId: 'U3', assignee: mockUsers[2], status: 'جدید', priority: 'بالا', createdAt: daysAgo(10), category: 'مالی' },
+    { id: 'TKT-714', subject: 'مشکل در چاپ فاکتور', customerId: 'C6', customer: mockCustomers[5], assigneeId: 'U2', assignee: mockUsers[1], status: 'حل شده', priority: 'کم', createdAt: daysAgo(11), category: 'فنی' },
+    { id: 'TKT-713', subject: 'سوال درباره API', customerId: 'C1', customer: mockCustomers[0], assigneeId: 'U1', assignee: mockUsers[0], status: 'بسته شده', priority: 'متوسط', createdAt: daysAgo(12), category: 'فنی' },
+    { id: 'TKT-712', subject: 'عدم دریافت ایمیل تایید', customerId: 'C7', customer: mockCustomers[6], assigneeId: 'U2', assignee: mockUsers[1], status: 'در حال بررسی', priority: 'بالا', createdAt: daysAgo(13), category: 'پشتیبانی' },
+    { id: 'TKT-711', subject: 'درخواست دمو حضوری', customerId: 'C8', customer: mockCustomers[7], assigneeId: 'U3', assignee: mockUsers[2], status: 'جدید', priority: 'متوسط', createdAt: daysAgo(14), category: 'عمومی' },
+    { id: 'TKT-710', subject: 'تغییر آدرس شرکت', customerId: 'C9', customer: mockCustomers[8], assigneeId: 'U4', assignee: mockUsers[3], status: 'حل شده', priority: 'کم', createdAt: daysAgo(15), category: 'مالی' },
 ];
 
-const mockTicketsData: Ticket[] = [
-    { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', description: 'کاربر اعلام کرده نمی‌تواند وارد پنل شود.', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'در حال بررسی', priority: 'بالا', createdAt: daysAgo(1), category: 'فنی', replies: [
-        {id: 'R1', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', authorAvatar: mockUsers[0].avatar, text: 'در حال بررسی مشکل هستیم.', isInternal: false, createdAt: daysAgo(1)},
-        {id: 'R2', authorType: 'Customer', authorName: 'شرکت آلفا', text: 'ممنون از پیگیری شما.', isInternal: false, createdAt: daysAgo(0)},
-        {id: 'R3', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', authorAvatar: mockUsers[0].avatar, text: 'مشکل از سمت سرور بود، لطفا مجدد تست کنید.', isInternal: true, createdAt: daysAgo(0)},
-    ]},
-    { id: 'TKT-720', subject: 'سوال در مورد صورتحساب', customer: mockCustomers[1], customerId: 'C2', assignee: mockUsers[1], assigneeId: 'U2', status: 'جدید', priority: 'متوسط', createdAt: daysAgo(2), category: 'مالی' },
-    { id: 'TKT-719', subject: 'گزارش باگ در ماژول گزارشات', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'حل شده', priority: 'بالا', createdAt: daysAgo(5), category: 'فنی', surveySubmitted: false },
-    { id: 'TKT-718', subject: 'درخواست افزودن ویژگی جدید', customer: mockCustomers[1], customerId: 'C2', status: 'در انتظار مشتری', priority: 'کم', createdAt: daysAgo(7), category: 'عمومی' },
-    { id: 'TKT-722', subject: 'نحوه کار با API', customer: mockCustomers[0], customerId: 'C1', assignee: mockUsers[1], assigneeId: 'U2', status: 'بسته شده', priority: 'متوسط', createdAt: daysAgo(10), category: 'فنی', surveySubmitted: true, rating: 5, feedbackTags: ['پاسخ سریع', 'دانش فنی بالا'] },
-];
+// --- EXTENDED MOCK INTERACTIONS ---
+const generateMockInteractions = (): Interaction[] => {
+    const interactions: Interaction[] = [];
+    const types: Interaction['type'][] = ['تماس', 'ایمیل', 'جلسه', 'یادداشت'];
+    const texts = [
+        'پیگیری وضعیت قرارداد جدید.',
+        'ارسال پیش‌فاکتور تمدید سرویس.',
+        'جلسه حضوری برای بررسی نیازهای فنی.',
+        'تماس جهت هماهنگی زمان نصب.',
+        'ایمیل یادآوری پرداخت صورتحساب.',
+        'بررسی مشکلات گزارش شده در تیکت اخیر.',
+        'ارسال مستندات فنی API.',
+        'هماهنگی جهت بازدید از محل شرکت.',
+        'تماس خروجی جهت نظرسنجی رضایت.',
+        'یادداشت: مشتری درخواست تخفیف دارد.'
+    ];
+
+    for (let i = 0; i < 25; i++) {
+        const randomUser = mockUsers[Math.floor(Math.random() * mockUsers.length)];
+        const randomCustomer = mockCustomers[Math.floor(Math.random() * mockCustomers.length)];
+        interactions.push({
+            id: `I-${i + 1}`,
+            customerId: randomCustomer.id,
+            contactId: randomCustomer.contacts[0].id,
+            contactName: randomCustomer.contacts[0].name,
+            userId: randomUser.id,
+            user: randomUser,
+            createdAt: daysAgo(Math.floor(Math.random() * 30)),
+            text: texts[Math.floor(Math.random() * texts.length)],
+            type: types[Math.floor(Math.random() * types.length)],
+        });
+    }
+    return interactions;
+};
+
+const mockInteractions = generateMockInteractions();
 
 const mockKbCategories: KnowledgeBaseCategory[] = [
     { id: 'KBC1', name: 'راهنمای شروع' },
@@ -111,28 +174,44 @@ const mockKbArticles: KnowledgeBaseArticle[] = [
 ];
 
 const mockTasksData: Task[] = [
-    { id: 'TSK1', title: 'پیگیری تیکت #721', description: 'مشتری در مورد ورود به پنل کاربری مشکل دارد.', customer: mockCustomers[0], relatedTicketId: 'TKT-721', assignedTo: mockUsers[0], priority: 'بالا', status: 'در حال انجام', dueDate: daysAhead(5), createdAt: daysAgo(2) },
-    { id: 'TSK2', title: 'آماده‌سازی پیش‌فاکتور برای تجارت بتا', description: '', customer: mockCustomers[1], assignedTo: mockUsers[0], priority: 'متوسط', status: 'معلق', dueDate: daysAhead(10), createdAt: daysAgo(1) },
-    { id: 'TSK3', title: 'جلسه دمو با مشتری جدید', description: 'معرفی ویژگی‌های جدید محصول', assignedTo: mockUsers[1], priority: 'فوری', status: 'تکمیل شده', dueDate: daysAgo(3), createdAt: daysAgo(5) },
+    { 
+        id: 'TSK1', title: 'پیگیری تیکت #721', description: 'مشتری در مورد ورود به پنل کاربری مشکل دارد.', customer: mockCustomers[0], relatedTicketId: 'TKT-721', assignedTo: mockUsers[0], assignedToId: 'U1', createdById: 'U2', priority: 'بالا', status: 'در حال انجام', dueDate: daysAhead(5), createdAt: daysAgo(2),
+        comments: [
+            { id: 'TC1', userId: 'U2', userName: 'زهرا احمدی', text: 'لطفا سریعتر بررسی کنید.', createdAt: daysAgo(1) }
+        ]
+    },
+    { id: 'TSK2', title: 'آماده‌سازی پیش‌فاکتور برای تجارت بتا', description: '', customer: mockCustomers[1], assignedTo: mockUsers[0], assignedToId: 'U1', createdById: 'U1', priority: 'متوسط', status: 'معلق', dueDate: daysAhead(10), createdAt: daysAgo(1), comments: [] },
+    { id: 'TSK3', title: 'جلسه دمو با مشتری جدید', description: 'معرفی ویژگی‌های جدید محصول', assignedTo: mockUsers[1], assignedToId: 'U2', createdById: 'U1', priority: 'فوری', status: 'تکمیل شده', dueDate: daysAgo(3), createdAt: daysAgo(5), comments: [] },
+    { id: 'TSK4', title: 'تماس با بازرگانی امید', description: 'پیگیری پرداخت فاکتور', customer: mockCustomers[4], assignedTo: mockUsers[3], assignedToId: 'U4', createdById: 'U1', priority: 'بالا', status: 'در انتظار', dueDate: daysAhead(1), createdAt: daysAgo(1), comments: [] },
+    { id: 'TSK5', title: 'بررسی موجودی انبار', description: 'سفارش جدید نیاز به چک کردن موجودی دارد', assignedTo: mockUsers[0], assignedToId: 'U1', createdById: 'U3', priority: 'متوسط', status: 'معلق', dueDate: daysAhead(2), createdAt: daysAgo(0), comments: [] },
+    { id: 'TSK6', title: 'ارسال قرارداد برای کلینیک سلامت', description: 'قرارداد امضا شده ارسال شود', customer: mockCustomers[8], assignedTo: mockUsers[2], assignedToId: 'U3', createdById: 'U1', priority: 'پایین', status: 'تکمیل شده', dueDate: daysAgo(5), createdAt: daysAgo(7), comments: [] },
 ];
 
 const mockQuotes: Quote[] = [
-    { id: 'Q-123', quoteNumber: '1001', version: 1, customerId: 'C1', customerName: 'شرکت آلفا', issueDate: daysAgo(2), expiryDate: daysAhead(12), status: 'تایید شده', items: [{ productId: 'P1', productName: 'سرویس پشتیبانی طلایی', quantity: 1, unitPrice: 10000000, totalPrice: 10000000, discountType: 'percent', discount: 10, totalAfterDiscount: 9000000, tax: 9, totalWithTax: 9810000 }], subtotal: 10000000, discountAmount: 1000000, taxAmount: 810000, totalAmount: 9810000 },
-    { id: 'Q-124', quoteNumber: '1002', version: 1, customerId: 'C2', customerName: 'تجارت بتا', issueDate: daysAgo(10), expiryDate: daysAhead(5), status: 'ارسال شده', items: [{ productId: 'P2', productName: 'سرویس پشتیبانی نقره‌ای', quantity: 2, unitPrice: 5000000, totalPrice: 10000000, discountType: 'amount', discount: 0, totalAfterDiscount: 10000000, tax: 9, totalWithTax: 10900000 }], subtotal: 10000000, discountAmount: 0, taxAmount: 900000, totalAmount: 10900000 },
+    { id: 'Q-123', quoteNumber: '1001', version: 1, customerId: 'C1', customerName: 'شرکت آلفا', issueDate: daysAgo(2), expiryDate: daysAhead(12), status: 'تایید شده', isOfficial: true, items: [{ productId: 'P1', productName: 'سرویس پشتیبانی طلایی', quantity: 1, unitPrice: 10000000, totalPrice: 10000000, discountType: 'percent', discount: 10, totalAfterDiscount: 9000000, tax: 9, totalWithTax: 9810000 }], subtotal: 10000000, discountAmount: 1000000, taxAmount: 810000, totalAmount: 9810000, note: 'شرایط پرداخت: ۵۰٪ نقد و ۵۰٪ یک ماهه' },
+    { id: 'Q-124', quoteNumber: '1002', version: 1, customerId: 'C2', customerName: 'تجارت بتا', issueDate: daysAgo(10), expiryDate: daysAhead(5), status: 'ارسال شده', isOfficial: false, items: [{ productId: 'P2', productName: 'سرویس پشتیبانی نقره‌ای', quantity: 2, unitPrice: 5000000, totalPrice: 10000000, discountType: 'amount', discount: 0, totalAfterDiscount: 10000000, tax: 9, totalWithTax: 10900000 }], subtotal: 10000000, discountAmount: 0, taxAmount: 900000, totalAmount: 10900000 },
+    { id: 'Q-125', quoteNumber: '1003', version: 1, customerId: 'C3', customerName: 'صنایع گاما', issueDate: daysAgo(15), expiryDate: daysAgo(1), status: 'رد شده', isOfficial: true, items: [], subtotal: 0, discountAmount: 0, taxAmount: 0, totalAmount: 0 },
+    { id: 'Q-126', quoteNumber: '1004', version: 1, customerId: 'C5', customerName: 'بازرگانی امید', issueDate: daysAgo(1), expiryDate: daysAhead(14), status: 'پیش‌نویس', isOfficial: false, items: [], subtotal: 0, discountAmount: 0, taxAmount: 0, totalAmount: 0 },
 ];
 
 const mockInvoices: Invoice[] = [
-    { id: 'INV-001', isOfficial: true, quoteId: 'Q-123', customerId: 'C1', customerName: 'شرکت آلفا', issueDate: daysAgo(1), dueDate: daysAhead(5), status: 'ارسال شده', items: [{ productId: 'P1', productName: 'سرویس پشتیبانی طلایی', quantity: 1, unitPrice: 10000000, totalPrice: 10000000, discountType: 'percent', discount: 10, totalAfterDiscount: 9000000, tax: 9, totalWithTax: 9810000 }], subtotal: 10000000, discountAmount: 1000000, taxAmount: 810000, totalAmount: 9810000, amountPaid: 0 },
+    { id: 'INV-001', isOfficial: true, quoteId: 'Q-123', customerId: 'C1', customerName: 'شرکت آلفا', issueDate: daysAgo(1), status: 'ارسال شده', items: [{ productId: 'P1', productName: 'سرویس پشتیبانی طلایی', quantity: 1, unitPrice: 10000000, totalPrice: 10000000, discountType: 'percent', discount: 10, totalAfterDiscount: 9000000, tax: 9, totalWithTax: 9810000 }], subtotal: 10000000, discountAmount: 1000000, taxAmount: 810000, totalAmount: 9810000, amountPaid: 0, note: 'لطفاً در هنگام واریز شناسه فاکتور را قید نمایید.' },
+    { id: 'INV-002', isOfficial: true, customerId: 'C3', customerName: 'صنایع گاما', issueDate: daysAgo(5), status: 'سررسید گذشته', items: [], subtotal: 5000000, discountAmount: 0, taxAmount: 450000, totalAmount: 5450000, amountPaid: 0 },
+    { id: 'INV-003', isOfficial: false, customerId: 'C6', customerName: 'تکنولوژی برتر', issueDate: daysAgo(10), status: 'پرداخت شده', items: [], subtotal: 2000000, discountAmount: 0, taxAmount: 0, totalAmount: 2000000, amountPaid: 2000000 },
+    { id: 'INV-004', isOfficial: true, customerId: 'C8', customerName: 'موسسه دانش', issueDate: daysAgo(2), status: 'پرداخت جزئی', items: [], subtotal: 10000000, discountAmount: 0, taxAmount: 900000, totalAmount: 10900000, amountPaid: 5000000 },
 ];
 
 const mockVendors: Vendor[] = [
     { id: 'V1', name: 'فروشگاه سخت‌افزار ایران', contactName: 'آقای محمدی', email: 'sales@iranhw.com', phone: '021-33445566', status: 'فعال' },
     { id: 'V2', name: 'خدمات ابری پارس', contactName: 'خانم رضایی', email: 'support@parscloud.ir', phone: '021-88997766', status: 'فعال' },
+    { id: 'V3', name: 'تامین الکترونیک', contactName: 'آقای کریمی', email: 'info@elecsupply.com', phone: '021-66778899', status: 'فعال' },
 ];
 
 const mockLeads: Lead[] = [
     { id: 'L1', contactName: 'سارا محمدی', companyName: 'فروشگاه سارا', email: 'sara@shop.com', phone: '09121112233', source: 'وبسایت', status: 'جدید', score: 85, assignedToId: 'U1', assignedTo: mockUsers[0], createdAt: daysAgo(2), converted: false },
     { id: 'L2', contactName: 'رضا قاسمی', companyName: 'خدمات رضا', email: 'reza@service.com', phone: '09124445566', source: 'ارجاعی', status: 'واجد شرایط', score: 70, assignedToId: 'U3', assignedTo: mockUsers[1], createdAt: daysAgo(5), converted: false },
+    { id: 'L3', contactName: 'مریم حسینی', companyName: '', email: 'maryam@mail.com', phone: '09127778899', source: 'تماس سرد', status: 'تماس گرفته شده', score: 50, assignedToId: 'U1', assignedTo: mockUsers[0], createdAt: daysAgo(10), converted: false },
+    { id: 'L4', contactName: 'پیمان عزیزی', companyName: 'صنایع پیمان', email: 'peyman@industry.com', phone: '09121234567', source: 'شبکه اجتماعی', status: 'تبدیل شده', score: 95, assignedToId: 'U3', assignedTo: mockUsers[2], createdAt: daysAgo(15), converted: true },
 ];
 
 const initialCompanyInfo: CompanyInfo = {
@@ -153,6 +232,8 @@ interface PageState {
 
 const MainApp: React.FC<{ 
     user: User, 
+    users: User[],
+    setUsers: React.Dispatch<React.SetStateAction<User[]>>,
     customers: Customer[], 
     setCustomers: React.Dispatch<React.SetStateAction<Customer[]>>, 
     kbCategories: KnowledgeBaseCategory[],
@@ -181,8 +262,12 @@ const MainApp: React.FC<{
     setInventoryTransactions: React.Dispatch<React.SetStateAction<InventoryTransaction[]>>,
     personnelRequests: PersonnelRequest[],
     setPersonnelRequests: React.Dispatch<React.SetStateAction<PersonnelRequest[]>>,
-    onLogout: () => void 
-}> = ({ user, customers, setCustomers, kbCategories, setKbCategories, kbArticles, setKbArticles, reminders, setReminders, tasks, setTasks, quotes, setQuotes, invoices, setInvoices, vendors, setVendors, purchaseOrders, setPurchaseOrders, payments, setPayments, companyInfo, setCompanyInfo, products, setProducts, inventoryTransactions, setInventoryTransactions, personnelRequests, setPersonnelRequests, onLogout }) => {
+    interactions: Interaction[],
+    setInteractions: React.Dispatch<React.SetStateAction<Interaction[]>>,
+    onLogout: () => void,
+    noteTemplates: string[],
+    setNoteTemplates: React.Dispatch<React.SetStateAction<string[]>>
+}> = ({ user, users, setUsers, customers, setCustomers, kbCategories, setKbCategories, kbArticles, setKbArticles, reminders, setReminders, tasks, setTasks, quotes, setQuotes, invoices, setInvoices, vendors, setVendors, purchaseOrders, setPurchaseOrders, payments, setPayments, companyInfo, setCompanyInfo, products, setProducts, inventoryTransactions, setInventoryTransactions, personnelRequests, setPersonnelRequests, interactions, setInteractions, onLogout, noteTemplates, setNoteTemplates }) => {
   const [activePage, setActivePage] = useState<PageState>({ name: 'dashboard' });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
@@ -228,11 +313,15 @@ const MainApp: React.FC<{
 
   // --- PERSONNEL LOGIC ---
   const handleAddRequest = (requestData: Omit<PersonnelRequest, 'id' | 'status' | 'createdAt' | 'userId' | 'managerId'>) => {
+      // Find the manager of the current user
+      const currentUser = users.find(u => u.id === user.id);
+      const managerId = currentUser?.managerId;
+
       const newRequest: PersonnelRequest = {
           id: `PR-${Date.now()}`,
           userId: user.id,
           user: user,
-          managerId: user.managerId, // Request goes to the manager
+          managerId: managerId, 
           status: 'pending',
           createdAt: new Date().toISOString(),
           ...requestData
@@ -240,9 +329,12 @@ const MainApp: React.FC<{
       setPersonnelRequests(prev => [newRequest, ...prev]);
       
       // Notify Manager (Mock)
-      if (user.managerId) {
+      if (managerId) {
           // Ideally find the manager user object and trigger something, here we just simulate
-          console.log(`Notification sent to manager ${user.managerId}`);
+          console.log(`Notification sent to manager ${managerId}`);
+      } else {
+          // If no manager is assigned, auto-approve or notify admin (not implemented)
+          console.log('No manager assigned for this user.');
       }
   };
 
@@ -312,6 +404,23 @@ const MainApp: React.FC<{
           transactionData.referenceId,
           transactionData.description
       );
+  };
+
+  // --- PRODUCTS CRUD ---
+  const handleAddProduct = (product: Omit<Product, 'id'>) => {
+      const newProduct: Product = {
+          ...product,
+          id: `P-${Date.now()}`
+      };
+      setProducts(prev => [...prev, newProduct]);
+  };
+
+  const handleUpdateProduct = (product: Product) => {
+      setProducts(prev => prev.map(p => p.id === product.id ? product : p));
+  };
+
+  const handleDeleteProduct = (productId: string) => {
+      setProducts(prev => prev.filter(p => p.id !== productId));
   };
 
 
@@ -398,6 +507,7 @@ const MainApp: React.FC<{
        const newTask: Task = {
             id: `TSK-${Date.now()}`,
             createdAt: new Date().toISOString(),
+            createdById: user.id,
             ...taskData
         };
         setTasks(prev => [newTask, ...prev]);
@@ -490,7 +600,7 @@ const MainApp: React.FC<{
              savedPo.items.forEach(item => {
                  const product = products.find(p => p.id === item.productId);
                  if (product && product.type === 'product') {
-                    registerInventoryMovement(item.productId, item.quantity, 'receipt', savedPo.id, 'ورود خودکار از طریق سفارش خرید');
+                    registerInventoryMovement(item.productId, item.quantity, 'receipt', savedPo.id, 'ورود خودکار از طریق فاکتور خرید');
                  }
              });
         }
@@ -569,7 +679,7 @@ const MainApp: React.FC<{
     inventory: 'انبار و موجودی',
     payments: 'امور مالی (دریافت و پرداخت)',
     vendors: 'تامین‌کنندگان',
-    purchaseOrders: 'سفارشات خرید',
+    purchaseOrders: 'فاکتورهای خرید',
     personnel: 'امور پرسنلی و مرخصی',
     chat: 'چت تیمی',
     reports: 'گزارش‌ها',
@@ -595,6 +705,8 @@ const MainApp: React.FC<{
                 quotes={quotes}
                 invoices={invoices}
                 payments={payments}
+                interactions={interactions}
+                setInteractions={setInteractions}
                 onUpdateTicket={handleUpdateTicket}
                 onBack={() => handleSetActivePage('customers')}
                 onOpenReminderModal={openReminderModal}
@@ -611,6 +723,7 @@ const MainApp: React.FC<{
         return <Tasks 
             tasks={tasks}
             setTasks={setTasks}
+            currentUser={user}
             onOpenTaskModal={(task) => openTaskModal(undefined, task)}
             onOpenReminderModal={openReminderModal}
         />;
@@ -636,7 +749,12 @@ const MainApp: React.FC<{
       case 'leads':
         return <Leads />;
       case 'products':
-        return <Products />;
+        return <Products 
+            products={products}
+            onAddProduct={handleAddProduct}
+            onUpdateProduct={handleUpdateProduct}
+            onDeleteProduct={handleDeleteProduct}
+        />;
       case 'quotes':
         return <Quotes 
             customers={customers} 
@@ -645,6 +763,9 @@ const MainApp: React.FC<{
             setQuotes={setQuotes}
             initialParams={activePage.params}
             companyInfo={companyInfo}
+            products={products}
+            noteTemplates={noteTemplates}
+            setNoteTemplates={setNoteTemplates}
         />;
       case 'invoices':
         return <Invoices 
@@ -654,7 +775,9 @@ const MainApp: React.FC<{
             setInvoices={setInvoices}
             quotes={quotes}
             companyInfo={companyInfo}
-            // We need to pass the custom handler that triggers stock updates
+            products={products}
+            noteTemplates={noteTemplates}
+            setNoteTemplates={setNoteTemplates}
         />;
       case 'inventory':
           return <Inventory 
@@ -688,6 +811,7 @@ const MainApp: React.FC<{
       case 'personnel':
           return <Personnel 
               currentUser={user}
+              users={users}
               requests={personnelRequests}
               onAddRequest={handleAddRequest}
               onUpdateRequestStatus={handleUpdateRequestStatus}
@@ -699,13 +823,19 @@ const MainApp: React.FC<{
             onOpenReminderModal={openReminderModal}
         />;
       case 'reports':
-        return <Reports />;
+        return <Reports 
+            users={users} 
+            interactions={interactions} 
+            tickets={tickets} 
+        />;
       case 'settings':
         return <Settings 
             customers={customers} 
             setCustomers={setCustomers} 
             companyInfo={companyInfo} 
             setCompanyInfo={setCompanyInfo} 
+            users={users}
+            setUsers={setUsers}
         />;
       case 'knowledgeBase':
         return <KnowledgeBase 
@@ -717,13 +847,14 @@ const MainApp: React.FC<{
         />;
       case 'dashboard':
       default:
-        return <Dashboard customers={customers} />;
+        return <Dashboard customers={customers} onNavigate={handleSetActivePage} user={user} />;
     }
   };
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans overflow-hidden">
       <Sidebar 
+        user={user}
         activePage={activePage.name} 
         setActivePage={handleSetActivePage} 
         isOpen={isSidebarOpen}
@@ -733,7 +864,7 @@ const MainApp: React.FC<{
         <div 
           onClick={() => setIsSidebarOpen(false)} 
           className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
-          aria-hidden="true"
+          aria-label="Close sidebar"
         ></div>
       )}
 
@@ -749,6 +880,7 @@ const MainApp: React.FC<{
             </button>
             <h1 className="text-xl sm:text-2xl font-semibold flex-shrink-0">{pageTitles[activePage.name] || 'CRM'}</h1>
             <GlobalSearch 
+                user={user}
                 customers={customers}
                 tickets={tickets}
                 leads={leads}
@@ -786,6 +918,7 @@ const MainApp: React.FC<{
             isEditing={!!activeTaskModal.editingTask}
             users={mockUsers} 
             customers={customers}
+            currentUser={user}
         />
         
         <PaymentModal
@@ -818,6 +951,7 @@ const App: React.FC = () => {
   const [auth, setAuth] = useState<{ type: 'user' | 'customer' | null, entity: User | Customer | null }>({ type: null, entity: null });
 
   // State Definitions
+  const [users, setUsers] = useState<User[]>(mockUsers);
   const [tickets, setTickets] = useState<Ticket[]>(mockTicketsData);
   const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
   const [kbCategories, setKbCategories] = useState<KnowledgeBaseCategory[]>(mockKbCategories);
@@ -831,12 +965,31 @@ const App: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>(initialCompanyInfo);
   const [personnelRequests, setPersonnelRequests] = useState<PersonnelRequest[]>([]);
+  const [interactions, setInteractions] = useState<Interaction[]>(mockInteractions);
+  const [noteTemplates, setNoteTemplates] = useState<string[]>([
+      "شرایط پرداخت: ۵۰٪ نقد و الباقی طی یک فقره چک صیادی به تاریخ یک ماه آینده.",
+      "اعتبار این پیش‌فاکتور از تاریخ صدور به مدت ۷ روز کاری می‌باشد.",
+      "لطفاً در هنگام واریز وجه، شناسه پرداخت یا شماره فاکتور را در شرح فیش درج نمایید.",
+      "هزینه حمل و نقل بر عهده خریدار می‌باشد."
+  ]);
   
-  // Products State (Shared for PO and Quotes, now with Stock)
+  // Products State (Shared for PO and Quotes, now with Stock and Tax)
   const [products, setProducts] = useState<Product[]>([
-    { id: 'P1', name: 'سرویس پشتیبانی طلایی', price: 10000000, code: 'SRV-001', stock: 0, type: 'service' }, 
-    { id: 'P2', name: 'سرویس پشتیبانی نقره‌ای', price: 5000000, code: 'SRV-002', stock: 0, type: 'service' }, 
-    { id: 'P3', name: 'لایسنس تک کاربره', price: 2000000, code: 'LIC-001', stock: 5, type: 'product' }
+    { id: 'P1', name: 'سرویس پشتیبانی طلایی', price: 10000000, code: 'SRV-001', stock: 0, type: 'service', tax: 9 }, 
+    { id: 'P2', name: 'سرویس پشتیبانی نقره‌ای', price: 5000000, code: 'SRV-002', stock: 0, type: 'service', tax: 9 }, 
+    { id: 'P3', name: 'لایسنس تک کاربره', price: 2000000, code: 'LIC-001', stock: 5, type: 'product', tax: 9 },
+    { id: 'P4', code: 'LIC-TEAM', name: 'لایسنس تیمی (۵ کاربر)', description: 'مجوز استفاده برای ۵ کاربر', price: 8000000, stock: 10, type: 'product', tax: 9 },
+    { id: 'P5', code: 'HW-SRV-1', name: 'سرور فیزیکی مدل A', description: 'CPU 16 Core, 64GB RAM', price: 150000000, stock: 5, type: 'product', tax: 9 },
+    { id: 'P6', code: 'HW-SW-24', name: 'سوییچ شبکه ۲۴ پورت', description: 'برند سیسکو', price: 12000000, stock: 15, type: 'product', tax: 9 },
+    { id: 'P7', code: 'CONS-HR', name: 'مشاوره منابع انسانی', description: 'ساعتی', price: 1000000, stock: 0, type: 'service', tax: 0 },
+    { id: 'P8', code: 'CONS-TECH', name: 'مشاوره فنی', description: 'ساعتی', price: 1500000, stock: 0, type: 'service', tax: 0 },
+    { id: 'P9', code: 'SOFT-ACC', name: 'نرم‌افزار حسابداری', description: 'نسخه شرکتی', price: 5000000, stock: 100, type: 'product', tax: 9 },
+    { id: 'P10', code: 'SOFT-CRM', name: 'نرم‌افزار CRM', description: 'نسخه ابری', price: 3000000, stock: 999, type: 'service', tax: 9 },
+    { id: 'P11', code: 'TR-BASIC', name: 'دوره آموزشی مقدماتی', description: '۸ ساعت', price: 2000000, stock: 0, type: 'service', tax: 0 },
+    { id: 'P12', code: 'TR-ADV', name: 'دوره آموزشی پیشرفته', description: '۱۶ ساعت', price: 4000000, stock: 0, type: 'service', tax: 0 },
+    { id: 'P13', code: 'HW-LAPTOP', name: 'لپ‌تاپ سازمانی', description: 'Core i5, 16GB', price: 35000000, stock: 8, type: 'product', tax: 9 },
+    { id: 'P14', code: 'HW-MOUSE', name: 'ماوس بی‌سیم', description: 'ارگونومیک', price: 800000, stock: 50, type: 'product', tax: 9 },
+    { id: 'P15', code: 'HW-KB', name: 'کیبورد مکانیکال', description: 'مخصوص برنامه‌نویسی', price: 3000000, stock: 25, type: 'product', tax: 9 },
   ]);
   
   const [inventoryTransactions, setInventoryTransactions] = useState<InventoryTransaction[]>([]);
@@ -870,9 +1023,14 @@ const App: React.FC = () => {
   const handleLogin = (type: 'user' | 'customer', username: string, pass: string) => {
     if (pass === '1234') {
         if (type === 'user') {
-            const user = mockUsers.find(u => u.username === username);
+            const user = users.find(u => u.username === username);
             if (user) {
-                setAuth({ type: 'user', entity: user });
+                // Important: Attach Role Object to User for Permission Checks in UI
+                const fullUser: User = {
+                    ...user,
+                    role: mockRoles.find(r => r.id === user.roleId)
+                };
+                setAuth({ type: 'user', entity: fullUser });
                 return true;
             }
         } else {
@@ -931,6 +1089,8 @@ const App: React.FC = () => {
   
   return <MainApp 
             user={auth.entity as User} 
+            users={users}
+            setUsers={setUsers}
             customers={customers} 
             setCustomers={setCustomers} 
             kbCategories={kbCategories}
@@ -959,7 +1119,11 @@ const App: React.FC = () => {
             setInventoryTransactions={setInventoryTransactions}
             personnelRequests={personnelRequests}
             setPersonnelRequests={setPersonnelRequests}
+            interactions={interactions}
+            setInteractions={setInteractions}
             onLogout={handleLogout} 
+            noteTemplates={noteTemplates}
+            setNoteTemplates={setNoteTemplates}
         />;
 };
 

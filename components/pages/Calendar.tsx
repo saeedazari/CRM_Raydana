@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useMemo } from 'react';
 import { Task, Reminder, Invoice } from '../../types';
 import { ChevronLeftIcon } from '../icons/ChevronLeftIcon';
@@ -61,17 +63,7 @@ const Calendar: React.FC<CalendarProps> = ({ tasks, reminders, invoices, onOpenT
             }
         });
 
-        invoices.forEach(invoice => {
-            if (invoice.dueDate) {
-                 allEvents.push({
-                    id: invoice.id,
-                    date: invoice.dueDate,
-                    title: `فاکتور ${invoice.customerName}`,
-                    type: 'invoice',
-                    data: invoice
-                });
-            }
-        });
+        // Removed invoices from calendar as they no longer have a due date.
 
         return allEvents;
     }, [tasks, reminders, invoices]);

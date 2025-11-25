@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect } from 'react';
 import { Quote, QuoteItem, Product, Customer, QuoteStatus, CompanyInfo } from '../../types';
 import { TrashIcon } from '../icons/TrashIcon';
@@ -9,7 +11,7 @@ import PrintableDocument from '../print/PrintableDocument';
 import DatePicker from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
-import { toShamsi } from '../../utils/date';
+import { toShamsi, toPersianDigits, toEnglishDigits } from '../../utils/date';
 
 const initialQuoteState: Omit<Quote, 'id'> = {
     quoteNumber: '',
@@ -19,11 +21,13 @@ const initialQuoteState: Omit<Quote, 'id'> = {
     issueDate: toShamsi(new Date()),
     expiryDate: toShamsi(new Date(new Date().setDate(new Date().getDate() + 14))),
     status: 'پیش‌نویس',
+    isOfficial: false,
     items: [],
     subtotal: 0,
     discountAmount: 0,
     taxAmount: 0,
     totalAmount: 0,
+    note: '',
 };
 
 
@@ -35,52 +39,35 @@ const QuoteEditor: React.FC<{
     onCancel: () => void;
     onCreateInvoiceFromQuote: (quote: Quote) => void;
     companyInfo: CompanyInfo;
-}> = ({ quoteData, customers, products, onSave, onCancel, onCreateInvoiceFromQuote, companyInfo }) => {
+    noteTemplates: string[];
+    setNoteTemplates: React.Dispatch<React.SetStateAction<string[]>>;
+}> = ({ quoteData, customers, products, onSave, onCancel, onCreateInvoiceFromQuote, companyInfo, noteTemplates, setNoteTemplates }) => {
     const [quote, setQuote] = useState(quoteData || initialQuoteState);
     const [items, setItems] = useState<QuoteItem[]>(quoteData?.items || []);
     const [isPrintOpen, setIsPrintOpen] = useState(false);
     const [initialQuoteSnapshot, setInitialQuoteSnapshot] = useState<string>('');
+    const [selectedTemplate, setSelectedTemplate] = useState('');
 
     useEffect(() => {
         setInitialQuoteSnapshot(JSON.stringify(quoteData || initialQuoteState));
     }, []);
     
+    // Calculate Grand Totals (Subtotal, Tax, Total) whenever items change
     useEffect(() => {
-        let newSubtotal = 0;
-        let newDiscountAmount = 0;
-        let newTaxAmount = 0;
-
-        const updatedItems = items.map(item => {
-            const totalPrice = item.quantity * item.unitPrice;
-            let itemDiscount = 0;
-            if (item.discountType === 'percent') {
-                itemDiscount = totalPrice * (item.discount / 100);
-            } else {
-                itemDiscount = item.discount;
-            }
-            const totalAfterDiscount = totalPrice - itemDiscount;
-            const itemTax = totalAfterDiscount * (item.tax / 100);
-            const totalWithTax = totalAfterDiscount + itemTax;
-
-            newSubtotal += totalPrice;
-            newDiscountAmount += itemDiscount;
-            newTaxAmount += itemTax;
-
-            return {
-                ...item,
-                totalPrice,
-                totalAfterDiscount,
-                totalWithTax
-            };
-        });
+        const newSubtotal = items.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+        const newDiscountAmount = items.reduce((sum, item) => sum + ((item.totalPrice || 0) - (item.totalAfterDiscount || 0)), 0);
+        // Tax is derived from (TotalAfterDiscount * TaxRate)
+        const newTaxAmount = items.reduce((sum, item) => sum + ((item.totalAfterDiscount || 0) * (item.tax / 100)), 0);
+        
+        const newTotalAmount = newSubtotal - newDiscountAmount + newTaxAmount;
 
         setQuote(q => ({
             ...q,
-            items: updatedItems,
+            items: items, // Update reference
             subtotal: newSubtotal,
             discountAmount: newDiscountAmount,
             taxAmount: newTaxAmount,
-            totalAmount: newSubtotal - newDiscountAmount + newTaxAmount
+            totalAmount: newTotalAmount
         }));
     }, [items]);
 
@@ -93,14 +80,39 @@ const QuoteEditor: React.FC<{
             if (product) {
                 item.productName = product.name;
                 item.unitPrice = product.price;
+                // Set Tax based on Official status
+                item.tax = quote.isOfficial ? (product.tax || 0) : 0;
             }
              item.productId = value;
         } else if (field === 'discountType') {
             item.discountType = value as 'percent' | 'amount';
         } else {
-             const numericValue = parseFloat(value);
+             // Ensure we parse English digits correctly
+             const englishValue = typeof value === 'string' ? toEnglishDigits(value) : value;
+             const numericValue = parseFloat(englishValue);
              (item[field] as any) = isNaN(numericValue) ? 0 : numericValue;
         }
+        
+        // --- Perform Row Calculations Immediately ---
+        const qty = item.quantity || 0;
+        const unitPrice = item.unitPrice || 0;
+        const totalPrice = qty * unitPrice;
+        
+        let itemDiscount = 0;
+        if (item.discountType === 'percent') {
+            itemDiscount = totalPrice * ((item.discount || 0) / 100);
+        } else {
+            itemDiscount = item.discount || 0;
+        }
+        
+        const totalAfterDiscount = totalPrice - itemDiscount;
+        const itemTax = totalAfterDiscount * ((item.tax || 0) / 100);
+        const totalWithTax = totalAfterDiscount + itemTax;
+
+        // Update calculated fields
+        item.totalPrice = totalPrice;
+        item.totalAfterDiscount = totalAfterDiscount;
+        item.totalWithTax = totalWithTax;
         
         newItems[index] = item;
         setItems(newItems);
@@ -137,6 +149,56 @@ const QuoteEditor: React.FC<{
         }
         onSave(quote);
     };
+    
+    const handleAddTemplate = () => {
+        if (quote.note && !noteTemplates.includes(quote.note)) {
+            setNoteTemplates(prev => [...prev, quote.note!]);
+            alert('به لیست قالب‌ها اضافه شد.');
+        }
+    };
+    
+    const handleTemplateSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const val = e.target.value;
+        setSelectedTemplate(val);
+        if (val) {
+            setQuote(prev => ({ ...prev, note: val }));
+        }
+    };
+
+    const handleIsOfficialChange = (checked: boolean) => {
+        setQuote(prev => ({ ...prev, isOfficial: checked }));
+        
+        // Update tax for all existing items
+        const updatedItems = items.map(item => {
+            const product = products.find(p => p.id === item.productId);
+            const newTax = checked ? (product?.tax || 0) : 0;
+            
+            // Recalculate totals for the item
+            const qty = item.quantity || 0;
+            const unitPrice = item.unitPrice || 0;
+            const totalPrice = qty * unitPrice;
+            
+            let itemDiscount = 0;
+            if (item.discountType === 'percent') {
+                itemDiscount = totalPrice * ((item.discount || 0) / 100);
+            } else {
+                itemDiscount = item.discount || 0;
+            }
+            
+            const totalAfterDiscount = totalPrice - itemDiscount;
+            const itemTax = totalAfterDiscount * (newTax / 100);
+            const totalWithTax = totalAfterDiscount + itemTax;
+
+            return {
+                ...item,
+                tax: newTax,
+                totalPrice,
+                totalAfterDiscount,
+                totalWithTax
+            };
+        });
+        setItems(updatedItems);
+    };
 
     const isQuoteApproved = quoteData?.status === 'تایید شده';
 
@@ -160,6 +222,16 @@ const QuoteEditor: React.FC<{
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 ml-4 text-sm font-medium text-gray-700 dark:text-gray-300 select-none cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            checked={quote.isOfficial || false} 
+                            onChange={e => handleIsOfficialChange(e.target.checked)}
+                            className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                            disabled={isQuoteApproved}
+                        />
+                        رسمی
+                    </label>
                     {('id' in quote) && (
                         <button onClick={() => setIsPrintOpen(true)} className="flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">
                             <PrinterIcon className="w-5 h-5 ml-2" />
@@ -243,21 +315,36 @@ const QuoteEditor: React.FC<{
                             </tr>
                         </thead>
                         <tbody>
-                            {quote.items.map((item, index) => (
+                            {items.map((item, index) => (
                                 <tr key={index} className="border-b dark:border-gray-700">
                                     <td className="p-1"><select value={item.productId} onChange={e => handleItemChange(index, 'productId', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white" disabled={isQuoteApproved}><option value="">انتخاب محصول</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></td>
-                                    <td className="p-1"><input type="number" value={item.quantity} onChange={e => handleItemChange(index, 'quantity', e.target.value)} min="1" className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" disabled={isQuoteApproved} /></td>
-                                    <td className="p-1"><input type="text" value={item.unitPrice} onChange={e => handleItemChange(index, 'unitPrice', e.target.value)} className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" disabled={isQuoteApproved} /></td>
+                                    <td className="p-1">
+                                        <input 
+                                            type="text" 
+                                            value={toPersianDigits(item.quantity)} 
+                                            onChange={e => handleItemChange(index, 'quantity', e.target.value)} 
+                                            className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" 
+                                            disabled={isQuoteApproved} 
+                                        />
+                                    </td>
+                                    <td className="p-1">
+                                        <input 
+                                            type="text" 
+                                            value={toPersianDigits(item.unitPrice)} 
+                                            onChange={e => handleItemChange(index, 'unitPrice', e.target.value)} 
+                                            className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" 
+                                            disabled={isQuoteApproved} 
+                                        />
+                                    </td>
                                     <td className="p-1">
                                         <input type="text" value={item.totalPrice.toLocaleString('fa-IR')} readOnly className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white cursor-default focus:outline-none" />
                                     </td>
                                     <td className="p-1">
                                         <div className="flex items-center">
                                             <input 
-                                                type="number" 
-                                                value={item.discount} 
+                                                type="text" 
+                                                value={toPersianDigits(item.discount)} 
                                                 onChange={e => handleItemChange(index, 'discount', e.target.value)} 
-                                                min="0" 
                                                 className="w-full p-2 text-center bg-gray-50 border rounded-r-lg rounded-l-none text-gray-900 dark:bg-gray-700 dark:text-white focus:z-10" 
                                                 disabled={isQuoteApproved} 
                                             />
@@ -275,7 +362,15 @@ const QuoteEditor: React.FC<{
                                     <td className="p-1">
                                         <input type="text" value={item.totalAfterDiscount.toLocaleString('fa-IR')} readOnly className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white cursor-default focus:outline-none" />
                                     </td>
-                                    <td className="p-1"><input type="number" value={item.tax} onChange={e => handleItemChange(index, 'tax', e.target.value)} min="0" max="100" className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" disabled={isQuoteApproved} /></td>
+                                    <td className="p-1">
+                                        <input 
+                                            type="text" 
+                                            value={toPersianDigits(item.tax)} 
+                                            onChange={e => handleItemChange(index, 'tax', e.target.value)} 
+                                            className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" 
+                                            disabled={isQuoteApproved} 
+                                        />
+                                    </td>
                                     <td className="p-1">
                                         <input type="text" value={item.totalWithTax.toLocaleString('fa-IR')} readOnly className="w-full p-2 text-left font-bold bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white cursor-default focus:outline-none" />
                                     </td>
@@ -288,12 +383,48 @@ const QuoteEditor: React.FC<{
                     </table>
                     {!isQuoteApproved && <button type="button" onClick={handleAddItem} className="mt-4 text-sm text-indigo-600 font-medium">+ افزودن آیتم جدید</button>}
                 </div>
-                <div className="flex justify-end pt-4 mt-4 border-t dark:border-gray-700">
-                    <div className="w-full max-w-sm space-y-2 text-sm">
-                        <div className="flex justify-between"><span>جمع کل (قبل از تخفیف):</span><span>{quote.subtotal?.toLocaleString('fa-IR')} تومان</span></div>
-                        <div className="flex justify-between text-red-600"><span>مبلغ تخفیف:</span><span>- {quote.discountAmount?.toLocaleString('fa-IR')} تومان</span></div>
-                        <div className="flex justify-between text-green-600"><span>مالیات بر ارزش افزوده:</span><span>+ {quote.taxAmount?.toLocaleString('fa-IR')} تومان</span></div>
-                        <div className="flex justify-between font-bold text-lg border-t dark:border-gray-600 pt-2 mt-2"><span>مبلغ نهایی:</span><span>{quote.totalAmount?.toLocaleString('fa-IR')} تومان</span></div>
+                
+                <div className="border-t dark:border-gray-700 pt-4">
+                    <div className="flex flex-col md:flex-row justify-between gap-6">
+                        <div className="flex-grow max-w-2xl">
+                            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">توضیحات و شرایط</label>
+                            <div className="flex gap-2 mb-2">
+                                <select 
+                                    value={selectedTemplate} 
+                                    onChange={handleTemplateSelect} 
+                                    className="flex-grow p-2 text-sm border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    disabled={isQuoteApproved}
+                                >
+                                    <option value="">-- انتخاب از قالب‌ها --</option>
+                                    {noteTemplates.map((tmpl, idx) => (
+                                        <option key={idx} value={tmpl}>{tmpl.substring(0, 60)}...</option>
+                                    ))}
+                                </select>
+                                {!isQuoteApproved && (
+                                    <button 
+                                        type="button" 
+                                        onClick={handleAddTemplate} 
+                                        className="px-3 py-2 text-xs bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 whitespace-nowrap"
+                                    >
+                                        ذخیره به عنوان قالب
+                                    </button>
+                                )}
+                            </div>
+                            <textarea 
+                                value={quote.note || ''} 
+                                onChange={e => setQuote({...quote, note: e.target.value})} 
+                                rows={4} 
+                                className="w-full p-3 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-white"
+                                placeholder="توضیحات تکمیلی، شرایط پرداخت، زمان تحویل و..."
+                                disabled={isQuoteApproved}
+                            ></textarea>
+                        </div>
+                        <div className="w-full max-w-sm space-y-2 text-sm self-end">
+                            <div className="flex justify-between"><span>جمع کل (قبل از تخفیف):</span><span>{quote.subtotal?.toLocaleString('fa-IR')} تومان</span></div>
+                            <div className="flex justify-between text-red-600"><span>مبلغ تخفیف:</span><span>- {quote.discountAmount?.toLocaleString('fa-IR')} تومان</span></div>
+                            <div className="flex justify-between text-green-600"><span>مالیات بر ارزش افزوده:</span><span>+ {quote.taxAmount?.toLocaleString('fa-IR')} تومان</span></div>
+                            <div className="flex justify-between font-bold text-lg border-t dark:border-gray-600 pt-2 mt-2"><span>مبلغ نهایی:</span><span>{quote.totalAmount?.toLocaleString('fa-IR')} تومان</span></div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -38,9 +38,15 @@ const statusLabels: Record<string, string> = {
 
 const TeamRequests: React.FC<TeamRequestsProps> = ({ requests, onUpdateStatus }) => {
     
-    const handleAction = (id: string, status: RequestStatus) => {
-        if (window.confirm(`آیا از ${status === 'approved' ? 'تایید' : 'رد'} این درخواست اطمینان دارید؟`)) {
-            onUpdateStatus(id, status);
+    const handleApprove = (id: string) => {
+        if (window.confirm('آیا از تایید این درخواست اطمینان دارید؟')) {
+            onUpdateStatus(id, 'approved');
+        }
+    };
+
+    const handleReject = (id: string) => {
+        if (window.confirm('آیا از رد این درخواست اطمینان دارید؟')) {
+            onUpdateStatus(id, 'rejected');
         }
     };
 
@@ -91,23 +97,25 @@ const TeamRequests: React.FC<TeamRequestsProps> = ({ requests, onUpdateStatus })
                                 </span>
                             </td>
                             <td className="px-6 py-4 text-center">
-                                {req.status === 'pending' && (
+                                {req.status === 'pending' ? (
                                     <div className="flex justify-center gap-2">
                                         <button 
-                                            onClick={() => handleAction(req.id, 'approved')}
-                                            className="text-green-600 hover:text-green-800 p-1 bg-green-100 rounded-full hover:bg-green-200 transition-colors"
-                                            title="تایید"
+                                            onClick={() => handleApprove(req.id)}
+                                            className="flex items-center justify-center text-green-600 hover:text-green-800 p-2 bg-green-50 rounded-lg hover:bg-green-100 transition-colors border border-green-200 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400"
+                                            title="تایید درخواست"
                                         >
                                             <CheckCircleIcon className="w-5 h-5" />
                                         </button>
                                         <button 
-                                            onClick={() => handleAction(req.id, 'rejected')}
-                                            className="text-red-600 hover:text-red-800 p-1 bg-red-100 rounded-full hover:bg-red-200 transition-colors"
-                                            title="رد"
+                                            onClick={() => handleReject(req.id)}
+                                            className="flex items-center justify-center text-red-600 hover:text-red-800 p-2 bg-red-50 rounded-lg hover:bg-red-100 transition-colors border border-red-200 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400"
+                                            title="رد درخواست"
                                         >
                                             <XMarkIcon className="w-5 h-5" />
                                         </button>
                                     </div>
+                                ) : (
+                                    <span className="text-gray-400 text-xs">-</span>
                                 )}
                             </td>
                         </tr>

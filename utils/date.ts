@@ -12,6 +12,14 @@ export const toPersianDigits = (num: string | number | undefined | null): string
     });
 }
 
+export const toEnglishDigits = (str: string): string => {
+    if (!str) return '';
+    const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    return str.replace(/[۰-۹]/g, function (w) {
+        return persianDigits.indexOf(w).toString();
+    });
+}
+
 export const toShamsi = (date: string | Date | undefined | null, format: string = "YYYY/MM/DD"): string => {
     if (!date) return '-';
     

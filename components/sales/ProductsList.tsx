@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Product } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
@@ -23,6 +25,7 @@ const initialNewProductState: Omit<Product, 'id'> = {
     description: '',
     price: 0,
     stock: 0,
+    tax: 9, // Default tax percentage
 };
 
 const ProductsList: React.FC<ProductsListProps> = ({ products, onAddProduct, onUpdateProduct, onDeleteProduct }) => {
@@ -49,7 +52,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, onAddProduct, onU
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setProductFormData(prev => {
-            const newState = { ...prev, [name]: (name === 'price' || name === 'stock') ? parseFloat(value) || 0 : value };
+            const newState = { ...prev, [name]: (name === 'price' || name === 'stock' || name === 'tax') ? parseFloat(value) || 0 : value };
             
             // If type is changed to service, reset stock to 0
             if (name === 'type' && value === 'service') {
@@ -114,6 +117,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, onAddProduct, onU
                                 <th className="px-4 py-3">نوع</th>
                                 <th className="px-4 py-3">نام</th>
                                 <th className="px-4 py-3">قیمت (تومان)</th>
+                                <th className="px-4 py-3 text-center">مالیات (%)</th>
                                 <th className="px-4 py-3 text-center">موجودی</th>
                                 <th className="px-4 py-3 text-center">عملیات</th>
                             </tr>
@@ -137,6 +141,7 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, onAddProduct, onU
                                     </td>
                                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{product.name}</td>
                                     <td className="px-4 py-3">{product.price.toLocaleString('fa-IR')}</td>
+                                    <td className="px-4 py-3 text-center">{product.tax}%</td>
                                     <td className="px-4 py-3 text-center font-bold">
                                         {product.type === 'service' ? '-' : product.stock}
                                     </td>
@@ -202,8 +207,12 @@ const ProductsList: React.FC<ProductsListProps> = ({ products, onAddProduct, onU
                                     <label htmlFor="price" className="block mb-2 text-sm font-medium">قیمت فروش (تومان)</label>
                                     <input type="number" name="price" value={productFormData.price} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required min="0"/>
                                 </div>
+                                <div>
+                                    <label htmlFor="tax" className="block mb-2 text-sm font-medium">درصد مالیات</label>
+                                    <input type="number" name="tax" value={productFormData.tax} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" min="0" max="100"/>
+                                </div>
                                 {productFormData.type === 'product' && (
-                                    <div>
+                                    <div className="col-span-2">
                                         <label htmlFor="stock" className="block mb-2 text-sm font-medium">موجودی اولیه</label>
                                         <input type="number" name="stock" value={productFormData.stock} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required min="0"/>
                                     </div>

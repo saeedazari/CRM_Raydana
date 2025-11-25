@@ -1,3 +1,5 @@
+
+
 import { Permission } from './types';
 
 export interface PermissionItem {
@@ -58,7 +60,7 @@ export const permissionConfig: PermissionModule[] = [
             { id: 'view_inventory', name: 'مشاهده موجودی انبار' },
             { id: 'create_inventory_txn', name: 'ثبت سند انبار (ورود/خروج)' },
             { id: 'view_vendors', name: 'مشاهده تامین‌کنندگان' },
-            { id: 'manage_purchases', name: 'مدیریت سفارشات خرید' },
+            { id: 'manage_purchases', name: 'مدیریت فاکتورهای خرید' },
         ]
     },
     {

@@ -208,6 +208,9 @@ const TicketDetailView: React.FC<{ ticket: Ticket; onBack: () => void; users: Us
     );
 }
 
+// Helper dates
+const daysAgo = (days: number) => new Date(Date.now() - days * 86400000).toISOString();
+
 const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -227,18 +230,33 @@ const Tickets: React.FC<TicketsProps> = ({ customers, onCreateTaskFromTicket }) 
     const mockUsers: User[] = [
       { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
       { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
+      { id: 'U3', name: 'محمد کریمی', username: 'mohammad', roleId: 'R3', avatar: 'https://i.pravatar.cc/40?u=U3' },
+      { id: 'U4', name: 'سارا حسابدار', username: 'sara', roleId: 'R4', avatar: 'https://i.pravatar.cc/40?u=U4' },
     ];
-    // Mock data usually fetched from API
+    
+    // Generate consistent mock tickets using customers prop if available, or fallback
+    const customerList = customers.length > 0 ? customers : [
+        { id: 'C1', name: 'شرکت آلفا', contacts: [], phone: '', status: 'فعال' },
+        { id: 'C2', name: 'تجارت بتا', contacts: [], phone: '', status: 'فعال' }
+    ] as Customer[];
+
     const mockTickets: Ticket[] = [
-        { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', description: 'کاربر اعلام کرده نمی‌تواند وارد پنل شود.', 
-        customer: customers[0] || {id: 'C1', name: 'مشتری نمونه', contacts: [], phone: '', status: 'فعال'}, 
-        customerId: 'C1', assignee: mockUsers[0], assigneeId: 'U1', status: 'در حال بررسی', priority: 'بالا', createdAt: new Date(Date.now() - 86400000).toISOString(), category: 'فنی', replies: [
-            {id: 'R1', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', text: 'در حال بررسی مشکل هستیم.', isInternal: false, createdAt: new Date(Date.now() - 43200000).toISOString(), authorAvatar: mockUsers[0].avatar},
-        ]},
+        { id: 'TKT-721', subject: 'مشکل در ورود به پنل کاربری', description: 'کاربر اعلام کرده نمی‌تواند وارد پنل شود.', customer: customerList[0], customerId: customerList[0].id, assignee: mockUsers[0], assigneeId: 'U1', status: 'در حال بررسی', priority: 'بالا', createdAt: daysAgo(1), category: 'فنی', replies: [{id: 'R1', authorId: 'U1', authorType: 'User', authorName: 'علی رضایی', text: 'در حال بررسی مشکل هستیم.', isInternal: false, createdAt: daysAgo(1), authorAvatar: mockUsers[0].avatar}] },
+        { id: 'TKT-720', subject: 'سوال در مورد صورتحساب', customer: customerList[1], customerId: customerList[1].id, assignee: mockUsers[1], assigneeId: 'U2', status: 'جدید', priority: 'متوسط', createdAt: daysAgo(2), category: 'مالی' },
+        { id: 'TKT-719', subject: 'گزارش باگ در ماژول گزارشات', customer: customerList[0], customerId: customerList[0].id, assignee: mockUsers[0], assigneeId: 'U1', status: 'حل شده', priority: 'بالا', createdAt: daysAgo(5), category: 'فنی' },
+        { id: 'TKT-718', subject: 'درخواست افزودن ویژگی جدید', customer: customerList[1], customerId: customerList[1].id, status: 'در انتظار مشتری', priority: 'کم', createdAt: daysAgo(7), category: 'عمومی' },
+        { id: 'TKT-717', subject: 'راهنمایی برای تنظیمات اولیه', customer: customerList[0], customerId: customerList[0].id, assignee: mockUsers[1], assigneeId: 'U2', status: 'بسته شده', priority: 'متوسط', createdAt: daysAgo(8), category: 'پشتیبانی' },
+        { id: 'TKT-716', subject: 'خطای 500 در صفحه پرداخت', customer: customerList[1], customerId: customerList[1].id, assignee: mockUsers[0], assigneeId: 'U1', status: 'در حال بررسی', priority: 'حیاتی', createdAt: daysAgo(9), category: 'فنی' },
+        { id: 'TKT-715', subject: 'تمدید قرارداد پشتیبانی', customer: customerList[0], customerId: customerList[0].id, assignee: mockUsers[2], assigneeId: 'U3', status: 'جدید', priority: 'بالا', createdAt: daysAgo(10), category: 'مالی' },
+        { id: 'TKT-714', subject: 'مشکل در چاپ فاکتور', customer: customerList[1], customerId: customerList[1].id, assignee: mockUsers[1], assigneeId: 'U2', status: 'حل شده', priority: 'کم', createdAt: daysAgo(11), category: 'فنی' },
+        { id: 'TKT-713', subject: 'سوال درباره API', customer: customerList[0], customerId: customerList[0].id, assignee: mockUsers[0], assigneeId: 'U1', status: 'بسته شده', priority: 'متوسط', createdAt: daysAgo(12), category: 'فنی' },
+        { id: 'TKT-712', subject: 'عدم دریافت ایمیل تایید', customer: customerList[1], customerId: customerList[1].id, assignee: mockUsers[1], assigneeId: 'U2', status: 'در حال بررسی', priority: 'بالا', createdAt: daysAgo(13), category: 'پشتیبانی' },
+        { id: 'TKT-711', subject: 'درخواست دمو حضوری', customer: customerList[0], customerId: customerList[0].id, assignee: mockUsers[2], assigneeId: 'U3', status: 'جدید', priority: 'متوسط', createdAt: daysAgo(14), category: 'عمومی' },
+        { id: 'TKT-710', subject: 'تغییر آدرس شرکت', customer: customerList[1], customerId: customerList[1].id, assignee: mockUsers[3], assigneeId: 'U4', status: 'حل شده', priority: 'کم', createdAt: daysAgo(15), category: 'مالی' },
     ];
     setTickets(mockTickets);
     setUsers(mockUsers);
-  }, []);
+  }, [customers]);
 
   const filteredTickets = useMemo(() => 
     tickets.filter(ticket =>

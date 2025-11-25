@@ -1,4 +1,7 @@
 
+
+
+
 import React, { useState, useEffect } from 'react';
 import InvoicesList from '../sales/InvoicesList';
 import InvoiceEditor from '../sales/InvoiceEditor';
@@ -11,20 +14,14 @@ interface InvoicesProps {
     setInvoices: React.Dispatch<React.SetStateAction<Invoice[]>>;
     quotes: Quote[];
     companyInfo: CompanyInfo;
+    products: Product[];
+    noteTemplates: string[];
+    setNoteTemplates: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
-const Invoices: React.FC<InvoicesProps> = ({ initialParams, customers, invoices, setInvoices, quotes, companyInfo }) => {
+const Invoices: React.FC<InvoicesProps> = ({ initialParams, customers, invoices, setInvoices, quotes, companyInfo, products, noteTemplates, setNoteTemplates }) => {
     const [view, setView] = useState<{ action: 'list' | 'create' | 'edit', entityId?: string, prefill?: any }>({ action: 'list' });
-    const [products, setProducts] = useState<Product[]>([]);
     
-    useEffect(() => {
-        const mockProducts: Product[] = [ 
-            { id: 'P1', name: 'سرویس پشتیبانی طلایی', price: 10000000, stock: 100, type: 'service' }, 
-            { id: 'P2', name: 'سرویس پشتیبانی نقره‌ای', price: 5000000, stock: 50, type: 'service' } 
-        ];
-        setProducts(mockProducts);
-    }, []);
-
     useEffect(() => {
         if (initialParams?.action) {
           setView({
@@ -74,6 +71,8 @@ const Invoices: React.FC<InvoicesProps> = ({ initialParams, customers, invoices,
         onSave={handleSaveInvoice}
         onCancel={handleCancel}
         companyInfo={companyInfo}
+        noteTemplates={noteTemplates}
+        setNoteTemplates={setNoteTemplates}
     />;
 };
 

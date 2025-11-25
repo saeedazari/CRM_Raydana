@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useMemo } from 'react';
 import { PurchaseOrder, PurchaseOrderStatus, CompanyInfo } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
@@ -38,11 +40,11 @@ const PurchaseOrdersList: React.FC<PurchaseOrdersListProps> = ({ purchaseOrders,
         <>
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md h-full flex flex-col">
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                <h2 className="text-xl font-bold">مدیریت سفارشات خرید</h2>
+                <h2 className="text-xl font-bold">مدیریت فاکتورهای خرید</h2>
                 <div className="relative w-full md:w-auto flex-grow max-w-md">
                     <input
                         type="text"
-                        placeholder="جستجو در سفارشات..."
+                        placeholder="جستجو در فاکتورها..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pr-10 pl-4 py-2 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -61,7 +63,7 @@ const PurchaseOrdersList: React.FC<PurchaseOrdersListProps> = ({ purchaseOrders,
                     </button>
                     <button onClick={onCreateNew} className="flex items-center justify-center flex-grow md:flex-grow-0 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
                         <PlusIcon className="w-5 h-5 ml-2" />
-                        <span>سفارش خرید جدید</span>
+                        <span>فاکتور خرید جدید</span>
                     </button>
                 </div>
             </div>
@@ -101,7 +103,7 @@ const PurchaseOrdersList: React.FC<PurchaseOrdersListProps> = ({ purchaseOrders,
                         ))}
                     </tbody>
                 </table>
-                 {filteredPOs.length === 0 && <p className="text-center py-8 text-gray-500">هیچ سفارش خریدی یافت نشد.</p>}
+                 {filteredPOs.length === 0 && <p className="text-center py-8 text-gray-500">هیچ فاکتور خریدی یافت نشد.</p>}
             </div>
         </div>
         {printingPO && (

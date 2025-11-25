@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect } from 'react';
 import { PurchaseOrder, QuoteItem, Product, Vendor, PurchaseOrderStatus, CompanyInfo } from '../../types';
 import { TrashIcon } from '../icons/TrashIcon';
@@ -8,7 +10,7 @@ import PrintableDocument from '../print/PrintableDocument';
 import DatePicker from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
-import { toShamsi } from '../../utils/date';
+import { toShamsi, toEnglishDigits, toPersianDigits } from '../../utils/date';
 
 const initialPOState: Omit<PurchaseOrder, 'id'> = {
     vendorId: '',
@@ -36,9 +38,11 @@ const PurchaseOrderEditor: React.FC<PurchaseOrderEditorProps> = ({ poData, vendo
     const [items, setItems] = useState<QuoteItem[]>(poData?.items || []);
     const [isPrintOpen, setIsPrintOpen] = useState(false);
 
+    // Calculate Grand Totals
     useEffect(() => {
-        const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-        const taxAmount = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice * (item.tax / 100)), 0);
+        const subtotal = items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unitPrice || 0)), 0);
+        // Assuming simplistic tax calc for PO if not specified per item in same way as Quote
+        const taxAmount = items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unitPrice || 0) * ((item.tax || 0) / 100)), 0);
         const totalAmount = subtotal + taxAmount;
 
         setPo(p => ({ ...p, items, subtotal, taxAmount, totalAmount }));
@@ -47,20 +51,24 @@ const PurchaseOrderEditor: React.FC<PurchaseOrderEditorProps> = ({ poData, vendo
     const handleItemChange = (index: number, field: keyof QuoteItem, value: any) => {
         const newItems = [...items];
         const item = { ...newItems[index] };
-        const numericValue = parseFloat(value) || 0;
-
+        
         if (field === 'productId') {
             const product = products.find(p => p.id === value);
             if (product) {
                 item.productName = product.name;
-                item.unitPrice = product.price * 0.8; 
+                item.unitPrice = product.price * 0.8; // Dummy logic for purchase price
             }
             item.productId = value;
         } else {
+            // Convert Persian digits to English before parsing
+            const englishValue = typeof value === 'string' ? toEnglishDigits(value) : value;
+            const numericValue = parseFloat(englishValue) || 0;
             (item[field] as any) = numericValue;
         }
 
-        item.totalPrice = (item.quantity * item.unitPrice); 
+        // Update Row Calculation Immediately
+        item.totalPrice = (item.quantity || 0) * (item.unitPrice || 0); 
+        
         newItems[index] = item;
         setItems(newItems);
     };
@@ -96,7 +104,7 @@ const PurchaseOrderEditor: React.FC<PurchaseOrderEditorProps> = ({ poData, vendo
                     <button onClick={onCancel} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 ml-4">
                         <ArrowRightIcon className="w-5 h-5" />
                     </button>
-                    <h2 className="text-xl font-bold">{ 'id' in po ? `ویرایش سفارش خرید ${po.id}` : 'ایجاد سفارش خرید جدید'}</h2>
+                    <h2 className="text-xl font-bold">{ 'id' in po ? `ویرایش فاکتور خرید ${po.id}` : 'ایجاد فاکتور خرید جدید'}</h2>
                 </div>
                 <div className="flex items-center gap-2">
                      {('id' in po) && (
@@ -155,9 +163,30 @@ const PurchaseOrderEditor: React.FC<PurchaseOrderEditorProps> = ({ poData, vendo
                             {items.map((item, index) => (
                                 <tr key={index} className="border-b dark:border-gray-700">
                                     <td className="p-1"><select value={item.productId} onChange={e => handleItemChange(index, 'productId', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white"><option value="">انتخاب یا وارد کنید</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></td>
-                                    <td className="p-1"><input type="number" value={item.quantity} onChange={e => handleItemChange(index, 'quantity', e.target.value)} min="1" className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" /></td>
-                                    <td className="p-1"><input type="number" value={item.unitPrice} onChange={e => handleItemChange(index, 'unitPrice', e.target.value)} className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" /></td>
-                                    <td className="p-1"><input type="number" value={item.tax} onChange={e => handleItemChange(index, 'tax', e.target.value)} min="0" max="100" className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" /></td>
+                                    <td className="p-1">
+                                        <input 
+                                            type="text" 
+                                            value={toPersianDigits(item.quantity)} 
+                                            onChange={e => handleItemChange(index, 'quantity', e.target.value)} 
+                                            className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" 
+                                        />
+                                    </td>
+                                    <td className="p-1">
+                                        <input 
+                                            type="text" 
+                                            value={toPersianDigits(item.unitPrice)} 
+                                            onChange={e => handleItemChange(index, 'unitPrice', e.target.value)} 
+                                            className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" 
+                                        />
+                                    </td>
+                                    <td className="p-1">
+                                        <input 
+                                            type="text" 
+                                            value={toPersianDigits(item.tax)} 
+                                            onChange={e => handleItemChange(index, 'tax', e.target.value)} 
+                                            className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" 
+                                        />
+                                    </td>
                                     <td className="p-1 text-left font-semibold text-gray-900 dark:text-white">{(item.quantity * item.unitPrice).toLocaleString('fa-IR')}</td>
                                     <td className="p-1 text-center"><button type="button" onClick={() => handleRemoveItem(index)} className="text-red-500 hover:text-red-700 p-1"><TrashIcon className="w-5 h-5"/></button></td>
                                 </tr>

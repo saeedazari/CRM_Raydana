@@ -1,4 +1,6 @@
 
+
+
 import React, { useState } from 'react';
 import ReportCard from '../reports/ReportCard';
 import TicketPerformanceChart from '../reports/TicketPerformanceChart';
@@ -7,6 +9,7 @@ import LeadSourceChart from '../reports/LeadSourceChart';
 import FinancialChart from '../reports/FinancialChart';
 import TopProductsChart from '../reports/TopProductsChart';
 import InventorySummaryChart from '../reports/InventorySummaryChart';
+import UserActivityReport from '../reports/UserActivityReport';
 import { StarIcon } from '../icons/StarIcon';
 import { CheckCircleIcon } from '../icons/CheckCircleIcon';
 import { ExclamationTriangleIcon } from '../icons/ExclamationTriangleIcon';
@@ -16,16 +19,25 @@ import { TicketsIcon } from '../icons/TicketsIcon';
 import { BanknotesIcon } from '../icons/BanknotesIcon';
 import { ArchiveBoxIcon } from '../icons/ArchiveBoxIcon';
 import { ShoppingBagIcon } from '../icons/ShoppingBagIcon';
+import { UserGroupIcon } from '../icons/UserGroupIcon';
+import { Interaction, Ticket, User } from '../../types';
 
-type ReportTab = 'sales_finance' | 'support' | 'inventory_purchase';
+type ReportTab = 'sales_finance' | 'support' | 'inventory_purchase' | 'user_activity';
 
-const Reports: React.FC = () => {
+interface ReportsProps {
+    users?: User[];
+    interactions?: Interaction[];
+    tickets?: Ticket[];
+}
+
+const Reports: React.FC<ReportsProps> = ({ users = [], interactions = [], tickets = [] }) => {
     const [activeTab, setActiveTab] = useState<ReportTab>('sales_finance');
 
     const tabs: { id: ReportTab; name: string; icon: React.ReactNode }[] = [
         { id: 'sales_finance', name: 'فروش و مالی', icon: <BanknotesIcon className="w-5 h-5" /> },
         { id: 'support', name: 'پشتیبانی', icon: <TicketsIcon className="w-5 h-5" /> },
         { id: 'inventory_purchase', name: 'انبار و تدارکات', icon: <ArchiveBoxIcon className="w-5 h-5" /> },
+        { id: 'user_activity', name: 'فعالیت کاربران', icon: <UserGroupIcon className="w-5 h-5" /> },
     ];
 
     const renderSalesFinance = () => (
@@ -124,7 +136,7 @@ const Reports: React.FC = () => {
                     </div>
                      <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                         <div className="text-3xl font-bold text-gray-800 dark:text-white">12</div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">سفارشات خرید باز</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">فاکتورهای خرید باز</p>
                     </div>
                 </div>
             </ReportCard>
@@ -154,6 +166,7 @@ const Reports: React.FC = () => {
             {activeTab === 'sales_finance' && renderSalesFinance()}
             {activeTab === 'support' && renderSupport()}
             {activeTab === 'inventory_purchase' && renderInventoryPurchase()}
+            {activeTab === 'user_activity' && <UserActivityReport users={users} interactions={interactions} tickets={tickets} />}
         </div>
     </div>
   );

@@ -13,13 +13,33 @@ interface Log {
     ip: string;
 }
 
-const mockLogs: Log[] = [
-    { id: 'LOG-1', user: 'علی رضایی', action: 'ایجاد', entity: 'فاکتور', entityId: 'INV-172234', details: 'ایجاد فاکتور جدید برای شرکت آلفا', date: '1403/05/02 14:30', ip: '192.168.1.5' },
-    { id: 'LOG-2', user: 'زهرا احمدی', action: 'ویرایش', entity: 'مشتری', entityId: 'C-1', details: 'تغییر شماره تلفن شرکت آلفا', date: '1403/05/02 12:15', ip: '192.168.1.8' },
-    { id: 'LOG-3', user: 'علی رضایی', action: 'حذف', entity: 'وظیفه', entityId: 'TSK-99', details: 'حذف وظیفه تکراری', date: '1403/05/01 09:00', ip: '192.168.1.5' },
-    { id: 'LOG-4', user: 'سیستم', action: 'پشتیبان‌گیری', entity: 'دیتابیس', entityId: '-', details: 'پشتیبان‌گیری خودکار روزانه', date: '1403/05/01 02:00', ip: 'localhost' },
-    { id: 'LOG-5', user: 'محمد کریمی', action: 'ورود', entity: 'Auth', entityId: '-', details: 'ورود موفق به سیستم', date: '1403/04/31 08:05', ip: '192.168.1.12' },
-];
+const generateLogs = (): Log[] => {
+    const logs: Log[] = [];
+    const users = ['علی رضایی', 'زهرا احمدی', 'محمد کریمی', 'سارا حسابدار', 'سیستم'];
+    const actions = ['ایجاد', 'ویرایش', 'حذف', 'ورود', 'خروج', 'پشتیبان‌گیری', 'مشاهده'];
+    const entities = ['فاکتور', 'مشتری', 'تیکت', 'وظیفه', 'کاربر', 'دیتابیس', 'گزارش'];
+    
+    for (let i = 1; i <= 50; i++) {
+        const randomUser = users[Math.floor(Math.random() * users.length)];
+        const randomAction = actions[Math.floor(Math.random() * actions.length)];
+        const randomEntity = entities[Math.floor(Math.random() * entities.length)];
+        
+        logs.push({
+            id: `LOG-${1000 + i}`,
+            user: randomUser,
+            action: randomAction,
+            entity: randomEntity,
+            entityId: `${randomEntity.substring(0, 3).toUpperCase()}-${Math.floor(Math.random() * 900) + 100}`,
+            details: `${randomAction} ${randomEntity} توسط ${randomUser}`,
+            date: `1403/05/${Math.floor(Math.random() * 30) + 1} ${Math.floor(Math.random() * 23)}:${Math.floor(Math.random() * 59)}`,
+            ip: `192.168.1.${Math.floor(Math.random() * 255)}`
+        });
+    }
+    // Sort descending by mock ID (proxy for time)
+    return logs.reverse();
+};
+
+const mockLogs = generateLogs();
 
 const SystemLogs: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -49,10 +69,11 @@ const SystemLogs: React.FC = () => {
                 </div>
             </div>
 
-            <div className="overflow-x-auto border rounded-lg dark:border-gray-700">
+            <div className="overflow-x-auto border rounded-lg dark:border-gray-700 max-h-[600px]">
                 <table className="w-full text-sm text-right text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400">
+                    <thead className="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
                         <tr>
+                            <th className="px-4 py-3">شناسه</th>
                             <th className="px-4 py-3">کاربر</th>
                             <th className="px-4 py-3">نوع عملیات</th>
                             <th className="px-4 py-3">ماژول</th>
@@ -64,6 +85,7 @@ const SystemLogs: React.FC = () => {
                     <tbody>
                         {filteredLogs.map((log) => (
                             <tr key={log.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                <td className="px-4 py-3 font-mono text-xs">{log.id}</td>
                                 <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{log.user}</td>
                                 <td className="px-4 py-3">
                                     <span className={`px-2 py-0.5 rounded text-xs font-medium

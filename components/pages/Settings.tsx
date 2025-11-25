@@ -19,12 +19,6 @@ import { KeyIcon } from '../icons/KeyIcon';
 import { SettingsIcon } from '../icons/SettingsIcon';
 import { ClipboardDocumentListIcon } from '../icons/ClipboardDocumentListIcon'; // Icon for logs
 
-/*
-    === REMOVE OR REPLACE MOCK DATA ===
-*/
-// const mockRoles...
-// const mockUsers...
-
 type ActiveTab = 'general' | 'users' | 'customerUsers' | 'roles' | 'channels' | 'logs';
 
 interface SettingsProps {
@@ -32,11 +26,12 @@ interface SettingsProps {
     setCustomers: React.Dispatch<React.SetStateAction<Customer[]>>;
     companyInfo: CompanyInfo;
     setCompanyInfo: (info: CompanyInfo) => void;
+    users: User[];
+    setUsers: React.Dispatch<React.SetStateAction<User[]>>;
 }
 
-const Settings: React.FC<SettingsProps> = ({ customers, setCustomers, companyInfo, setCompanyInfo }) => {
+const Settings: React.FC<SettingsProps> = ({ customers, setCustomers, companyInfo, setCompanyInfo, users, setUsers }) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('general');
-  const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
 
   React.useEffect(() => {
@@ -46,12 +41,7 @@ const Settings: React.FC<SettingsProps> = ({ customers, setCustomers, companyInf
         { id: 'R2', name: 'کارشناس پشتیبانی', permissions: 'view_customers,view_tickets,create_tickets,edit_tickets' },
         { id: 'R3', name: 'کارشناس فروش', permissions: 'view_customers,create_customers,view_sales,create_sales,edit_sales' },
     ];
-    const mockUsers: User[] = [
-      { id: 'U1', name: 'علی رضایی', username: 'ali', roleId: 'R1', avatar: 'https://i.pravatar.cc/40?u=U1' },
-      { id: 'U2', name: 'زهرا احمدی', username: 'zahra', roleId: 'R2', avatar: 'https://i.pravatar.cc/40?u=U2' },
-      { id: 'U3', name: 'محمد کریمی', username: 'mohammad', roleId: 'R3', avatar: 'https://i.pravatar.cc/40?u=U3' },
-    ];
-    setUsers(mockUsers);
+    // Users are now passed as props to maintain global state for hierarchy
     setRoles(mockRoles);
   }, []);
 

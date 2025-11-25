@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect } from 'react';
 import { Payment, Customer, Vendor, Invoice, PurchaseOrder, PaymentMethod, PaymentType } from '../../types';
 import { XMarkIcon } from '../icons/XMarkIcon';
@@ -127,7 +129,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSave, cu
                         </div>
 
                         <div>
-                            <label className="block mb-2 text-sm font-medium">{type === 'دریافت' ? 'بابت فاکتور فروش' : 'بابت سفارش خرید'}</label>
+                            <label className="block mb-2 text-sm font-medium">{type === 'دریافت' ? 'بابت فاکتور فروش' : 'بابت فاکتور خرید'}</label>
                             <select value={referenceId} onChange={e => setReferenceId(e.target.value)} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600" required disabled={!partyId}>
                                 <option value="">انتخاب کنید...</option>
                                 {type === 'دریافت'

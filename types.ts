@@ -129,6 +129,7 @@ export interface Product {
     type: 'product' | 'service'; // Added: Distinguish between physical goods and services
     price: number;
     stock: number; // Added stock field
+    tax?: number; // Added tax percentage
 }
 
 export type QuoteStatus = 'پیش‌نویس' | 'ارسال شده' | 'تایید شده' | 'رد شده';
@@ -153,11 +154,13 @@ export interface Quote {
     issueDate: string;
     expiryDate: string;
     status: QuoteStatus;
+    isOfficial?: boolean; // Added
     items: QuoteItem[];
     subtotal: number;
     discountAmount: number;
     taxAmount: number;
     totalAmount: number;
+    note?: string; // Added Description/Note field
 }
 
 export type InvoiceStatus = 'پیش‌نویس' | 'ارسال شده' | 'پرداخت جزئی' | 'پرداخت شده' | 'سررسید گذشته';
@@ -169,7 +172,6 @@ export interface Invoice {
     customerId: string;
     customerName: string;
     issueDate: string;
-    dueDate: string;
     status: InvoiceStatus;
     isOfficial: boolean; // Added
     items: InvoiceItem[];
@@ -178,6 +180,7 @@ export interface Invoice {
     taxAmount: number;
     totalAmount: number;
     amountPaid?: number; // Track partial payments
+    note?: string; // Added Description/Note field
 }
 
 
@@ -194,7 +197,7 @@ export type Permission =
     // Inventory & Purchasing
     'view_inventory' | 'create_inventory_txn' | 'view_vendors' | 'manage_purchases' |
     // Finance
-    'view_finance' | 'create_payment' |
+    'view_finance' | 'create_payment' | 'view_invoices' |
     // Reports
     'view_reports' |
     // Settings
@@ -223,6 +226,15 @@ export interface User {
 export type TaskStatus = 'معلق' | 'در حال انجام' | 'در انتظار' | 'تکمیل شده' | 'لغو شده';
 export type TaskPriority = 'فوری' | 'بالا' | 'متوسط' | 'پایین';
 
+export interface TaskComment {
+    id: string;
+    userId: string;
+    userName: string;
+    userAvatar?: string;
+    text: string;
+    createdAt: string;
+}
+
 export interface Task {
     id: string;
     title: string;
@@ -230,10 +242,13 @@ export interface Task {
     customer?: Customer; 
     relatedTicketId?: string; 
     assignedTo: User;
+    assignedToId?: string; // Helper for forms
+    createdById?: string; // To track who assigned the task
     priority: TaskPriority;
     status: TaskStatus;
     dueDate: string;
     createdAt: string;
+    comments?: TaskComment[]; // Conversation on the task
 }
 
 // Chat Types

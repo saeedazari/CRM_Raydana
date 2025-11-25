@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Invoice, InvoiceItem, Product, Customer, Quote, CompanyInfo } from '../../types';
 import { TrashIcon } from '../icons/TrashIcon';
@@ -8,13 +10,12 @@ import PrintableDocument from '../print/PrintableDocument';
 import DatePicker from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
-import { toShamsi } from '../../utils/date';
+import { toShamsi, toPersianDigits, toEnglishDigits } from '../../utils/date';
 
 const initialInvoiceState: Omit<Invoice, 'id'> = {
     customerId: '',
     customerName: '',
     issueDate: toShamsi(new Date()),
-    dueDate: toShamsi(new Date(new Date().setDate(new Date().getDate() + 30))),
     status: 'پیش‌نویس',
     isOfficial: false,
     items: [],
@@ -22,6 +23,7 @@ const initialInvoiceState: Omit<Invoice, 'id'> = {
     discountAmount: 0,
     taxAmount: 0,
     totalAmount: 0,
+    note: '',
 };
 
 const InvoiceEditor: React.FC<{
@@ -33,7 +35,9 @@ const InvoiceEditor: React.FC<{
     onSave: (invoice: Omit<Invoice, 'id'> | Invoice) => void;
     onCancel: () => void;
     companyInfo: CompanyInfo;
-}> = ({ invoiceData, prefillData, quotes, customers, products, onSave, onCancel, companyInfo }) => {
+    noteTemplates: string[];
+    setNoteTemplates: React.Dispatch<React.SetStateAction<string[]>>;
+}> = ({ invoiceData, prefillData, quotes, customers, products, onSave, onCancel, companyInfo, noteTemplates, setNoteTemplates }) => {
     
     const getInitialState = () => {
         if (invoiceData) return invoiceData;
@@ -52,6 +56,7 @@ const InvoiceEditor: React.FC<{
     const [items, setItems] = useState<InvoiceItem[]>(getInitialState().items || []);
     const [quoteToLoad, setQuoteToLoad] = useState<string>(prefillData?.quoteId || '');
     const [isPrintOpen, setIsPrintOpen] = useState(false);
+    const [selectedTemplate, setSelectedTemplate] = useState('');
     
     const approvedQuotes = useMemo(() => quotes.filter(q => q.status === 'تایید شده'), [quotes]);
     
@@ -61,42 +66,20 @@ const InvoiceEditor: React.FC<{
         }
     }, [prefillData]);
 
+    // Calculate Grand Totals whenever items change
     useEffect(() => {
-        let newSubtotal = 0;
-        let newDiscountAmount = 0;
-        let newTaxAmount = 0;
-
-        const updatedItems = items.map(item => {
-            const totalPrice = item.quantity * item.unitPrice;
-            let itemDiscount = 0;
-            if (item.discountType === 'percent') {
-                itemDiscount = totalPrice * (item.discount / 100);
-            } else {
-                itemDiscount = item.discount;
-            }
-            const totalAfterDiscount = totalPrice - itemDiscount;
-            const itemTax = totalAfterDiscount * (item.tax / 100);
-            const totalWithTax = totalAfterDiscount + itemTax;
-
-            newSubtotal += totalPrice;
-            newDiscountAmount += itemDiscount;
-            newTaxAmount += itemTax;
-
-            return {
-                ...item,
-                totalPrice,
-                totalAfterDiscount,
-                totalWithTax
-            };
-        });
+        const newSubtotal = items.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+        const newDiscountAmount = items.reduce((sum, item) => sum + ((item.totalPrice || 0) - (item.totalAfterDiscount || 0)), 0);
+        const newTaxAmount = items.reduce((sum, item) => sum + ((item.totalAfterDiscount || 0) * (item.tax / 100)), 0);
+        const newTotalAmount = newSubtotal - newDiscountAmount + newTaxAmount;
 
         setInvoice(inv => ({
             ...inv,
-            items: updatedItems,
+            items: items, // Update reference
             subtotal: newSubtotal,
             discountAmount: newDiscountAmount,
             taxAmount: newTaxAmount,
-            totalAmount: newSubtotal - newDiscountAmount + newTaxAmount
+            totalAmount: newTotalAmount
         }));
     }, [items]);
 
@@ -109,15 +92,39 @@ const InvoiceEditor: React.FC<{
             if (product) {
                 item.productName = product.name;
                 item.unitPrice = product.price;
+                // Auto-fill tax based on official status
+                item.tax = invoice.isOfficial ? (product.tax || 0) : 0;
             }
              item.productId = value;
         } else if (field === 'discountType') {
             item.discountType = value as 'percent' | 'amount';
         } else {
-             const numericValue = parseFloat(value);
+             const englishValue = typeof value === 'string' ? toEnglishDigits(value) : value;
+             const numericValue = parseFloat(englishValue);
              (item[field] as any) = isNaN(numericValue) ? 0 : numericValue;
         }
         
+        // --- Perform Row Calculations Immediately ---
+        const qty = item.quantity || 0;
+        const unitPrice = item.unitPrice || 0;
+        const totalPrice = qty * unitPrice;
+        
+        let itemDiscount = 0;
+        if (item.discountType === 'percent') {
+            itemDiscount = totalPrice * ((item.discount || 0) / 100);
+        } else {
+            itemDiscount = item.discount || 0;
+        }
+        
+        const totalAfterDiscount = totalPrice - itemDiscount;
+        const itemTax = totalAfterDiscount * ((item.tax || 0) / 100);
+        const totalWithTax = totalAfterDiscount + itemTax;
+
+        // Update calculated fields
+        item.totalPrice = totalPrice;
+        item.totalAfterDiscount = totalAfterDiscount;
+        item.totalWithTax = totalWithTax;
+
         newItems[index] = item;
         setItems(newItems);
     };
@@ -128,10 +135,10 @@ const InvoiceEditor: React.FC<{
             productName: '', 
             quantity: 1, 
             unitPrice: 0, 
-            totalPrice: 0,
+            totalPrice: 0, 
             discountType: 'percent',
             discount: 0, 
-            totalAfterDiscount: 0,
+            totalAfterDiscount: 0, 
             tax: 0, 
             totalWithTax: 0
         }]);
@@ -154,15 +161,67 @@ const InvoiceEditor: React.FC<{
                 quoteId: selectedQuote.id,
                 customerId: selectedQuote.customerId,
                 customerName: customer?.name || '',
+                isOfficial: selectedQuote.isOfficial || false, // Inherit official status
                 items: selectedQuote.items, 
                 subtotal: selectedQuote.subtotal,
                 discountAmount: selectedQuote.discountAmount,
                 taxAmount: selectedQuote.taxAmount,
                 totalAmount: selectedQuote.totalAmount,
+                note: selectedQuote.note,
             };
             setInvoice(invoiceFromQuote);
             setItems(invoiceFromQuote.items);
         }
+    };
+
+    const handleAddTemplate = () => {
+        if (invoice.note && !noteTemplates.includes(invoice.note)) {
+            setNoteTemplates(prev => [...prev, invoice.note!]);
+            alert('به لیست قالب‌ها اضافه شد.');
+        }
+    };
+    
+    const handleTemplateSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const val = e.target.value;
+        setSelectedTemplate(val);
+        if (val) {
+            setInvoice(prev => ({ ...prev, note: val }));
+        }
+    };
+
+    const handleIsOfficialChange = (checked: boolean) => {
+        setInvoice(prev => ({ ...prev, isOfficial: checked }));
+        
+        // Update tax for all existing items based on official status
+        const updatedItems = items.map(item => {
+            const product = products.find(p => p.id === item.productId);
+            const newTax = checked ? (product?.tax || 0) : 0;
+            
+            // Recalculate row totals
+            const qty = item.quantity || 0;
+            const unitPrice = item.unitPrice || 0;
+            const totalPrice = qty * unitPrice;
+            
+            let itemDiscount = 0;
+            if (item.discountType === 'percent') {
+                itemDiscount = totalPrice * ((item.discount || 0) / 100);
+            } else {
+                itemDiscount = item.discount || 0;
+            }
+            
+            const totalAfterDiscount = totalPrice - itemDiscount;
+            const itemTax = totalAfterDiscount * (newTax / 100);
+            const totalWithTax = totalAfterDiscount + itemTax;
+
+            return {
+                ...item,
+                tax: newTax,
+                totalPrice,
+                totalAfterDiscount,
+                totalWithTax
+            };
+        });
+        setItems(updatedItems);
     };
 
     return (
@@ -176,11 +235,11 @@ const InvoiceEditor: React.FC<{
                     <h2 className="text-xl font-bold">{ 'id' in invoice ? `ویرایش فاکتور ${invoice.id}` : 'ایجاد فاکتور جدید'}</h2>
                 </div>
                 <div className="flex items-center gap-2">
-                    <label className="flex items-center gap-2 ml-4 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label className="flex items-center gap-2 ml-4 text-sm font-medium text-gray-700 dark:text-gray-300 select-none cursor-pointer">
                         <input 
                             type="checkbox" 
                             checked={invoice.isOfficial} 
-                            onChange={e => setInvoice({...invoice, isOfficial: e.target.checked})}
+                            onChange={e => handleIsOfficialChange(e.target.checked)}
                             className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                         />
                         فاکتور رسمی
@@ -204,7 +263,7 @@ const InvoiceEditor: React.FC<{
                     <button onClick={() => handleLoadFromQuote(quoteToLoad)} disabled={!quoteToLoad} className="px-4 py-2 text-sm text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400">بارگذاری</button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 border rounded-lg dark:border-gray-700">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-lg dark:border-gray-700">
                     <div>
                         <label className="block text-sm font-medium mb-1">مشتری</label>
                         <select value={invoice.customerId} onChange={(e) => handleCustomerChange(e.target.value)} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white" required>
@@ -217,17 +276,6 @@ const InvoiceEditor: React.FC<{
                         <DatePicker 
                             value={invoice.issueDate}
                             onChange={(date) => setInvoice({...invoice, issueDate: date?.toString() || ''})}
-                            calendar={persian}
-                            locale={persian_fa}
-                            calendarPosition="bottom-right"
-                            inputClass="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">تاریخ سررسید</label>
-                        <DatePicker 
-                            value={invoice.dueDate}
-                            onChange={(date) => setInvoice({...invoice, dueDate: date?.toString() || ''})}
                             calendar={persian}
                             locale={persian_fa}
                             calendarPosition="bottom-right"
@@ -255,18 +303,31 @@ const InvoiceEditor: React.FC<{
                             {items.map((item, index) => (
                                 <tr key={index} className="border-b dark:border-gray-700">
                                     <td className="p-1"><select value={item.productId} onChange={e => handleItemChange(index, 'productId', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-lg dark:bg-gray-700 text-gray-900 dark:text-white"><option value="">انتخاب محصول</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></td>
-                                    <td className="p-1"><input type="number" value={item.quantity} onChange={e => handleItemChange(index, 'quantity', e.target.value)} min="1" className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" /></td>
-                                    <td className="p-1"><input type="text" value={item.unitPrice} onChange={e => handleItemChange(index, 'unitPrice', e.target.value)} className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" /></td>
+                                    <td className="p-1">
+                                        <input 
+                                            type="text" 
+                                            value={toPersianDigits(item.quantity)} 
+                                            onChange={e => handleItemChange(index, 'quantity', e.target.value)} 
+                                            className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" 
+                                        />
+                                    </td>
+                                    <td className="p-1">
+                                        <input 
+                                            type="text" 
+                                            value={toPersianDigits(item.unitPrice)} 
+                                            onChange={e => handleItemChange(index, 'unitPrice', e.target.value)} 
+                                            className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" 
+                                        />
+                                    </td>
                                     <td className="p-1">
                                         <input type="text" value={item.totalPrice.toLocaleString('fa-IR')} readOnly className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white cursor-default focus:outline-none" />
                                     </td>
                                     <td className="p-1">
                                         <div className="flex items-center">
                                             <input 
-                                                type="number" 
-                                                value={item.discount} 
+                                                type="text" 
+                                                value={toPersianDigits(item.discount)} 
                                                 onChange={e => handleItemChange(index, 'discount', e.target.value)} 
-                                                min="0" 
                                                 className="w-full p-2 text-center bg-gray-50 border rounded-r-lg rounded-l-none text-gray-900 dark:bg-gray-700 dark:text-white focus:z-10" 
                                             />
                                             <select 
@@ -282,7 +343,14 @@ const InvoiceEditor: React.FC<{
                                     <td className="p-1">
                                         <input type="text" value={item.totalAfterDiscount.toLocaleString('fa-IR')} readOnly className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white cursor-default focus:outline-none" />
                                     </td>
-                                    <td className="p-1"><input type="number" value={item.tax} onChange={e => handleItemChange(index, 'tax', e.target.value)} min="0" max="100" className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" /></td>
+                                    <td className="p-1">
+                                        <input 
+                                            type="text" 
+                                            value={toPersianDigits(item.tax)} 
+                                            onChange={e => handleItemChange(index, 'tax', e.target.value)} 
+                                            className="w-full p-2 text-center bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white" 
+                                        />
+                                    </td>
                                     <td className="p-1">
                                         <input type="text" value={item.totalWithTax.toLocaleString('fa-IR')} readOnly className="w-full p-2 text-left font-bold bg-gray-50 border rounded-lg text-gray-900 dark:bg-gray-700 dark:text-white cursor-default focus:outline-none" />
                                     </td>
@@ -293,12 +361,44 @@ const InvoiceEditor: React.FC<{
                     </table>
                     <button type="button" onClick={handleAddItem} className="mt-4 text-sm text-indigo-600 font-medium">+ افزودن آیتم جدید</button>
                 </div>
-                <div className="flex justify-end pt-4 mt-4 border-t dark:border-gray-700">
-                    <div className="w-full max-w-sm space-y-2 text-sm">
-                        <div className="flex justify-between"><span>جمع کل (قبل از تخفیف):</span><span>{invoice.subtotal?.toLocaleString('fa-IR')} تومان</span></div>
-                        <div className="flex justify-between text-red-600"><span>مبلغ تخفیف:</span><span>- {invoice.discountAmount?.toLocaleString('fa-IR')} تومان</span></div>
-                        <div className="flex justify-between text-green-600"><span>مالیات بر ارزش افزوده:</span><span>+ {invoice.taxAmount?.toLocaleString('fa-IR')} تومان</span></div>
-                        <div className="flex justify-between font-bold text-lg border-t dark:border-gray-600 pt-2 mt-2"><span>مبلغ نهایی:</span><span>{invoice.totalAmount?.toLocaleString('fa-IR')} تومان</span></div>
+                
+                <div className="border-t dark:border-gray-700 pt-4">
+                    <div className="flex flex-col md:flex-row justify-between gap-6">
+                        <div className="flex-grow max-w-2xl">
+                            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">توضیحات و شرایط</label>
+                            <div className="flex gap-2 mb-2">
+                                <select 
+                                    value={selectedTemplate} 
+                                    onChange={handleTemplateSelect} 
+                                    className="flex-grow p-2 text-sm border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                >
+                                    <option value="">-- انتخاب از قالب‌ها --</option>
+                                    {noteTemplates.map((tmpl, idx) => (
+                                        <option key={idx} value={tmpl}>{tmpl.substring(0, 60)}...</option>
+                                    ))}
+                                </select>
+                                <button 
+                                    type="button" 
+                                    onClick={handleAddTemplate} 
+                                    className="px-3 py-2 text-xs bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 whitespace-nowrap"
+                                >
+                                    ذخیره به عنوان قالب
+                                </button>
+                            </div>
+                            <textarea 
+                                value={invoice.note || ''} 
+                                onChange={e => setInvoice({...invoice, note: e.target.value})} 
+                                rows={4} 
+                                className="w-full p-3 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-white"
+                                placeholder="توضیحات تکمیلی، شرایط پرداخت، شماره حساب و..."
+                            ></textarea>
+                        </div>
+                        <div className="w-full max-w-sm space-y-2 text-sm self-end">
+                            <div className="flex justify-between"><span>جمع کل (قبل از تخفیف):</span><span>{invoice.subtotal?.toLocaleString('fa-IR')} تومان</span></div>
+                            <div className="flex justify-between text-red-600"><span>مبلغ تخفیف:</span><span>- {invoice.discountAmount?.toLocaleString('fa-IR')} تومان</span></div>
+                            <div className="flex justify-between text-green-600"><span>مالیات بر ارزش افزوده:</span><span>+ {invoice.taxAmount?.toLocaleString('fa-IR')} تومان</span></div>
+                            <div className="flex justify-between font-bold text-lg border-t dark:border-gray-600 pt-2 mt-2"><span>مبلغ نهایی:</span><span>{invoice.totalAmount?.toLocaleString('fa-IR')} تومان</span></div>
+                        </div>
                     </div>
                 </div>
             </div>

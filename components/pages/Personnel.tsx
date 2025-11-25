@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { User, PersonnelRequest, RequestStatus } from '../../types';
 import RequestModal from '../personnel/RequestModal';
 import MyRequests from '../personnel/MyRequests';
@@ -12,6 +12,7 @@ import { DocumentChartBarIcon } from '../icons/DocumentChartBarIcon';
 
 interface PersonnelProps {
     currentUser: User;
+    users: User[];
     requests: PersonnelRequest[];
     onAddRequest: (request: Omit<PersonnelRequest, 'id' | 'status' | 'createdAt' | 'userId' | 'managerId'>) => void;
     onUpdateRequestStatus: (requestId: string, status: RequestStatus) => void;
@@ -19,9 +20,14 @@ interface PersonnelProps {
 
 type ActiveTab = 'my_requests' | 'team_requests' | 'financial_reports';
 
-const Personnel: React.FC<PersonnelProps> = ({ currentUser, requests, onAddRequest, onUpdateRequestStatus }) => {
+const Personnel: React.FC<PersonnelProps> = ({ currentUser, users, requests, onAddRequest, onUpdateRequestStatus }) => {
     const [activeTab, setActiveTab] = useState<ActiveTab>('my_requests');
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Check if current user is a manager for ANY user
+    const isManager = useMemo(() => {
+        return users.some(u => u.managerId === currentUser.id);
+    }, [users, currentUser.id]);
 
     // Filter requests for the current user
     const myRequests = requests.filter(req => req.userId === currentUser.id).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -61,22 +67,24 @@ const Personnel: React.FC<PersonnelProps> = ({ currentUser, requests, onAddReque
                         درخواست‌های من
                     </button>
                     
-                    <button
-                        onClick={() => setActiveTab('team_requests')}
-                        className={`pb-4 px-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 relative whitespace-nowrap
-                            ${activeTab === 'team_requests' 
-                                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' 
-                                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-                            }`}
-                    >
-                        <UserGroupIcon className="w-4 h-4" />
-                        کارتابل مدیریت
-                        {pendingCount > 0 && (
-                            <span className="absolute -top-1 -left-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white shadow-sm">
-                                {pendingCount}
-                            </span>
-                        )}
-                    </button>
+                    {isManager && (
+                        <button
+                            onClick={() => setActiveTab('team_requests')}
+                            className={`pb-4 px-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 relative whitespace-nowrap
+                                ${activeTab === 'team_requests' 
+                                    ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' 
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                }`}
+                        >
+                            <UserGroupIcon className="w-4 h-4" />
+                            کارتابل مدیریت
+                            {pendingCount > 0 && (
+                                <span className="absolute -top-1 -left-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white shadow-sm">
+                                    {pendingCount}
+                                </span>
+                            )}
+                        </button>
+                    )}
 
                     <button
                         onClick={() => setActiveTab('financial_reports')}
@@ -95,7 +103,7 @@ const Personnel: React.FC<PersonnelProps> = ({ currentUser, requests, onAddReque
             {/* Content */}
             <div className="flex-1 bg-white dark:bg-gray-800 p-6 rounded-b-lg shadow-md overflow-hidden">
                 {activeTab === 'my_requests' && <MyRequests requests={myRequests} />}
-                {activeTab === 'team_requests' && <TeamRequests requests={teamRequests} onUpdateStatus={onUpdateRequestStatus} />}
+                {activeTab === 'team_requests' && isManager && <TeamRequests requests={teamRequests} onUpdateStatus={onUpdateRequestStatus} />}
                 {activeTab === 'financial_reports' && <FinancialReports requests={requests} />}
             </div>
 

@@ -50,7 +50,7 @@ const SalesFunnel: React.FC = () => {
             data={data}
             isAnimationActive
           >
-            <LabelList position="right" fill="#6b7280" stroke="none" dataKey="name" />
+            <LabelList position="right" fill="#374151" stroke="none" dataKey="name" />
           </Funnel>
         </FunnelChart>
       </ResponsiveContainer>

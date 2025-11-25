@@ -1,4 +1,7 @@
 
+
+
+
 import React, { useState, useEffect } from 'react';
 import QuotationsList from '../sales/QuotationsList';
 import QuoteEditor from '../sales/QuoteEditor';
@@ -11,21 +14,13 @@ interface QuotesProps {
     setQuotes: React.Dispatch<React.SetStateAction<Quote[]>>;
     initialParams?: any;
     companyInfo: CompanyInfo;
+    products: Product[];
+    noteTemplates: string[];
+    setNoteTemplates: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
-const Quotes: React.FC<QuotesProps> = ({ customers, onCreateInvoiceFromQuote, quotes, setQuotes, initialParams, companyInfo }) => {
+const Quotes: React.FC<QuotesProps> = ({ customers, onCreateInvoiceFromQuote, quotes, setQuotes, initialParams, companyInfo, products, noteTemplates, setNoteTemplates }) => {
     const [view, setView] = useState<{ action: 'list' | 'create' | 'edit', entityId?: string }>({ action: 'list' });
-    
-    const [products, setProducts] = useState<Product[]>([]);
-
-    useEffect(() => {
-        const mockProducts: Product[] = [
-            { id: 'P1', name: 'سرویس پشتیبانی طلایی', price: 10000000, stock: 100, type: 'service' }, 
-            { id: 'P2', name: 'سرویس پشتیبانی نقره‌ای', price: 5000000, stock: 50, type: 'service' },
-            { id: 'P3', name: 'لایسنس تک کاربره', price: 2000000, stock: 20, type: 'product' },
-        ];
-        setProducts(mockProducts);
-    }, []);
     
     useEffect(() => {
         if (initialParams?.action) {
@@ -87,6 +82,8 @@ const Quotes: React.FC<QuotesProps> = ({ customers, onCreateInvoiceFromQuote, qu
         onCancel={handleCancel}
         onCreateInvoiceFromQuote={(quote) => onCreateInvoiceFromQuote(quote.id, quote.customerId)}
         companyInfo={companyInfo}
+        noteTemplates={noteTemplates}
+        setNoteTemplates={setNoteTemplates}
     />;
 };
 

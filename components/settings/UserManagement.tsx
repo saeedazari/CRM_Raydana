@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { User, Role } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
@@ -16,7 +17,8 @@ const initialUserState: Omit<User, 'id' | 'avatar'> = {
     name: '',
     username: '',
     roleId: '',
-    password: ''
+    password: '',
+    managerId: ''
 };
 
 const UserManagement: React.FC<UserManagementProps> = ({ users, roles, setUsers }) => {
@@ -32,6 +34,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, roles, setUsers 
                 username: editingUser.username,
                 roleId: editingUser.roleId,
                 password: '',
+                managerId: editingUser.managerId || ''
             });
         } else {
             setUserFormData(initialUserState);
@@ -51,6 +54,13 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, roles, setUsers 
             return acc;
         }, {} as Record<string, string>),
     [roles]);
+    
+    const usersMap = useMemo(() =>
+        users.reduce((acc, user) => {
+            acc[user.id] = user.name;
+            return acc;
+        }, {} as Record<string, string>),
+    [users]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -115,6 +125,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, roles, setUsers 
                             <th scope="col" className="px-4 py-3">نام</th>
                             <th scope="col" className="px-4 py-3">نام کاربری</th>
                             <th scope="col" className="px-4 py-3">نقش</th>
+                            <th scope="col" className="px-4 py-3">مدیر مستقیم</th>
                             <th scope="col" className="px-4 py-3 text-center">عملیات</th>
                         </tr>
                     </thead>
@@ -127,6 +138,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, roles, setUsers 
                                 </td>
                                 <td className="px-4 py-3 font-mono text-xs">{user.username}</td>
                                 <td className="px-4 py-3">{rolesMap[user.roleId] || 'تعیین نشده'}</td>
+                                <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">
+                                    {user.managerId ? usersMap[user.managerId] || '-' : '-'}
+                                </td>
                                 <td className="px-4 py-3 text-center">
                                     <div className="flex justify-center items-center gap-2">
                                         <button onClick={() => openPanel(user)} className="p-1 text-gray-500 hover:text-indigo-600"><PencilIcon className="w-5 h-5" /></button>
@@ -166,6 +180,16 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, roles, setUsers 
                                     <option value="">یک نقش انتخاب کنید</option>
                                     {roles.map(role => <option key={role.id} value={role.id}>{role.name}</option>)}
                                 </select>
+                            </div>
+                            <div>
+                                <label htmlFor="managerId" className="block mb-2 text-sm font-medium">مدیر مستقیم</label>
+                                <select name="managerId" id="managerId" value={userFormData.managerId} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                                    <option value="">بدون مدیر</option>
+                                    {users.filter(u => u.id !== editingUser?.id).map(user => (
+                                        <option key={user.id} value={user.id}>{user.name} ({user.username})</option>
+                                    ))}
+                                </select>
+                                <p className="text-xs text-gray-500 mt-1">مدیر می‌تواند درخواست‌های مرخصی و ماموریت این کاربر را تایید کند.</p>
                             </div>
                         </div>
                         <div className="flex items-center justify-end p-4 border-t dark:border-gray-700 mt-auto">

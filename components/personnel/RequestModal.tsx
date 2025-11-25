@@ -5,7 +5,6 @@ import { XMarkIcon } from '../icons/XMarkIcon';
 import DatePicker from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
-import TimePicker from "react-multi-date-picker/plugins/time_picker";
 import { toIsoDate } from '../../utils/date';
 
 interface RequestModalProps {
@@ -24,6 +23,12 @@ const RequestModal: React.FC<RequestModalProps> = ({ isOpen, onClose, onSubmit }
     const [destination, setDestination] = useState('');
     const [description, setDescription] = useState('');
 
+    // Logic Definitions based on user request:
+    // Mission: Date Range (From Date - To Date)
+    // Remote Work: Single Date + Time Range (From Time - To Time)
+    const isDateRange = type === 'leave_daily' || type === 'mission';
+    const isTimeRange = type === 'leave_hourly' || type === 'overtime' || type === 'remote_work';
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
@@ -36,9 +41,9 @@ const RequestModal: React.FC<RequestModalProps> = ({ isOpen, onClose, onSubmit }
             type,
             leaveType: (type === 'leave_hourly' || type === 'leave_daily') ? leaveType : undefined,
             startDate: toIsoDate(startDate),
-            endDate: (type === 'leave_daily' && endDate) ? toIsoDate(endDate) : undefined,
-            startTime: (type !== 'leave_daily' && type !== 'remote_work') ? startTime : undefined,
-            endTime: (type !== 'leave_daily' && type !== 'remote_work') ? endTime : undefined,
+            endDate: (isDateRange && endDate) ? toIsoDate(endDate) : undefined,
+            startTime: isTimeRange ? startTime : undefined,
+            endTime: isTimeRange ? endTime : undefined,
             destination: type === 'mission' ? destination : undefined,
             description
         });
@@ -52,9 +57,6 @@ const RequestModal: React.FC<RequestModalProps> = ({ isOpen, onClose, onSubmit }
         { id: 'overtime', label: 'اضافه کاری' },
         { id: 'remote_work', label: 'دورکاری' },
     ];
-
-    const isDateRange = type === 'leave_daily' || type === 'remote_work';
-    const isTimeRange = type === 'leave_hourly' || type === 'mission' || type === 'overtime';
 
     return (
         <div className={`fixed inset-0 z-50 ${isOpen ? '' : 'pointer-events-none'}`}>
@@ -138,7 +140,7 @@ const RequestModal: React.FC<RequestModalProps> = ({ isOpen, onClose, onSubmit }
                                         type="time" 
                                         value={startTime} 
                                         onChange={e => setStartTime(e.target.value)} 
-                                        className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600 ltr-input text-center"
+                                        className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600 ltr-input text-center [color-scheme:light] dark:[color-scheme:dark]"
                                     />
                                 </div>
                                 <div>
@@ -147,7 +149,7 @@ const RequestModal: React.FC<RequestModalProps> = ({ isOpen, onClose, onSubmit }
                                         type="time" 
                                         value={endTime} 
                                         onChange={e => setEndTime(e.target.value)} 
-                                        className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600 ltr-input text-center"
+                                        className="w-full p-2.5 bg-gray-50 border rounded-lg dark:bg-gray-700 dark:border-gray-600 ltr-input text-center [color-scheme:light] dark:[color-scheme:dark]"
                                     />
                                 </div>
                             </div>

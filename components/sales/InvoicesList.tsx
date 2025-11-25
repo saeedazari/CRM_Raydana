@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useMemo } from 'react';
 import { Invoice, InvoiceStatus, CompanyInfo } from '../../types';
 import { PlusIcon } from '../icons/PlusIcon';
@@ -78,7 +80,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ invoices, onCreateNew, onEd
                         <tr>
                             <th scope="col" className="px-4 py-3">شناسه فاکتور</th>
                             <th scope="col" className="px-4 py-3">مشتری</th>
-                            <th scope="col" className="px-4 py-3">تاریخ سررسید</th>
+                            <th scope="col" className="px-4 py-3">تاریخ صدور</th>
                             <th scope="col" className="px-4 py-3">مبلغ کل (تومان)</th>
                             <th scope="col" className="px-4 py-3 text-center">وضعیت</th>
                             <th scope="col" className="px-4 py-3 text-center">عملیات</th>
@@ -89,7 +91,7 @@ const InvoicesList: React.FC<InvoicesListProps> = ({ invoices, onCreateNew, onEd
                             <tr key={invoice.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                                 <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{invoice.id}</td>
                                 <td className="px-4 py-3">{invoice.customerName}</td>
-                                <td className="px-4 py-3">{toShamsi(invoice.dueDate)}</td>
+                                <td className="px-4 py-3">{toShamsi(invoice.issueDate)}</td>
                                 <td className="px-4 py-3">{invoice.totalAmount.toLocaleString('fa-IR')}</td>
                                 <td className="px-4 py-3 text-center">
                                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[invoice.status]}`}>{invoice.status}</span>
